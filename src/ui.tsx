@@ -1,0 +1,139 @@
+import { useEffect, type CSSProperties, type ReactNode } from 'react'
+import { A, type Assignee } from './data'
+import { useStore } from './store'
+
+export function Img({ src, size, className, style }: { src: string; size?: number; className?: string; style?: CSSProperties }) {
+  return <img src={A(src)} alt="" draggable={false} className={className} style={{ width: size, height: size, ...style }} />
+}
+
+export function Coin({ n, size = 18, className = '' }: { n: number | string; size?: number; className?: string }) {
+  return (
+    <span className={'coin ' + className}>
+      <Img src="coins/coin" size={size} />
+      <b>{n}</b>
+    </span>
+  )
+}
+
+export function Bar({ value, max = 100, color = 'var(--apricot)', thin }: { value: number; max?: number; color?: string; thin?: boolean }) {
+  return (
+    <div className={'bar' + (thin ? ' thin' : '')}>
+      <i style={{ width: `${Math.max(0, Math.min(100, (value / max) * 100))}%`, background: color }} />
+    </div>
+  )
+}
+
+export function Ava({ who, size = 24 }: { who: Assignee; size?: number }) {
+  const { profile } = useStore()
+  if (who === 'both')
+    return (
+      <span className="ava-pair">
+        <Ava who="me" size={size} />
+        <Ava who="him" size={size} />
+      </span>
+    )
+  const p = profile[who]
+  const name = p.name.trim()
+  const letter = name ? name[0].toUpperCase() : who === 'me' ? 'Я' : 'Он'
+  return (
+    <span className={'ava ava-' + who + (p.photo ? ' photo' : '')} style={{ width: size, height: size, fontSize: size * 0.42, backgroundImage: p.photo ? `url(${p.photo})` : undefined }}>
+      {!p.photo && letter}
+    </span>
+  )
+}
+
+// Имя для подписи: своё, если задано, иначе «Я» / «Он»
+export function useName() {
+  const { profile } = useStore()
+  return (who: 'me' | 'him') => profile[who].name.trim() || (who === 'me' ? 'Я' : 'Он')
+}
+
+// Уменьшает фото с телефона: квадрат для аватарки или до max по длинной стороне. Возвращает JPEG data URL.
+export async function shrinkImage(file: File, max: number, square = false): Promise<string> {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url })
+    const w = img.naturalWidth, h = img.naturalHeight
+    const c = document.createElement('canvas')
+    const ctx = c.getContext('2d')!
+    if (square) {
+      const s = Math.min(w, h)
+      c.width = c.height = Math.min(max, s)
+      ctx.drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, c.width, c.height)
+    } else {
+      const k = Math.min(1, max / Math.max(w, h))
+      c.width = Math.round(w * k); c.height = Math.round(h * k)
+      ctx.drawImage(img, 0, 0, c.width, c.height)
+    }
+    return c.toDataURL('image/jpeg', 0.82)
+  } finally { URL.revokeObjectURL(url) }
+}
+
+// Кнопка выбора фото: на iPhone открывает галерею или камеру
+export function PhotoPick({ onPick, children, className = 'btn sm soft' }: { onPick: (f: File) => void; children: ReactNode; className?: string }) {
+  return (
+    <label className={className} style={{ cursor: 'pointer' }}>
+      {children}
+      <input type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) onPick(f); e.target.value = '' }} />
+    </label>
+  )
+}
+
+export function Sheet({ open, onClose, title, icon, children, tall }: { open: boolean; onClose: () => void; title?: ReactNode; icon?: string; children: ReactNode; tall?: boolean }) {
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open])
+  if (!open) return null
+  return (
+    <div className="sheet-wrap" onClick={onClose}>
+      <div className={'sheet' + (tall ? ' tall' : '')} onClick={e => e.stopPropagation()}>
+        <div className="grip" />
+        {title && (
+          <div className="sheet-head">
+            {icon && <Img src={icon} size={44} />}
+            <h3>{title}</h3>
+            <button className="x" onClick={onClose} aria-label="Закрыть">×</button>
+          </div>
+        )}
+        <div className="sheet-body">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+export function Header({ title, sub, icon, right, onBack }: { title: ReactNode; sub?: ReactNode; icon?: string; right?: ReactNode; onBack?: () => void }) {
+  return (
+    <header className="hdr">
+      {onBack && <button className="back" onClick={onBack} aria-label="Назад">‹</button>}
+      {icon && <Img src={icon} size={44} />}
+      <div className="hdr-t">
+        <h1>{title}</h1>
+        {sub && <p>{sub}</p>}
+      </div>
+      {right}
+    </header>
+  )
+}
+
+export function Seg<T extends string>({ value, options, onChange }: { value: T; options: { id: T; name: ReactNode }[]; onChange: (v: T) => void }) {
+  return (
+    <div className="seg">
+      {options.map(o => (
+        <button key={o.id} className={o.id === value ? 'on' : ''} onClick={() => onChange(o.id)}>{o.name}</button>
+      ))}
+    </div>
+  )
+}
+
+export const plural = (n: number, one: string, few: string, many: string) => {
+  const a = Math.abs(n) % 100, b = a % 10
+  if (a > 10 && a < 20) return many
+  if (b > 1 && b < 5) return few
+  if (b === 1) return one
+  return many
+}
+
+export const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']

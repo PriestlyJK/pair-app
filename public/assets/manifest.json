@@ -1,0 +1,2925 @@
+[
+  {
+    "file": "brand/app_icon_1024.png",
+    "src": "assets_src/brand/app_icon_1024.png",
+    "class": "BG",
+    "size": 1024,
+    "section": "4.1"
+  },
+  {
+    "file": "brand/apple-touch-icon.png",
+    "src": "assets_src/brand/app_icon_1024.png",
+    "class": "BG",
+    "size": 180,
+    "section": "4.1",
+    "derived_from": "brand/app_icon_1024.png"
+  },
+  {
+    "file": "brand/icon-192.png",
+    "src": "assets_src/brand/app_icon_1024.png",
+    "class": "BG",
+    "size": 192,
+    "section": "4.1",
+    "derived_from": "brand/app_icon_1024.png"
+  },
+  {
+    "file": "brand/icon-512.png",
+    "src": "assets_src/brand/app_icon_1024.png",
+    "class": "BG",
+    "size": 512,
+    "section": "4.1",
+    "derived_from": "brand/app_icon_1024.png"
+  },
+  {
+    "file": "brand/icon-maskable-512.png",
+    "src": "assets_src/brand/icon-maskable-512.png",
+    "class": "BG",
+    "size": 512,
+    "section": "4.1",
+    "derived_from": "brand/app_icon_1024.png",
+    "safe_zone": 0.8
+  },
+  {
+    "file": "brand/logo_mark.webp",
+    "src": "assets_src/brand/logo_mark.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.1"
+  },
+  {
+    "file": "brand/splash.webp",
+    "src": "assets_src/brand/splash.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.1"
+  },
+  {
+    "file": "coins/coin.webp",
+    "src": "assets_src/coins/coin.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/coin_pile.webp",
+    "src": "assets_src/coins/coin_pile.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/coin_pouch.webp",
+    "src": "assets_src/coins/coin_pouch.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/coin_sparkle.webp",
+    "src": "assets_src/coins/coin_sparkle.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/coin_stack_l.webp",
+    "src": "assets_src/coins/coin_stack_l.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/coin_stack_s.webp",
+    "src": "assets_src/coins/coin_stack_s.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/savings_jar_0.webp",
+    "src": "assets_src/coins/savings_jar_0.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/savings_jar_1.webp",
+    "src": "assets_src/coins/savings_jar_1.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/savings_jar_2.webp",
+    "src": "assets_src/coins/savings_jar_2.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/savings_jar_3.webp",
+    "src": "assets_src/coins/savings_jar_3.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.2"
+  },
+  {
+    "file": "coins/wallet.webp",
+    "src": "assets_src/coins/wallet.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.2"
+  },
+  {
+    "file": "nav/board.webp",
+    "src": "assets_src/nav/board.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.3"
+  },
+  {
+    "file": "nav/calendar.webp",
+    "src": "assets_src/nav/calendar.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.3"
+  },
+  {
+    "file": "nav/cheatsheet.webp",
+    "src": "assets_src/nav/cheatsheet.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.3"
+  },
+  {
+    "file": "nav/home.webp",
+    "src": "assets_src/nav/home.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.3"
+  },
+  {
+    "file": "nav/shop.webp",
+    "src": "assets_src/nav/shop.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.3"
+  },
+  {
+    "file": "nav/together.webp",
+    "src": "assets_src/nav/together.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.3"
+  },
+  {
+    "file": "common/bell.webp",
+    "src": "assets_src/common/bell.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/camera.webp",
+    "src": "assets_src/common/camera.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/check_cookie.webp",
+    "src": "assets_src/common/check_cookie.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/cloud.webp",
+    "src": "assets_src/common/cloud.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/cross_badge.webp",
+    "src": "assets_src/common/cross_badge.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/dice_d20.webp",
+    "src": "assets_src/common/dice_d20.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.4"
+  },
+  {
+    "file": "common/dice_d20_tumble.webp",
+    "src": "assets_src/common/dice_d20_tumble.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.4"
+  },
+  {
+    "file": "common/envelope.webp",
+    "src": "assets_src/common/envelope.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/flame.webp",
+    "src": "assets_src/common/flame.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/gift.webp",
+    "src": "assets_src/common/gift.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/heart.webp",
+    "src": "assets_src/common/heart.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/heart_pale.webp",
+    "src": "assets_src/common/heart_pale.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/hourglass.webp",
+    "src": "assets_src/common/hourglass.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/leaf.webp",
+    "src": "assets_src/common/leaf.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/lock.webp",
+    "src": "assets_src/common/lock.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/moon.webp",
+    "src": "assets_src/common/moon.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/pot.webp",
+    "src": "assets_src/common/pot.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/raincloud.webp",
+    "src": "assets_src/common/raincloud.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/sparkle.webp",
+    "src": "assets_src/common/sparkle.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/speech_heart.webp",
+    "src": "assets_src/common/speech_heart.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/sprout.webp",
+    "src": "assets_src/common/sprout.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/star.webp",
+    "src": "assets_src/common/star.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/star_pale.webp",
+    "src": "assets_src/common/star_pale.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/sun.webp",
+    "src": "assets_src/common/sun.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "common/trophy.webp",
+    "src": "assets_src/common/trophy.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.4"
+  },
+  {
+    "file": "common/two_hearts.webp",
+    "src": "assets_src/common/two_hearts.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.4"
+  },
+  {
+    "file": "tracker/all_done.webp",
+    "src": "assets_src/tracker/all_done.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/carried_over.webp",
+    "src": "assets_src/tracker/carried_over.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/col_backlog.webp",
+    "src": "assets_src/tracker/col_backlog.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/col_todo.webp",
+    "src": "assets_src/tracker/col_todo.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/deadline.webp",
+    "src": "assets_src/tracker/deadline.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/empty_board.webp",
+    "src": "assets_src/tracker/empty_board.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/epic_done.webp",
+    "src": "assets_src/tracker/epic_done.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/labels/label_custom.webp",
+    "src": "assets_src/tracker/labels/label_custom.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/labels/label_health.webp",
+    "src": "assets_src/tracker/labels/label_health.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/labels/label_study.webp",
+    "src": "assets_src/tracker/labels/label_study.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/labels/label_trip.webp",
+    "src": "assets_src/tracker/labels/label_trip.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/labels/label_us.webp",
+    "src": "assets_src/tracker/labels/label_us.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/labels/label_work.webp",
+    "src": "assets_src/tracker/labels/label_work.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/overdue.webp",
+    "src": "assets_src/tracker/overdue.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/prio_low.webp",
+    "src": "assets_src/tracker/prio_low.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/sprint_podium.webp",
+    "src": "assets_src/tracker/sprint_podium.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/sprint_start.webp",
+    "src": "assets_src/tracker/sprint_start.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/type_date.webp",
+    "src": "assets_src/tracker/type_date.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/type_epic.webp",
+    "src": "assets_src/tracker/type_epic.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/type_task.webp",
+    "src": "assets_src/tracker/type_task.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "tracker/type_wish.webp",
+    "src": "assets_src/tracker/type_wish.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.5"
+  },
+  {
+    "file": "pet/british_blue/baby_idle.webp",
+    "src": "assets_src/pet/british_blue/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/british_chocolate/baby_idle.webp",
+    "src": "assets_src/pet/british_chocolate/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/british_cream/baby_idle.webp",
+    "src": "assets_src/pet/british_cream/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/corgi_red_white/baby_idle.webp",
+    "src": "assets_src/pet/corgi_red_white/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/corgi_tricolor/baby_idle.webp",
+    "src": "assets_src/pet/corgi_tricolor/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/dachshund_black_tan/baby_idle.webp",
+    "src": "assets_src/pet/dachshund_black_tan/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/dachshund_red/baby_idle.webp",
+    "src": "assets_src/pet/dachshund_red/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/domestic_calico/baby_idle.webp",
+    "src": "assets_src/pet/domestic_calico/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_idle.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_grey_tabby/baby_idle.webp",
+    "src": "assets_src/pet/domestic_grey_tabby/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_tuxedo/baby_idle.webp",
+    "src": "assets_src/pet/domestic_tuxedo/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/golden_cream/baby_idle.webp",
+    "src": "assets_src/pet/golden_cream/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/golden_golden/baby_idle.webp",
+    "src": "assets_src/pet/golden_golden/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/husky_grey_white/baby_idle.webp",
+    "src": "assets_src/pet/husky_grey_white/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/husky_red_white/baby_idle.webp",
+    "src": "assets_src/pet/husky_red_white/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/jack_tricolor/baby_idle.webp",
+    "src": "assets_src/pet/jack_tricolor/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/jack_white_tan/baby_idle.webp",
+    "src": "assets_src/pet/jack_white_tan/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/mainecoon_black/baby_idle.webp",
+    "src": "assets_src/pet/mainecoon_black/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/mainecoon_red_tabby/baby_idle.webp",
+    "src": "assets_src/pet/mainecoon_red_tabby/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/mainecoon_silver_tabby/baby_idle.webp",
+    "src": "assets_src/pet/mainecoon_silver_tabby/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/pug_black/baby_idle.webp",
+    "src": "assets_src/pet/pug_black/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/pug_fawn/baby_idle.webp",
+    "src": "assets_src/pet/pug_fawn/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/scottish_golden/baby_idle.webp",
+    "src": "assets_src/pet/scottish_golden/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/scottish_grey/baby_idle.webp",
+    "src": "assets_src/pet/scottish_grey/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/scottish_white/baby_idle.webp",
+    "src": "assets_src/pet/scottish_white/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/selection/basket_closed.webp",
+    "src": "assets_src/pet/selection/basket_closed.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6"
+  },
+  {
+    "file": "pet/selection/basket_open.webp",
+    "src": "assets_src/pet/selection/basket_open.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6"
+  },
+  {
+    "file": "pet/selection/card_back.webp",
+    "src": "assets_src/pet/selection/card_back.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.6"
+  },
+  {
+    "file": "pet/selection/species_cat.webp",
+    "src": "assets_src/pet/selection/species_cat.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.6"
+  },
+  {
+    "file": "pet/selection/species_dog.webp",
+    "src": "assets_src/pet/selection/species_dog.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.6"
+  },
+  {
+    "file": "pet/siamese_blue/baby_idle.webp",
+    "src": "assets_src/pet/siamese_blue/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/siamese_seal/baby_idle.webp",
+    "src": "assets_src/pet/siamese_seal/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/sphynx_grey/baby_idle.webp",
+    "src": "assets_src/pet/sphynx_grey/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/sphynx_pink/baby_idle.webp",
+    "src": "assets_src/pet/sphynx_pink/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/spitz_cream/baby_idle.webp",
+    "src": "assets_src/pet/spitz_cream/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/spitz_orange/baby_idle.webp",
+    "src": "assets_src/pet/spitz_orange/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/spitz_white/baby_idle.webp",
+    "src": "assets_src/pet/spitz_white/baby_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.6",
+    "pose": "idle",
+    "stage": "baby",
+    "species": "dog"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_celebrate.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_celebrate.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "celebrate",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_eat.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_eat.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "eat",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_happy.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_happy.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "happy",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_head.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_head.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.7",
+    "pose": "head",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_idle.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_idle.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "idle",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_miss.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_miss.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "miss",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_play.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_play.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "play",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_sad.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_sad.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "sad",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/adult_sleep.webp",
+    "src": "assets_src/pet/domestic_ginger/adult_sleep.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "sleep",
+    "stage": "adult",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_celebrate.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_celebrate.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "celebrate",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_eat.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_eat.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "eat",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_happy.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_happy.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "happy",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_head.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_head.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.7",
+    "pose": "head",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_miss.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_miss.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "miss",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_play.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_play.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "play",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_sad.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_sad.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "sad",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/domestic_ginger/baby_sleep.webp",
+    "src": "assets_src/pet/domestic_ginger/baby_sleep.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.7",
+    "pose": "sleep",
+    "stage": "baby",
+    "species": "cat"
+  },
+  {
+    "file": "pet/effects/fx_hearts.webp",
+    "src": "assets_src/pet/effects/fx_hearts.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.8"
+  },
+  {
+    "file": "pet/effects/fx_hunger_bubble.webp",
+    "src": "assets_src/pet/effects/fx_hunger_bubble.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.8"
+  },
+  {
+    "file": "pet/effects/fx_sparkles.webp",
+    "src": "assets_src/pet/effects/fx_sparkles.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.8"
+  },
+  {
+    "file": "pet/ui/away_bed.webp",
+    "src": "assets_src/pet/ui/away_bed.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.8"
+  },
+  {
+    "file": "pet/ui/grew_up.webp",
+    "src": "assets_src/pet/ui/grew_up.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.8"
+  },
+  {
+    "file": "pet/ui/level_badge.webp",
+    "src": "assets_src/pet/ui/level_badge.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.8"
+  },
+  {
+    "file": "shop/food/bowl_basic.webp",
+    "src": "assets_src/shop/food/bowl_basic.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.9",
+    "price": 5
+  },
+  {
+    "file": "shop/food/bowl_empty.webp",
+    "src": "assets_src/shop/food/bowl_empty.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.9"
+  },
+  {
+    "file": "shop/food/treat_bone.webp",
+    "src": "assets_src/shop/food/treat_bone.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.9",
+    "price": 15
+  },
+  {
+    "file": "shop/food/treat_cheese.webp",
+    "src": "assets_src/shop/food/treat_cheese.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.9",
+    "price": 20
+  },
+  {
+    "file": "shop/food/treat_cupcake.webp",
+    "src": "assets_src/shop/food/treat_cupcake.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.9",
+    "price": 40
+  },
+  {
+    "file": "shop/food/treat_fish.webp",
+    "src": "assets_src/shop/food/treat_fish.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.9",
+    "price": 15
+  },
+  {
+    "file": "shop/food/treat_milk.webp",
+    "src": "assets_src/shop/food/treat_milk.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.9",
+    "price": 25
+  },
+  {
+    "file": "shop/food/treat_strawberry.webp",
+    "src": "assets_src/shop/food/treat_strawberry.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.9",
+    "price": 20
+  },
+  {
+    "file": "shop/toys/ball.webp",
+    "src": "assets_src/shop/toys/ball.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.10",
+    "price": 40
+  },
+  {
+    "file": "shop/toys/bell_ball.webp",
+    "src": "assets_src/shop/toys/bell_ball.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.10",
+    "price": 50
+  },
+  {
+    "file": "shop/toys/frisbee.webp",
+    "src": "assets_src/shop/toys/frisbee.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.10",
+    "price": 60
+  },
+  {
+    "file": "shop/toys/mouse.webp",
+    "src": "assets_src/shop/toys/mouse.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.10",
+    "price": 45
+  },
+  {
+    "file": "shop/toys/squeaky_bone.webp",
+    "src": "assets_src/shop/toys/squeaky_bone.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.10",
+    "price": 55
+  },
+  {
+    "file": "shop/toys/teaser.webp",
+    "src": "assets_src/shop/toys/teaser.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.10",
+    "price": 70
+  },
+  {
+    "file": "shop/toys/teddy.webp",
+    "src": "assets_src/shop/toys/teddy.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.10",
+    "price": 80
+  },
+  {
+    "file": "shop/toys/yarn.webp",
+    "src": "assets_src/shop/toys/yarn.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.10",
+    "price": 50
+  },
+  {
+    "file": "shop/accessories/acc_bandana.webp",
+    "src": "assets_src/shop/accessories/acc_bandana.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 140,
+    "slot": "neck"
+  },
+  {
+    "file": "shop/accessories/acc_beanie.webp",
+    "src": "assets_src/shop/accessories/acc_beanie.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 180,
+    "slot": "head"
+  },
+  {
+    "file": "shop/accessories/acc_bell_collar.webp",
+    "src": "assets_src/shop/accessories/acc_bell_collar.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 120,
+    "slot": "neck"
+  },
+  {
+    "file": "shop/accessories/acc_bow.webp",
+    "src": "assets_src/shop/accessories/acc_bow.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 100,
+    "slot": "head"
+  },
+  {
+    "file": "shop/accessories/acc_bowtie.webp",
+    "src": "assets_src/shop/accessories/acc_bowtie.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 150,
+    "slot": "neck"
+  },
+  {
+    "file": "shop/accessories/acc_bucket_hat.webp",
+    "src": "assets_src/shop/accessories/acc_bucket_hat.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 200,
+    "slot": "head"
+  },
+  {
+    "file": "shop/accessories/acc_bunny_ears.webp",
+    "src": "assets_src/shop/accessories/acc_bunny_ears.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 230,
+    "slot": "head"
+  },
+  {
+    "file": "shop/accessories/acc_flower_crown.webp",
+    "src": "assets_src/shop/accessories/acc_flower_crown.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 180,
+    "slot": "head"
+  },
+  {
+    "file": "shop/accessories/acc_glasses.webp",
+    "src": "assets_src/shop/accessories/acc_glasses.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 220,
+    "slot": "face"
+  },
+  {
+    "file": "shop/accessories/acc_leaf.webp",
+    "src": "assets_src/shop/accessories/acc_leaf.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 110,
+    "slot": "head"
+  },
+  {
+    "file": "shop/accessories/acc_party_hat.webp",
+    "src": "assets_src/shop/accessories/acc_party_hat.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 250,
+    "slot": "head"
+  },
+  {
+    "file": "shop/accessories/acc_rare_gold_collar.webp",
+    "src": "assets_src/shop/accessories/acc_rare_gold_collar.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "slot": "neck"
+  },
+  {
+    "file": "shop/accessories/acc_rare_heart_glasses.webp",
+    "src": "assets_src/shop/accessories/acc_rare_heart_glasses.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "slot": "face"
+  },
+  {
+    "file": "shop/accessories/acc_rare_rainbow_scarf.webp",
+    "src": "assets_src/shop/accessories/acc_rare_rainbow_scarf.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "slot": "neck"
+  },
+  {
+    "file": "shop/accessories/acc_rare_star_beanie.webp",
+    "src": "assets_src/shop/accessories/acc_rare_star_beanie.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "slot": "head"
+  },
+  {
+    "file": "shop/accessories/acc_rare_wings.webp",
+    "src": "assets_src/shop/accessories/acc_rare_wings.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "slot": "back"
+  },
+  {
+    "file": "shop/accessories/acc_scarf.webp",
+    "src": "assets_src/shop/accessories/acc_scarf.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "price": 140,
+    "slot": "neck"
+  },
+  {
+    "file": "shop/accessories/crown.webp",
+    "src": "assets_src/shop/accessories/crown.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.11",
+    "slot": "head"
+  },
+  {
+    "file": "shop/furniture/aquarium.webp",
+    "src": "assets_src/shop/furniture/aquarium.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 550,
+    "slot": "floor_right"
+  },
+  {
+    "file": "shop/furniture/armchair.webp",
+    "src": "assets_src/shop/furniture/armchair.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 500,
+    "slot": "floor_back"
+  },
+  {
+    "file": "shop/furniture/bed.webp",
+    "src": "assets_src/shop/furniture/bed.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 300,
+    "slot": "bed"
+  },
+  {
+    "file": "shop/furniture/blanket.webp",
+    "src": "assets_src/shop/furniture/blanket.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 240,
+    "slot": "floor_left"
+  },
+  {
+    "file": "shop/furniture/bookshelf.webp",
+    "src": "assets_src/shop/furniture/bookshelf.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 300,
+    "slot": "wall_right"
+  },
+  {
+    "file": "shop/furniture/clock.webp",
+    "src": "assets_src/shop/furniture/clock.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 350,
+    "slot": "wall_right"
+  },
+  {
+    "file": "shop/furniture/curtains.webp",
+    "src": "assets_src/shop/furniture/curtains.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 230,
+    "slot": "window"
+  },
+  {
+    "file": "shop/furniture/garland.webp",
+    "src": "assets_src/shop/furniture/garland.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 320,
+    "slot": "wall_top"
+  },
+  {
+    "file": "shop/furniture/house.webp",
+    "src": "assets_src/shop/furniture/house.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 600,
+    "slot": "floor_back"
+  },
+  {
+    "file": "shop/furniture/night_light.webp",
+    "src": "assets_src/shop/furniture/night_light.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 260,
+    "slot": "sill"
+  },
+  {
+    "file": "shop/furniture/photo_frame.webp",
+    "src": "assets_src/shop/furniture/photo_frame.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 250,
+    "slot": "wall_left",
+    "photo_rect": {
+      "x": 0.32,
+      "y": 0.47,
+      "w": 0.36,
+      "h": 0.32
+    }
+  },
+  {
+    "file": "shop/furniture/pillow.webp",
+    "src": "assets_src/shop/furniture/pillow.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 220,
+    "slot": "bed"
+  },
+  {
+    "file": "shop/furniture/plant.webp",
+    "src": "assets_src/shop/furniture/plant.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 220,
+    "slot": "sill"
+  },
+  {
+    "file": "shop/furniture/rug.webp",
+    "src": "assets_src/shop/furniture/rug.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 200,
+    "slot": "rug"
+  },
+  {
+    "file": "shop/furniture/scratcher.webp",
+    "src": "assets_src/shop/furniture/scratcher.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 400,
+    "slot": "floor_back"
+  },
+  {
+    "file": "shop/furniture/toy_basket.webp",
+    "src": "assets_src/shop/furniture/toy_basket.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.12",
+    "price": 280,
+    "slot": "floor_right"
+  },
+  {
+    "file": "pet/room/room_day.webp",
+    "src": "assets_src/pet/room/room_day.png",
+    "class": "BG",
+    "size": [
+      1024,
+      1536
+    ],
+    "section": "4.13"
+  },
+  {
+    "file": "pet/room/room_evening.webp",
+    "src": "assets_src/pet/room/room_evening.png",
+    "class": "BG",
+    "size": [
+      1024,
+      1536
+    ],
+    "section": "4.13"
+  },
+  {
+    "file": "pet/room/room_night.webp",
+    "src": "assets_src/pet/room/room_night.png",
+    "class": "BG",
+    "size": [
+      1024,
+      1536
+    ],
+    "section": "4.13"
+  },
+  {
+    "file": "shop/coupons/coupon_large.webp",
+    "src": "assets_src/shop/coupons/coupon_large.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.14"
+  },
+  {
+    "file": "shop/coupons/coupon_medium.webp",
+    "src": "assets_src/shop/coupons/coupon_medium.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.14"
+  },
+  {
+    "file": "shop/coupons/coupon_small.webp",
+    "src": "assets_src/shop/coupons/coupon_small.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.14"
+  },
+  {
+    "file": "shop/coupons/coupon_used_stamp.webp",
+    "src": "assets_src/shop/coupons/coupon_used_stamp.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.14"
+  },
+  {
+    "file": "shop/coupons/cpn_breakfast.webp",
+    "src": "assets_src/shop/coupons/cpn_breakfast.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.14"
+  },
+  {
+    "file": "shop/coupons/cpn_massage.webp",
+    "src": "assets_src/shop/coupons/cpn_massage.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.14"
+  },
+  {
+    "file": "shop/coupons/inventory.webp",
+    "src": "assets_src/shop/coupons/inventory.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.14"
+  },
+  {
+    "file": "shop/coupons/second_pet.webp",
+    "src": "assets_src/shop/coupons/second_pet.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.14"
+  },
+  {
+    "file": "cheatsheet/dreams/dream_big.webp",
+    "src": "assets_src/cheatsheet/dreams/dream_big.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/dreams/dream_learn.webp",
+    "src": "assets_src/cheatsheet/dreams/dream_learn.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/dreams/dream_travel.webp",
+    "src": "assets_src/cheatsheet/dreams/dream_travel.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/emotions/emo_calm.webp",
+    "src": "assets_src/cheatsheet/emotions/emo_calm.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/emotions/emo_joys.webp",
+    "src": "assets_src/cheatsheet/emotions/emo_joys.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/emotions/emo_no_jokes.webp",
+    "src": "assets_src/cheatsheet/emotions/emo_no_jokes.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/emotions/emo_support.webp",
+    "src": "assets_src/cheatsheet/emotions/emo_support.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/emotions/ll_time.webp",
+    "src": "assets_src/cheatsheet/emotions/ll_time.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/food/food_coffee.webp",
+    "src": "assets_src/cheatsheet/food/food_coffee.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/food/food_drinks.webp",
+    "src": "assets_src/cheatsheet/food/food_drinks.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/food/food_fastfood.webp",
+    "src": "assets_src/cheatsheet/food/food_fastfood.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/food/food_hate.webp",
+    "src": "assets_src/cheatsheet/food/food_hate.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/food/food_love.webp",
+    "src": "assets_src/cheatsheet/food/food_love.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/food/food_snacks.webp",
+    "src": "assets_src/cheatsheet/food/food_snacks.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/food/food_sushi.webp",
+    "src": "assets_src/cheatsheet/food/food_sushi.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/food/food_sweets.webp",
+    "src": "assets_src/cheatsheet/food/food_sweets.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/gifts/gift_brands.webp",
+    "src": "assets_src/cheatsheet/gifts/gift_brands.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/gifts/gift_colors.webp",
+    "src": "assets_src/cheatsheet/gifts/gift_colors.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/gifts/gift_flowers.webp",
+    "src": "assets_src/cheatsheet/gifts/gift_flowers.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/gifts/gift_has.webp",
+    "src": "assets_src/cheatsheet/gifts/gift_has.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/gifts/gift_jewelry.webp",
+    "src": "assets_src/cheatsheet/gifts/gift_jewelry.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/gifts/gift_no.webp",
+    "src": "assets_src/cheatsheet/gifts/gift_no.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/gifts/gift_scents.webp",
+    "src": "assets_src/cheatsheet/gifts/gift_scents.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/field_bring.webp",
+    "src": "assets_src/cheatsheet/health/field_bring.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/field_delivery.webp",
+    "src": "assets_src/cheatsheet/health/field_delivery.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/field_doctor.webp",
+    "src": "assets_src/cheatsheet/health/field_doctor.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/field_helps.webp",
+    "src": "assets_src/cheatsheet/health/field_helps.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/field_meds.webp",
+    "src": "assets_src/cheatsheet/health/field_meds.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/home_kit.webp",
+    "src": "assets_src/cheatsheet/health/home_kit.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/med_allergy.webp",
+    "src": "assets_src/cheatsheet/health/med_allergy.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/med_bad_reaction.webp",
+    "src": "assets_src/cheatsheet/health/med_bad_reaction.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/med_blood.webp",
+    "src": "assets_src/cheatsheet/health/med_blood.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/med_chronic.webp",
+    "src": "assets_src/cheatsheet/health/med_chronic.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/med_doctors.webp",
+    "src": "assets_src/cheatsheet/health/med_doctors.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/med_emergency.webp",
+    "src": "assets_src/cheatsheet/health/med_emergency.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/med_intolerance.webp",
+    "src": "assets_src/cheatsheet/health/med_intolerance.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/med_regular.webp",
+    "src": "assets_src/cheatsheet/health/med_regular.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/health/near_alone.webp",
+    "src": "assets_src/cheatsheet/health/near_alone.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/people/ppl_birthday.webp",
+    "src": "assets_src/cheatsheet/people/ppl_birthday.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/people/ppl_colleagues.webp",
+    "src": "assets_src/cheatsheet/people/ppl_colleagues.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/people/ppl_friends.webp",
+    "src": "assets_src/cheatsheet/people/ppl_friends.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/people/ppl_parents.webp",
+    "src": "assets_src/cheatsheet/people/ppl_parents.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sec_custom.webp",
+    "src": "assets_src/cheatsheet/sec_custom.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sec_dreams.webp",
+    "src": "assets_src/cheatsheet/sec_dreams.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sec_emotions.webp",
+    "src": "assets_src/cheatsheet/sec_emotions.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sec_food.webp",
+    "src": "assets_src/cheatsheet/sec_food.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sec_health.webp",
+    "src": "assets_src/cheatsheet/sec_health.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sec_people.webp",
+    "src": "assets_src/cheatsheet/sec_people.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sec_sizes.webp",
+    "src": "assets_src/cheatsheet/sec_sizes.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sec_tastes.webp",
+    "src": "assets_src/cheatsheet/sec_tastes.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_anger.webp",
+    "src": "assets_src/cheatsheet/situations/sit_anger.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_anxiety.webp",
+    "src": "assets_src/cheatsheet/situations/sit_anxiety.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_back.webp",
+    "src": "assets_src/cheatsheet/situations/sit_back.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_burnout.webp",
+    "src": "assets_src/cheatsheet/situations/sit_burnout.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_fever.webp",
+    "src": "assets_src/cheatsheet/situations/sit_fever.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_hangover.webp",
+    "src": "assets_src/cheatsheet/situations/sit_hangover.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_headache.webp",
+    "src": "assets_src/cheatsheet/situations/sit_headache.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_injury.webp",
+    "src": "assets_src/cheatsheet/situations/sit_injury.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_insomnia.webp",
+    "src": "assets_src/cheatsheet/situations/sit_insomnia.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_overwhelmed.webp",
+    "src": "assets_src/cheatsheet/situations/sit_overwhelmed.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_period.webp",
+    "src": "assets_src/cheatsheet/situations/sit_period.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_pms.webp",
+    "src": "assets_src/cheatsheet/situations/sit_pms.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_stomach.webp",
+    "src": "assets_src/cheatsheet/situations/sit_stomach.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_throat.webp",
+    "src": "assets_src/cheatsheet/situations/sit_throat.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/situations/sit_tooth.webp",
+    "src": "assets_src/cheatsheet/situations/sit_tooth.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sizes/size_bottom.webp",
+    "src": "assets_src/cheatsheet/sizes/size_bottom.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sizes/size_gloves.webp",
+    "src": "assets_src/cheatsheet/sizes/size_gloves.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sizes/size_ring.webp",
+    "src": "assets_src/cheatsheet/sizes/size_ring.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sizes/size_shoes.webp",
+    "src": "assets_src/cheatsheet/sizes/size_shoes.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sizes/size_socks.webp",
+    "src": "assets_src/cheatsheet/sizes/size_socks.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sizes/size_top.webp",
+    "src": "assets_src/cheatsheet/sizes/size_top.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/sizes/size_underwear.webp",
+    "src": "assets_src/cheatsheet/sizes/size_underwear.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/suggest.webp",
+    "src": "assets_src/cheatsheet/suggest.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/tastes/taste_books.webp",
+    "src": "assets_src/cheatsheet/tastes/taste_books.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/tastes/taste_games.webp",
+    "src": "assets_src/cheatsheet/tastes/taste_games.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/tastes/taste_hobby.webp",
+    "src": "assets_src/cheatsheet/tastes/taste_hobby.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "cheatsheet/tastes/taste_music.webp",
+    "src": "assets_src/cheatsheet/tastes/taste_music.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.15"
+  },
+  {
+    "file": "meetings/meet_button.webp",
+    "src": "assets_src/meetings/meet_button.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.16"
+  },
+  {
+    "file": "meetings/meet_counter.webp",
+    "src": "assets_src/meetings/meet_counter.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.16"
+  },
+  {
+    "file": "meetings/meet_empty.webp",
+    "src": "assets_src/meetings/meet_empty.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.16"
+  },
+  {
+    "file": "meetings/meet_place.webp",
+    "src": "assets_src/meetings/meet_place.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.16"
+  },
+  {
+    "file": "touches/call_me.webp",
+    "src": "assets_src/touches/call_me.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.17"
+  },
+  {
+    "file": "touches/good_morning.webp",
+    "src": "assets_src/touches/good_morning.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.17"
+  },
+  {
+    "file": "touches/good_night.webp",
+    "src": "assets_src/touches/good_night.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.17"
+  },
+  {
+    "file": "touches/hug.webp",
+    "src": "assets_src/touches/hug.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.17"
+  },
+  {
+    "file": "touches/kiss.webp",
+    "src": "assets_src/touches/kiss.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.17"
+  },
+  {
+    "file": "touches/miss_you.webp",
+    "src": "assets_src/touches/miss_you.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.17"
+  },
+  {
+    "file": "touches/proud.webp",
+    "src": "assets_src/touches/proud.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.17"
+  },
+  {
+    "file": "touches/touch_button.webp",
+    "src": "assets_src/touches/touch_button.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.17"
+  },
+  {
+    "file": "photo/photo_empty.webp",
+    "src": "assets_src/photo/photo_empty.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.18"
+  },
+  {
+    "file": "calendar/energy/energy_1.webp",
+    "src": "assets_src/calendar/energy/energy_1.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/energy/energy_2.webp",
+    "src": "assets_src/calendar/energy/energy_2.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/energy/energy_3.webp",
+    "src": "assets_src/calendar/energy/energy_3.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/energy/energy_4.webp",
+    "src": "assets_src/calendar/energy/energy_4.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/energy/energy_5.webp",
+    "src": "assets_src/calendar/energy/energy_5.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/months/m01.webp",
+    "src": "assets_src/calendar/months/m01.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m02.webp",
+    "src": "assets_src/calendar/months/m02.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m03.webp",
+    "src": "assets_src/calendar/months/m03.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m04.webp",
+    "src": "assets_src/calendar/months/m04.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m05.webp",
+    "src": "assets_src/calendar/months/m05.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m06.webp",
+    "src": "assets_src/calendar/months/m06.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m07.webp",
+    "src": "assets_src/calendar/months/m07.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m08.webp",
+    "src": "assets_src/calendar/months/m08.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m09.webp",
+    "src": "assets_src/calendar/months/m09.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m10.webp",
+    "src": "assets_src/calendar/months/m10.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m11.webp",
+    "src": "assets_src/calendar/months/m11.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/months/m12.webp",
+    "src": "assets_src/calendar/months/m12.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.19",
+    "optional": true
+  },
+  {
+    "file": "calendar/mood/mood_angry.webp",
+    "src": "assets_src/calendar/mood/mood_angry.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/mood/mood_anxious.webp",
+    "src": "assets_src/calendar/mood/mood_anxious.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/mood/mood_calm.webp",
+    "src": "assets_src/calendar/mood/mood_calm.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/mood/mood_good.webp",
+    "src": "assets_src/calendar/mood/mood_good.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/mood/mood_great.webp",
+    "src": "assets_src/calendar/mood/mood_great.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/mood/mood_meh.webp",
+    "src": "assets_src/calendar/mood/mood_meh.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/mood/mood_sad.webp",
+    "src": "assets_src/calendar/mood/mood_sad.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/mood/mood_tired.webp",
+    "src": "assets_src/calendar/mood/mood_tired.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/needs/need_attention.webp",
+    "src": "assets_src/calendar/needs/need_attention.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/needs/need_distract.webp",
+    "src": "assets_src/calendar/needs/need_distract.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "calendar/needs/need_listen.webp",
+    "src": "assets_src/calendar/needs/need_listen.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.19"
+  },
+  {
+    "file": "cycle/flow_heavy.webp",
+    "src": "assets_src/cycle/flow_heavy.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/flow_light.webp",
+    "src": "assets_src/cycle/flow_light.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/flow_medium.webp",
+    "src": "assets_src/cycle/flow_medium.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/flow_spotting.webp",
+    "src": "assets_src/cycle/flow_spotting.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/phase_follicular.webp",
+    "src": "assets_src/cycle/phase_follicular.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/phase_menstrual.webp",
+    "src": "assets_src/cycle/phase_menstrual.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/phase_ovulation.webp",
+    "src": "assets_src/cycle/phase_ovulation.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/sex.webp",
+    "src": "assets_src/cycle/sex.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/sex_protected.webp",
+    "src": "assets_src/cycle/sex_protected.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_acne.webp",
+    "src": "assets_src/cycle/symptoms/sym_acne.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_bloating.webp",
+    "src": "assets_src/cycle/symptoms/sym_bloating.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_breasts.webp",
+    "src": "assets_src/cycle/symptoms/sym_breasts.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_cravings.webp",
+    "src": "assets_src/cycle/symptoms/sym_cravings.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_discharge.webp",
+    "src": "assets_src/cycle/symptoms/sym_discharge.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_energy.webp",
+    "src": "assets_src/cycle/symptoms/sym_energy.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_libido.webp",
+    "src": "assets_src/cycle/symptoms/sym_libido.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_mood_swings.webp",
+    "src": "assets_src/cycle/symptoms/sym_mood_swings.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "cycle/symptoms/sym_swelling.webp",
+    "src": "assets_src/cycle/symptoms/sym_swelling.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.20"
+  },
+  {
+    "file": "dates/date_anniversary.webp",
+    "src": "assets_src/dates/date_anniversary.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.21"
+  },
+  {
+    "file": "dates/date_holiday.webp",
+    "src": "assets_src/dates/date_holiday.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.21"
+  },
+  {
+    "file": "dates/date_monthiversary.webp",
+    "src": "assets_src/dates/date_monthiversary.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.21"
+  },
+  {
+    "file": "watchlist/empty_watchlist.webp",
+    "src": "assets_src/watchlist/empty_watchlist.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.22"
+  },
+  {
+    "file": "watchlist/movie.webp",
+    "src": "assets_src/watchlist/movie.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.22"
+  },
+  {
+    "file": "watchlist/poster_placeholder.webp",
+    "src": "assets_src/watchlist/poster_placeholder.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.22"
+  },
+  {
+    "file": "watchlist/randomizer.webp",
+    "src": "assets_src/watchlist/randomizer.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.22"
+  },
+  {
+    "file": "watchlist/series.webp",
+    "src": "assets_src/watchlist/series.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.22"
+  },
+  {
+    "file": "watchlist/status_watched.webp",
+    "src": "assets_src/watchlist/status_watched.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.22"
+  },
+  {
+    "file": "watchlist/status_watching.webp",
+    "src": "assets_src/watchlist/status_watching.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.22"
+  },
+  {
+    "file": "watchlist/vote_maybe.webp",
+    "src": "assets_src/watchlist/vote_maybe.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.22"
+  },
+  {
+    "file": "wishlist/empty_wishlist.webp",
+    "src": "assets_src/wishlist/empty_wishlist.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.23"
+  },
+  {
+    "file": "wishlist/gifted.webp",
+    "src": "assets_src/wishlist/gifted.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.23"
+  },
+  {
+    "file": "wishlist/reserved.webp",
+    "src": "assets_src/wishlist/reserved.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.23"
+  },
+  {
+    "file": "wishlist/wishlist.webp",
+    "src": "assets_src/wishlist/wishlist.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.23"
+  },
+  {
+    "file": "bucket/album.webp",
+    "src": "assets_src/bucket/album.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.24"
+  },
+  {
+    "file": "bucket/bucket.webp",
+    "src": "assets_src/bucket/bucket.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.24"
+  },
+  {
+    "file": "bucket/done_stamp.webp",
+    "src": "assets_src/bucket/done_stamp.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.24"
+  },
+  {
+    "file": "bucket/empty_bucket.webp",
+    "src": "assets_src/bucket/empty_bucket.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.24"
+  },
+  {
+    "file": "memory/capsule_closed.webp",
+    "src": "assets_src/memory/capsule_closed.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.25"
+  },
+  {
+    "file": "memory/capsule_open.webp",
+    "src": "assets_src/memory/capsule_open.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.25"
+  },
+  {
+    "file": "memory/capsule_opening.webp",
+    "src": "assets_src/memory/capsule_opening.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.25"
+  },
+  {
+    "file": "memory/days_together.webp",
+    "src": "assets_src/memory/days_together.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.25"
+  },
+  {
+    "file": "memory/empty_memory.webp",
+    "src": "assets_src/memory/empty_memory.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.25"
+  },
+  {
+    "file": "memory/letter.webp",
+    "src": "assets_src/memory/letter.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.25"
+  },
+  {
+    "file": "memory/on_this_day.webp",
+    "src": "assets_src/memory/on_this_day.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.25"
+  },
+  {
+    "file": "memory/quotes.webp",
+    "src": "assets_src/memory/quotes.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.25"
+  },
+  {
+    "file": "achievements/frame_bronze.webp",
+    "src": "assets_src/achievements/frame_bronze.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.26"
+  },
+  {
+    "file": "achievements/frame_gold.webp",
+    "src": "assets_src/achievements/frame_gold.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.26"
+  },
+  {
+    "file": "achievements/frame_silver.webp",
+    "src": "assets_src/achievements/frame_silver.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.26"
+  },
+  {
+    "file": "achievements/frame_special.webp",
+    "src": "assets_src/achievements/frame_special.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.26"
+  },
+  {
+    "file": "achievements/unlocked_banner.webp",
+    "src": "assets_src/achievements/unlocked_banner.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.26"
+  },
+  {
+    "file": "challenges/ch_no_fastfood.webp",
+    "src": "assets_src/challenges/ch_no_fastfood.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.27"
+  },
+  {
+    "file": "challenges/ch_water.webp",
+    "src": "assets_src/challenges/ch_water.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.27"
+  },
+  {
+    "file": "challenges/challenge.webp",
+    "src": "assets_src/challenges/challenge.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.27"
+  },
+  {
+    "file": "bets/bet.webp",
+    "src": "assets_src/bets/bet.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.28"
+  },
+  {
+    "file": "bets/debt.webp",
+    "src": "assets_src/bets/debt.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.28"
+  },
+  {
+    "file": "bets/lose.webp",
+    "src": "assets_src/bets/lose.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.28"
+  },
+  {
+    "file": "talk/agreements.webp",
+    "src": "assets_src/talk/agreements.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.29"
+  },
+  {
+    "file": "talk/card_back.webp",
+    "src": "assets_src/talk/card_back.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.29"
+  },
+  {
+    "file": "talk/cat_deep.webp",
+    "src": "assets_src/talk/cat_deep.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.29"
+  },
+  {
+    "file": "talk/cat_funny.webp",
+    "src": "assets_src/talk/cat_funny.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.29"
+  },
+  {
+    "file": "talk/cat_future.webp",
+    "src": "assets_src/talk/cat_future.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.29"
+  },
+  {
+    "file": "talk/cat_light.webp",
+    "src": "assets_src/talk/cat_light.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.29"
+  },
+  {
+    "file": "talk/deck.webp",
+    "src": "assets_src/talk/deck.png",
+    "class": "M",
+    "size": 512,
+    "section": "4.29"
+  },
+  {
+    "file": "talk/gratitude.webp",
+    "src": "assets_src/talk/gratitude.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.29"
+  },
+  {
+    "file": "talk/talk_queue.webp",
+    "src": "assets_src/talk/talk_queue.png",
+    "class": "I",
+    "size": 256,
+    "section": "4.29"
+  },
+  {
+    "file": "onboarding/ob_pair.webp",
+    "src": "assets_src/onboarding/ob_pair.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.30"
+  },
+  {
+    "file": "onboarding/ob_ready.webp",
+    "src": "assets_src/onboarding/ob_ready.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.30"
+  },
+  {
+    "file": "onboarding/ob_welcome.webp",
+    "src": "assets_src/onboarding/ob_welcome.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.30"
+  },
+  {
+    "file": "states/st_empty.webp",
+    "src": "assets_src/states/st_empty.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.30"
+  },
+  {
+    "file": "states/st_error.webp",
+    "src": "assets_src/states/st_error.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.30"
+  },
+  {
+    "file": "states/st_offline.webp",
+    "src": "assets_src/states/st_offline.png",
+    "class": "L",
+    "size": 1024,
+    "section": "4.30"
+  }
+]
