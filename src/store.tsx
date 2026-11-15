@@ -144,6 +144,7 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
   switch (e.kind) {
     case 'touch': { const t = TOUCH_NAME[p.id]; return t ? { text: `${who} ${t[0]}`, icon: t[1] } : null }
     case 'photo': return { text: p.day && p.day < TODAY_KEY ? `${who} ${v('добавил', 'добавила')} фото за ${human(p.day)}` : `${who} ${v('выложил', 'выложила')} фото дня`, icon: 'common/camera' }
+    case 'task_part': return { text: `${who} ${v('сделал', 'сделала')} свою часть «${p.title}» — отметь свою`, icon: 'common/check_cookie' }
     case 'task': return { text: `${who} ${v('закрыл', 'закрыла')} задачу «${p.title}»`, icon: 'common/check_cookie' }
     case 'meet': return { text: `${who} ${v('отметил', 'отметила')} встречу`, icon: 'meetings/meet_button' }
     case 'thanks': return { text: `${who}: спасибо — ${p.text}`, icon: 'talk/gratitude' }

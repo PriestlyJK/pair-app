@@ -701,3 +701,5 @@ a.btn { text-decoration: none; color: inherit; }
 .map-off.drawing img { animation: bob 1.6s ease-in-out infinite; }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-6deg); } }
 .map-off { position: absolute; z-index: 400; inset: 30% 24px auto; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-weight: 800; font-size: 13px; color: var(--muted); pointer-events: none; }
+.tag.part-done { gap: 3px; color: var(--leaf); font-weight: 900; }
+.tag.part-done .ava, .tag.part-done img { width: 16px; height: 16px; }

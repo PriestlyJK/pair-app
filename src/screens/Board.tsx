@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { Img, Coin, Bar, Ava, Sheet, Header, Seg, useName, plural, useG } from '../ui'
-import { COLUMNS, LABELS, PRIO_NAME, TYPE_ICON, TYPE_NAME, type Assignee, type Prio, type Task, type TaskType } from '../data'
+import { COLUMNS, LABELS, PRIO_NAME, TYPE_ICON, TYPE_NAME, type Assignee, type Prio, type Task, type TaskType, type Who } from '../data'
 import { sendEvent } from '../sync'
 import { TODAY_KEY, addDays, diffDays, human, isSunday, short, weekEnd, weekRange, weekStart } from '../dates'
 
@@ -21,10 +21,21 @@ const WEEK0 = weekStart(TODAY_KEY)
 const carriedOf = (t: Task) => (t.status !== 'done' && t.status !== 'backlog' && t.since ? Math.max(0, Math.round(diffDays(WEEK0, weekStart(t.since)) / 7)) : 0)
 // Закрытые на прошлых неделях не показываем в спринте этой недели
 const inSprint = (t: Task) => t.status !== 'backlog' && (t.status !== 'done' || !t.doneAt || t.doneAt >= WEEK0)
-const earnedBy = (ts: Task[], w: 'me' | 'him') => ts.filter(t => t.status === 'done' && t.doneAt && t.doneAt >= WEEK0 && (t.assignee === w || t.assignee === 'both')).reduce((a, t) => a + reward({ ...t, status: 'todo', deadline: t.deadline && t.doneAt! > t.deadline ? t.deadline : undefined }), 0)
+/* Когда человек сделал свою часть. Общую задачу каждый отмечает сам и получает свои монеты;
+   закрывается она, когда отметили оба. У старых общих задач (закрывал один) doneBy нет. */
+const partOf = (t: Task, w: Who): string | undefined =>
+  t.assignee === 'both'
+    ? t.doneBy?.[w] ?? (t.status === 'done' && !t.doneBy ? t.doneAt : undefined)
+    : t.assignee === w && t.status === 'done' ? t.doneAt : undefined
+// Цена на день выполнения: сделано после дедлайна — половина
+const rewardAt = (t: Task, day: string) => reward({ ...t, status: 'todo', deadline: t.deadline && day > t.deadline ? t.deadline : undefined })
+const earnedBy = (ts: Task[], w: Who) => ts.reduce((a, t) => { const d = partOf(t, w); return d && d >= WEEK0 ? a + rewardAt(t, d) : a }, 0)
+// Старая общая задача, закрытая одним: второй может забрать свои монеты
+const legacyBoth = (t: Task) => t.assignee === 'both' && t.status === 'done' && !t.doneBy
 
 function TaskCard({ t, onOpen }: { t: Task; onOpen: () => void }) {
   const cl = t.checklist
+  const half = t.assignee === 'both' && t.status !== 'done' ? (['me', 'him'] as Who[]).filter(w => t.doneBy?.[w]) : []
   return (
     <button className={`tcard ${t.type} ${t.status === 'done' ? 'done' : ''}`} onClick={onOpen}>
       <div className="t-top">
@@ -43,6 +54,7 @@ function TaskCard({ t, onOpen }: { t: Task; onOpen: () => void }) {
       )}
       <div className="t-bot">
         <Ava who={t.assignee} size={24} />
+        {half.map(w => <span key={w} className="tag plain part-done"><Ava who={w} size={16} />✓</span>)}
         {hasDl(t) && (
           <span className={'tag' + (overdue(t) ? ' red' : '')}>
             <Img src={overdue(t) ? 'tracker/overdue' : 'tracker/deadline'} />
@@ -80,7 +92,32 @@ export default function Board() {
     if (el && colsRef.current) colsRef.current.scrollLeft = el.offsetLeft - 16
   }, [])
 
+  // Общая задача: отмечаю свою часть. Закрывается, когда отметит и второй.
+  function markMine(t: Task) {
+    const last = !!t.doneBy?.him
+    s.setTasks(ts => ts.map(x => {
+      if (x.id !== t.id) return x
+      const doneBy = { ...x.doneBy, me: TODAY_KEY }
+      return doneBy.him
+        ? { ...x, doneBy, status: 'done', doneAt: TODAY_KEY, since: x.since ?? TODAY_KEY }
+        : { ...x, doneBy, status: x.status === 'todo' || x.status === 'backlog' ? 'doing' : x.status, since: x.since ?? TODAY_KEY }
+    }))
+    setOpen(null)
+    setDone({ ...t, doneBy: { ...t.doneBy, me: TODAY_KEY }, status: last ? 'done' : t.status })
+    sendEvent(last ? 'task' : 'task_part', { title: t.title })
+    const r = reward(t)
+    setTimeout(() => s.earn(r, overdue(t) ? `+${r} · просрочка, половина` : `+${r} за свою часть`), 300)
+  }
+  // Старая общая задача: монеты получил только закрывший — второй забирает свои
+  function claimLegacy(t: Task) {
+    s.setTasks(ts => ts.map(x => (x.id === t.id ? { ...x, doneBy: { me: TODAY_KEY, him: x.doneAt ?? TODAY_KEY } } : x)))
+    const r = rewardAt(t, t.doneAt ?? TODAY_KEY)
+    setOpen(null)
+    s.earn(r, `+${r} за «${t.title}»`)
+  }
+
   function move(t: Task, status: Task['status']) {
+    if (status === 'done' && t.assignee === 'both') { markMine(t); return }
     s.setTasks(ts => ts.map(x => (x.id === t.id ? { ...x, status, since: x.since ?? (status !== 'backlog' ? TODAY_KEY : undefined), doneAt: status === 'done' ? TODAY_KEY : undefined } : x)))
     if (status === 'done') {
       setOpen(null)
@@ -154,7 +191,7 @@ export default function Board() {
       <button className="fab" onClick={() => setCreating(true)} aria-label="Новая задача">+</button>
 
       <Sheet open={!!task} onClose={() => setOpen(null)} title={task?.title} icon={task ? TYPE_ICON[task.type] : undefined}>
-        {task && <TaskDetail t={task} onMove={st => move(task, st)} />}
+        {task && <TaskDetail t={task} onMove={st => move(task, st)} onClaim={() => claimLegacy(task)} />}
       </Sheet>
 
       <Sheet open={!!done} onClose={() => setDone(null)}>
@@ -162,8 +199,12 @@ export default function Board() {
           <>
             <div className="big-reward">
               <Img src="coins/coin_pile" />
-              <h3 style={{ fontSize: 22 }}>+{reward(done)} {done.assignee === 'both' ? 'каждому' : ''}</h3>
-              <p className="muted b">«{done.title}» закрыта</p>
+              <h3 style={{ fontSize: 22 }}>+{reward(done)}{done.assignee === 'both' ? ' тебе' : ''}</h3>
+              <p className="muted b">
+                {done.assignee !== 'both' || done.status === 'done'
+                  ? `«${done.title}» закрыта`
+                  : `Твоя часть «${done.title}» готова. Задача закроется, когда ${name('him')} тоже отметит свою — ${g.to} придут свои монеты.`}
+              </p>
             </div>
             {!done.photo && (
               <button className="btn wide peach" onClick={() => { s.setTasks(ts => ts.map(x => (x.id === done.id ? { ...x, photo: true } : x))); setDone(null); s.earn(2, '+2 за фото-отчёт', 'common/camera') }}>
@@ -186,9 +227,12 @@ export default function Board() {
   )
 }
 
-function TaskDetail({ t, onMove }: { t: Task; onMove: (s: Task['status']) => void }) {
+function TaskDetail({ t, onMove, onClaim }: { t: Task; onMove: (s: Task['status']) => void; onClaim: () => void }) {
   const s = useStore()
+  const g = useG()
   const name = useName()
+  const both = t.assignee === 'both'
+  const mineDone = both && !!t.doneBy?.me
   const toggle = (i: number) =>
     s.setTasks(ts => ts.map(x => (x.id === t.id && x.checklist ? { ...x, checklist: x.checklist.map((c, j) => (j === i ? { ...c, done: !c.done } : c)) } : x)))
   return (
@@ -200,6 +244,12 @@ function TaskDetail({ t, onMove }: { t: Task; onMove: (s: Task['status']) => voi
         {hasDl(t) && <><span>Дедлайн</span><span className={overdue(t) ? 'red' : ''}>{human(t.deadline)} {overdue(t) && <span className="tag red">просрочено · цена ½</span>}</span></>}
         <span>Цена</span><span><Coin n={t.price} size={22} />{t.assignee === 'both' && <span className="small muted">каждому</span>}</span>
         {carriedOf(t) > 0 && <><span>Перенос</span><span><Img src="tracker/carried_over" size={22} />уже {carriedOf(t)} {plural(carriedOf(t), 'неделю', 'недели', 'недель')}</span></>}
+        {both && !legacyBoth(t) && (['me', 'him'] as Who[]).map(w => (
+          <Fragment key={w}>
+            <span>{w === 'me' ? 'Ты' : name('him')}</span>
+            <span><Ava who={w} size={22} />{t.doneBy?.[w] ? `сделано ${human(t.doneBy[w])}` : 'ещё не отмечено'}</span>
+          </Fragment>
+        ))}
         {t.labels.length > 0 && <><span>Метки</span><span>{t.labels.map(l => <span key={l} className="tag"><Img src={LABELS[l].icon} />{LABELS[l].name}</span>)}</span></>}
       </div>
       {t.checklist && (
@@ -212,8 +262,19 @@ function TaskDetail({ t, onMove }: { t: Task; onMove: (s: Task['status']) => voi
       {t.epic && <p className="muted b small">Эпик: внутри {t.epic.total} задач, закрыто {t.epic.done}. За закрытие всего эпика: ачивка «Покорили вершину».</p>}
       {t.status === 'backlog' && <button className="btn wide" onClick={() => onMove('todo')}>В спринт этой недели</button>}
       {t.status === 'todo' && <button className="btn wide" onClick={() => onMove('doing')}><Img src="common/hourglass" />Взять в работу</button>}
-      {(t.status === 'doing' || t.status === 'todo') && (
-        <button className="btn wide sage" onClick={() => onMove('done')}><Img src="common/check_cookie" />Закрыть задачу · +{reward(t)}</button>
+      {(t.status === 'doing' || t.status === 'todo') && !mineDone && (
+        <button className="btn wide sage" onClick={() => onMove('done')}>
+          <Img src="common/check_cookie" />{both ? `Я ${g.m('сделал', 'сделала')} свою часть` : 'Закрыть задачу'} · +{reward(t)}
+        </button>
+      )}
+      {mineDone && t.status !== 'done' && (
+        <p className="b muted small" style={{ textAlign: 'center', margin: 0 }}>Ты уже {g.m('отметил', 'отметила')} свою часть. Задача закроется, когда {name('him')} тоже отметит.</p>
+      )}
+      {legacyBoth(t) && (
+        <div className="card flat col" style={{ gap: 8 }}>
+          <span className="small b">Раньше за общую задачу монеты получал только тот, кто её закрыл. Если тебе за неё ничего не пришло — забери свои.</span>
+          <button className="btn wide sage" onClick={onClaim}><Img src="coins/coin" />Забрать +{rewardAt(t, t.doneAt ?? TODAY_KEY)}</button>
+        </div>
       )}
       {t.status === 'done' && <p className="b muted" style={{ textAlign: 'center' }}>Задача закрыта{t.doneAt ? ' ' + human(t.doneAt) : ''}{t.photo ? ' · есть фото-отчёт' : ''}</p>}
       <button className="btn wide soft" onClick={() => { s.setTasks(ts => ts.filter(x => x.id !== t.id)); s.toast('Задача удалена', 'common/cross_badge') }}>Удалить задачу</button>
@@ -295,9 +356,8 @@ function WeekSummary() {
   const [answers, setAnswers] = useState(['', '', ''])
   const [sent, setSent] = useState(false)
   const Q = ['Что на этой неделе было классно?', 'Что мешало или расстроило?', 'Что попробуем на следующей?']
-  const week = s.tasks.filter(t => t.status === 'done' && t.doneAt && t.doneAt >= WEEK0)
   const stat = (w: 'me' | 'him') => {
-    const ts = week.filter(t => t.assignee === w || t.assignee === 'both')
+    const ts = s.tasks.filter(t => { const d = partOf(t, w); return !!d && d >= WEEK0 })
     return { coins: earnedBy(s.tasks, w), n: ts.length, photos: ts.filter(t => t.photo).length }
   }
   const me = stat('me'), him = stat('him')

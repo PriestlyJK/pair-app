@@ -29,6 +29,8 @@ export interface Task {
   deadline?: string // 'YYYY-MM-DD'
   since?: string // когда попала в спринт
   doneAt?: string
+  // Общая задача: кто когда отметил свою часть (каждый получает свои монеты, закрыта — когда оба)
+  doneBy?: Partial<Record<Who, string>>
   labels: string[]
   checklist?: { text: string; done: boolean }[]
   carried?: number
