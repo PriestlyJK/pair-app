@@ -74,7 +74,7 @@ self.addEventListener('push', e => {
   e.waitUntil(self.registration.showNotification(d.title || 'Мы', {
     body: d.body || '',
     icon: 'assets/brand/icon-192.png',
-    badge: 'assets/brand/icon-192.png',
+    badge: 'assets/brand/badge-96.png', // значок в строке состояния Android: белый силуэт на прозрачном
     data: { url: d.url || '' },
   }))
 })

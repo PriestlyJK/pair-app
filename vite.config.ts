@@ -34,6 +34,8 @@ function serviceWorker(): Plugin {
 }
 
 export default defineConfig({
+  // Когда собрана эта версия — видно в профиле (раздел «Уведомления»), чтобы понять, обновился ли телефон
+  define: { __BUILD__: JSON.stringify(new Date().toISOString()) },
   // Относительный base: сборка открывается и с корня домена, и из подпапки
   base: './',
   // Код и шрифт кладём в app/, чтобы не смешивать с картинками в assets/

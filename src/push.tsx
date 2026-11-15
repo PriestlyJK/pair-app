@@ -5,10 +5,19 @@ import { useStore } from './store'
 import { Img, useName } from './ui'
 
 /* Уведомления на телефон, как от обычного приложения.
-   Работают на iPhone с iOS 16.4+, когда «Мы» открыто с экрана «Домой» (а по-другому приложение и не открыть).
+   iPhone: iOS 16.4+, когда «Мы» открыто с экрана «Домой» (а по-другому приложение и не открыть).
+   Android: Chrome и другие браузеры с Google-сервисами — работают и так (на телефонах без Google-сервисов, например новых Huawei, нет).
    Телефон подписывается у службы доставки (у Apple), подписка хранится в облаке через функцию Supabase (PUSH_FUNCTION в config.ts),
    и когда партнёр что-то делает, функция присылает уведомление на все его телефоны.
    Отправка — в sync.ts (sendEvent), текст — в store.tsx (pushText). */
+
+declare const __BUILD__: string
+// Когда собрана эта версия приложения
+export const buildLabel = () => { try { return new Date(__BUILD__).toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) } catch { return '' } }
+
+const ua = navigator.userAgent
+const android = /Android/.test(ua)
+const ios = !android && (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 
 export type PushState = 'loading' | 'unsupported' | 'nosetup' | 'off' | 'denied' | 'on'
 const KEY = 'pair.vapid'
@@ -62,7 +71,8 @@ const standalone = () => !!(navigator as Navigator & { standalone?: boolean }).s
 export function pushDiag() {
   const v = iosVer()
   const yes = (b: boolean) => (b ? '✓' : '✗')
-  return [v ? `iOS ${v[1]}.${v[2]}` : 'не iOS', standalone() ? 'с экрана «Домой»' : 'в браузере',
+  const and = ua.match(/Android (\d+(\.\d+)?)/)
+  return [v ? `iOS ${v[1]}.${v[2]}` : and ? `Android ${and[1]}` : 'компьютер', standalone() ? 'с экрана «Домой»' : 'в браузере',
     `sw ${yes('serviceWorker' in navigator)}`, `push ${yes('PushManager' in window)}`, `notif ${yes('Notification' in window)}`].join(' · ')
 }
 function unsupportedWhy() {
@@ -70,6 +80,7 @@ function unsupportedWhy() {
   if (v && (Number(v[1]) < 16 || (Number(v[1]) === 16 && Number(v[2]) < 4)))
     return `На iPhone сейчас iOS ${v[1]}.${v[2]}, а уведомления для таких приложений появились в iOS 16.4. Обнови iPhone: Настройки → Основные → Обновление ПО.`
   if (!standalone()) return 'Приложение открыто в браузере — открой «Мы» значком с экрана «Домой».'
+  if (android) return 'Браузер не умеет уведомления. Обнови Chrome (Play Маркет) и открой «Мы» значком с главного экрана.'
   return ''
 }
 
@@ -174,11 +185,15 @@ export function PushSection() {
           </>
         )}
         {p.state === 'denied' && (
-          <span className="small b">Уведомления запрещены в настройках iPhone. Включить: Настройки → Уведомления → «Мы» → Допуск уведомлений.</span>
+          <span className="small b">{ios
+            ? 'Уведомления запрещены в настройках iPhone. Включить: Настройки → Уведомления → «Мы» → Допуск уведомлений.'
+            : android
+              ? 'Уведомления запрещены. Включить: долго нажми на значок «Мы» → «О приложении» → «Уведомления» → включить.'
+              : 'Уведомления запрещены в браузере: разреши их для этого сайта в настройках браузера.'}</span>
         )}
         {p.state === 'unsupported' && (
           <>
-            <span className="small b muted">{p.why || 'На этом телефоне не получилось включить: нужен iPhone с iOS 16.4 или новее и приложение, открытое с экрана «Домой».'}</span>
+            <span className="small b muted">{p.why || (ios ? 'На этом телефоне не получилось включить: нужен iPhone с iOS 16.4 или новее и приложение, открытое с экрана «Домой».' : 'На этом устройстве браузер не умеет уведомления.')}</span>
             <span className="muted b" style={{ fontSize: 11 }}>{pushDiag()}</span>
             <button className="btn sm soft" style={{ alignSelf: 'flex-start' }} onClick={p.recheck}>Проверить ещё раз</button>
           </>
@@ -187,6 +202,7 @@ export function PushSection() {
           <span className="small b muted">Уведомления ещё не настроены в облаке: в Supabase нужна функция уведомлений (инструкция в supabase/push.sql).</span>
         )}
       </div>
+      <p className="muted b center" style={{ fontSize: 11, margin: '-4px 0 0' }}>Версия приложения: {buildLabel()}</p>
     </>
   )
 }
