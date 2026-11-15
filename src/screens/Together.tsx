@@ -145,6 +145,11 @@ function Watchlist() {
   const [who, setWho] = useState<Who>('me')
   const [kf, setKf] = useState<Kind | 'all'>('all')
   const [form, setForm] = useState<Seen | null>(null)
+  // «Мы уже посмотрели вместе» — сразу в «Посмотрели», со своей оценкой
+  const [done, setDone] = useState<{ title: string; kind: Kind; stars: number } | null>(null)
+  const [q, setQ] = useState('')
+  const query = norm(q)
+  const hit = (t: string) => norm(t).includes(query)
   const list = tab === 'seen' ? [] : items.filter(i => i.status === tab)
   const patch = (id: number, f: (x: WItem) => WItem) => setItems(xs => xs.map(x => (x.id === id ? f(x) : x)))
   const sawIt = (t: string) => seen.filter(x => norm(x.title) === norm(t))
@@ -172,134 +177,193 @@ function Watchlist() {
     if (!form || !form.title.trim()) return
     const v = { ...form, title: form.title.trim(), note: form.note?.trim() || undefined, stars: form.stars || undefined }
     setSeen(xs => (xs.some(x => x.id === v.id) ? xs.map(x => (x.id === v.id ? v : x)) : [v, ...xs]))
-    setForm(null); setWho('me')
+    setForm(null); setWho('me'); setTab('seen'); setQ('')
     s.toast('Сохранено в «Смотрели раньше»', 'watchlist/status_watched')
+  }
+  function saveDone() {
+    if (!done || !done.title.trim()) return
+    const t = done.title.trim(), st = done.stars ? { me: done.stars } : undefined
+    const ex = items.find(x => norm(x.title) === norm(t))
+    // Уже есть в списке — просто переносим в «Посмотрели», без второй карточки
+    if (ex) patch(ex.id, x => ({ ...x, status: 'watched', stars: st ? { ...x.stars, ...st } : x.stars }))
+    else setItems(xs => [{ id: Date.now(), title: t, kind: done.kind, by: 'me', status: 'watched', votes: {}, stars: st }, ...xs])
+    setDone(null); setTab('watched'); setQ('')
+    s.toast(`${g.He} тоже сможет поставить звёзды`, 'watchlist/status_watched')
+  }
+
+  const STATUS_NAME: Record<WStatus, string> = { pending: 'ждёт голоса', both: 'оба хотят', watching: 'смотрим', watched: 'посмотрели' }
+
+  // Карточка из общего списка; в поиске под названием видно, в какой она вкладке
+  const itemCard = (it: WItem, i: number, inSearch = false) => (
+    <div key={it.id} className="witem">
+      <Poster kind={it.kind} i={it.id + i} />
+      <div className="grow col" style={{ gap: 6 }}>
+        <div>
+          <b>{it.title}</b>
+          <div className="small muted b">{kindOf(it.kind).one} · {inSearch ? STATUS_NAME[it.status] : `идея: ${name(it.by)}`}</div>
+        </div>
+        {it.status !== 'watched' && sawIt(it.title).map(x => (
+          <span key={x.id} className="seen-tag"><Ava who={x.by} size={16} />{x.by === 'me' ? 'ты' : name('him')} уже {watched(x.by)}{x.stars ? ` · ${x.stars}★` : ''}</span>
+        ))}
+        {it.status === 'pending' && (
+          <>
+            <div className="votes">
+              <button className={it.votes.me === 'want' ? 'on' : ''} onClick={() => vote(it, 'want')}><Img src="common/heart" />Хочу</button>
+              <button className={it.votes.me === 'maybe' ? 'on' : ''} onClick={() => vote(it, 'maybe')}><Img src="watchlist/vote_maybe" />Может</button>
+              <button className={it.votes.me === 'no' ? 'on' : ''} onClick={() => vote(it, 'no')}><Img src="common/cross_badge" />Нет</button>
+            </div>
+            <span className="small muted b">{name('him')} {it.votes.him ? g.p('проголосовал', 'проголосовала') : `ещё не ${g.p('голосовал', 'голосовала')}`}</span>
+          </>
+        )}
+        {it.status === 'both' && (
+          <div className="row" style={{ gap: 6 }}>
+            <Ava who="both" size={22} /><span className="small b grow" style={{ color: 'var(--leaf)' }}>оба хотят</span>
+            <button className="btn sm soft" onClick={() => { patch(it.id, x => ({ ...x, status: 'watching' })); setTab('watching'); setQ('') }}>Начали</button>
+          </div>
+        )}
+        {it.status === 'watching' && (
+          <button className="btn sm sage" onClick={() => setRate(it)}>Посмотрели · оценить</button>
+        )}
+        {it.status === 'watched' && (
+          <div className="col" style={{ gap: 4 }}>
+            {(['me', 'him'] as Who[]).map(w => (
+              <div key={w} className="row" style={{ gap: 6 }}>
+                <Ava who={w} size={20} />
+                {w === 'me'
+                  ? <button className="row" style={{ gap: 6, background: 'none' }} onClick={() => setRate(it)}>
+                      <Stars n={starsOf(it, 'me')} size={18} />
+                      <span className="linkish">{starsOf(it, 'me') ? 'изменить' : 'оценить'}</span>
+                    </button>
+                  : starsOf(it, w) ? <Stars n={starsOf(it, w)} size={18} /> : <span className="small muted b">ещё не {g.p('оценил', 'оценила')}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {it.by === 'me' && it.status === 'pending' && (
+        <button className="x-btn" aria-label="Убрать" onClick={() => setItems(xs => xs.filter(x => x.id !== it.id))}>×</button>
+      )}
+    </div>
+  )
+
+  // Карточка «смотрел(а) раньше»: свою можно открыть и поправить
+  const seenCard = (it: Seen, i: number, inSearch = false) => {
+    const mine = it.by === 'me'
+    const inList = items.some(x => norm(x.title) === norm(it.title))
+    const other = !inSearch && seen.find(x => x.by !== it.by && norm(x.title) === norm(it.title))
+    return (
+      <div key={'s' + it.id} className="witem" role={mine ? 'button' : undefined} onClick={mine ? () => setForm(it) : undefined}>
+        <Poster kind={it.kind} i={it.id + i} />
+        <div className="grow col" style={{ gap: 4 }}>
+          <div>
+            <b>{it.title}</b>
+            <div className="small muted b">{kindOf(it.kind).one}{inSearch ? ` · ${mine ? 'ты' : name('him')} ${watched(it.by)} раньше` : ''}</div>
+          </div>
+          {it.stars ? <Stars n={it.stars} /> : <span className="small muted b">без оценки</span>}
+          {it.note && <span className="small b">«{it.note}»</span>}
+          {other && <span className="seen-tag"><Ava who={other.by} size={16} />тоже {watched(other.by)}{other.stars ? ` · ${other.stars}★` : ''}</span>}
+          {!mine && !inList && !other && (
+            <button className="linkish" style={{ alignSelf: 'flex-start' }} onClick={e => { e.stopPropagation(); suggest(it.title, it.kind) }}>+ хочу посмотреть вместе</button>
+          )}
+        </div>
+        {mine && <span className="chev">›</span>}
+      </div>
+    )
   }
 
   const seenList = seen.filter(x => x.by === who && (kf === 'all' || x.kind === kf))
   const seenAll = seen.filter(x => x.by === who)
   const dupe = title.trim() ? sawIt(title) : []
+  const found = query ? items.filter(i => hit(i.title)) : []
+  const foundSeen = query ? seen.filter(x => hit(x.title)) : []
+  const exact = [...items, ...seen].some(x => norm(x.title) === query)
 
   return (
     <div className="screen">
       <Header title="Вотчлист" sub="Фильмы, сериалы, аниме и мультики" onBack={() => s.go('together')} icon="watchlist/status_watching" />
-      <div className="chips">
-        {W_TABS.map(t => (
-          <button key={t.id} className={'chip' + (t.id === tab ? ' on' : '')} onClick={() => setTab(t.id)}>
-            {t.name} · {t.id === 'seen' ? seen.length : items.filter(i => i.status === t.id).length}
-          </button>
-        ))}
+      <div className="search-box">
+        <input className="input" type="search" placeholder="Поиск по названию" value={q} onChange={e => setQ(e.target.value)} enterKeyHint="search" />
+        {q && <button className="x-btn" aria-label="Очистить" onClick={() => setQ('')}>×</button>}
       </div>
 
-      {tab === 'seen' ? (
-        <>
-          <Seg value={who} onChange={setWho} options={[{ id: 'me', name: 'Моё' }, { id: 'him', name: name('him') }]} />
-          {seenAll.length > 0 && (
-            <div className="chips">
-              <button className={'chip sm' + (kf === 'all' ? ' on' : '')} onClick={() => setKf('all')}>Всё · {seenAll.length}</button>
-              {KINDS.map(k => {
-                const n = seenAll.filter(x => x.kind === k.id).length
-                return n ? <button key={k.id} className={'chip sm' + (kf === k.id ? ' on' : '')} onClick={() => setKf(k.id)}>{k.name} · {n}</button> : null
-              })}
+      {query ? (
+        <div className="col" style={{ gap: 10 }}>
+          {found.map((it, i) => itemCard(it, i, true))}
+          {foundSeen.map((it, i) => seenCard(it, i, true))}
+          {!found.length && !foundSeen.length && (
+            <div className="empty-col"><Img src="watchlist/empty_watchlist" />Ничего не нашлось</div>
+          )}
+          {!exact && (
+            <div className="col" style={{ gap: 8 }}>
+              <span className="small muted b center">{found.length || foundSeen.length ? 'Нет нужного? ' : ''}Добавить «{q.trim()}»</span>
+              <button className="btn wide" onClick={() => { setTitle(q.trim()); setAdding(true) }}>Предложить посмотреть вместе</button>
+              <button className="btn wide soft" onClick={() => setDone({ title: q.trim(), kind: 'movie', stars: 0 })}>Мы уже посмотрели вместе</button>
+              <button className="btn wide soft" onClick={() => setForm({ id: Date.now(), title: q.trim(), kind: 'movie', by: 'me' })}>Я {g.m('смотрел', 'смотрела')} раньше</button>
             </div>
           )}
-          <div className="col" style={{ gap: 10 }}>
-            {seenList.map((it, i) => {
-              const mine = it.by === 'me'
-              const inList = items.some(x => norm(x.title) === norm(it.title))
-              const other = seen.find(x => x.by !== it.by && norm(x.title) === norm(it.title))
-              return (
-                <div key={it.id} className="witem" role={mine ? 'button' : undefined} onClick={mine ? () => setForm(it) : undefined}>
-                  <Poster kind={it.kind} i={it.id + i} />
-                  <div className="grow col" style={{ gap: 4 }}>
-                    <div>
-                      <b>{it.title}</b>
-                      <div className="small muted b">{kindOf(it.kind).one}</div>
-                    </div>
-                    {it.stars ? <Stars n={it.stars} /> : <span className="small muted b">без оценки</span>}
-                    {it.note && <span className="small b">«{it.note}»</span>}
-                    {other && <span className="seen-tag"><Ava who={other.by} size={16} />тоже {watched(other.by)}{other.stars ? ` · ${other.stars}★` : ''}</span>}
-                    {!mine && !inList && !other && (
-                      <button className="linkish" style={{ alignSelf: 'flex-start' }} onClick={() => suggest(it.title, it.kind)}>+ хочу посмотреть вместе</button>
-                    )}
-                  </div>
-                  {mine && <span className="chev">›</span>}
-                </div>
-              )
-            })}
-            {!seenList.length && (
-              <div className="empty-col">
-                <Img src="watchlist/empty_watchlist" />
-                {who === 'me'
-                  ? `Добавь, что ты уже ${g.m('смотрел', 'смотрела')} раньше, и поставь звёзды. ${g.He} увидит твой вкус.`
-                  : `${name('him')} пока ничего не ${g.p('добавил', 'добавила')}. Свой список каждый заполняет сам.`}
-              </div>
-            )}
-          </div>
-        </>
+        </div>
       ) : (
         <>
-          {tab === 'both' && list.length > 0 && (
-            <button className="btn wide peach" onClick={random}><Img src="watchlist/randomizer" />Что смотрим сегодня?</button>
-          )}
-          <div className="col" style={{ gap: 10 }}>
-            {list.map((it, i) => (
-              <div key={it.id} className="witem">
-                <Poster kind={it.kind} i={it.id + i} />
-                <div className="grow col" style={{ gap: 6 }}>
-                  <div>
-                    <b>{it.title}</b>
-                    <div className="small muted b">{kindOf(it.kind).one} · идея: {name(it.by)}</div>
-                  </div>
-                  {it.status !== 'watched' && sawIt(it.title).map(x => (
-                    <span key={x.id} className="seen-tag"><Ava who={x.by} size={16} />{x.by === 'me' ? 'ты' : name('him')} уже {watched(x.by)}{x.stars ? ` · ${x.stars}★` : ''}</span>
-                  ))}
-                  {it.status === 'pending' && (
-                    <>
-                      <div className="votes">
-                        <button className={it.votes.me === 'want' ? 'on' : ''} onClick={() => vote(it, 'want')}><Img src="common/heart" />Хочу</button>
-                        <button className={it.votes.me === 'maybe' ? 'on' : ''} onClick={() => vote(it, 'maybe')}><Img src="watchlist/vote_maybe" />Может</button>
-                        <button className={it.votes.me === 'no' ? 'on' : ''} onClick={() => vote(it, 'no')}><Img src="common/cross_badge" />Нет</button>
-                      </div>
-                      <span className="small muted b">{name('him')} {it.votes.him ? g.p('проголосовал', 'проголосовала') : `ещё не ${g.p('голосовал', 'голосовала')}`}</span>
-                    </>
-                  )}
-                  {it.status === 'both' && (
-                    <div className="row" style={{ gap: 6 }}>
-                      <Ava who="both" size={22} /><span className="small b grow" style={{ color: 'var(--leaf)' }}>оба хотят</span>
-                      <button className="btn sm soft" onClick={() => { patch(it.id, x => ({ ...x, status: 'watching' })); setTab('watching') }}>Начали</button>
-                    </div>
-                  )}
-                  {it.status === 'watching' && (
-                    <button className="btn sm sage" onClick={() => setRate(it)}>Посмотрели · оценить</button>
-                  )}
-                  {it.status === 'watched' && (
-                    <div className="col" style={{ gap: 4 }}>
-                      {(['me', 'him'] as Who[]).map(w => (
-                        <div key={w} className="row" style={{ gap: 6 }}>
-                          <Ava who={w} size={20} />
-                          {starsOf(it, w) ? <Stars n={starsOf(it, w)} size={16} /> : <span className="small muted b">{w === 'me' ? 'без оценки' : 'ещё не оценил' + g.p('', 'а')}</span>}
-                          {w === 'me' && <button className="linkish" onClick={() => setRate(it)}>{starsOf(it, 'me') ? 'изменить' : 'оценить'}</button>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+          <div className="chips">
+            {W_TABS.map(t => (
+              <button key={t.id} className={'chip' + (t.id === tab ? ' on' : '')} onClick={() => setTab(t.id)}>
+                {t.name} · {t.id === 'seen' ? seen.length : items.filter(i => i.status === t.id).length}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'seen' ? (
+            <>
+              <Seg value={who} onChange={setWho} options={[{ id: 'me', name: 'Моё' }, { id: 'him', name: name('him') }]} />
+              {seenAll.length > 0 && (
+                <div className="chips">
+                  <button className={'chip sm' + (kf === 'all' ? ' on' : '')} onClick={() => setKf('all')}>Всё · {seenAll.length}</button>
+                  {KINDS.map(k => {
+                    const n = seenAll.filter(x => x.kind === k.id).length
+                    return n ? <button key={k.id} className={'chip sm' + (kf === k.id ? ' on' : '')} onClick={() => setKf(k.id)}>{k.name} · {n}</button> : null
+                  })}
                 </div>
-                {it.by === 'me' && it.status === 'pending' && (
-                  <button className="x-btn" aria-label="Убрать" onClick={() => setItems(xs => xs.filter(x => x.id !== it.id))}>×</button>
+              )}
+              <div className="col" style={{ gap: 10 }}>
+                {seenList.map((it, i) => seenCard(it, i))}
+                {!seenList.length && (
+                  <div className="empty-col">
+                    <Img src="watchlist/empty_watchlist" />
+                    {who === 'me'
+                      ? `Добавь, что ты уже ${g.m('смотрел', 'смотрела')} раньше, и поставь звёзды. ${g.He} увидит твой вкус.`
+                      : `${name('him')} пока ничего не ${g.p('добавил', 'добавила')}. Свой список каждый заполняет сам.`}
+                  </div>
                 )}
               </div>
-            ))}
-            {!list.length && (
-              <div className="empty-col">
-                <Img src="watchlist/empty_watchlist" />
-                {tab === 'pending' ? `Предложи, что посмотреть: ${g.he} проголосует` : tab === 'both' ? 'Здесь то, что хотите оба' : tab === 'watching' ? 'Сейчас ничего не смотрите' : 'Тут будет ваша история просмотров'}
+            </>
+          ) : (
+            <>
+              {tab === 'both' && list.length > 0 && (
+                <button className="btn wide peach" onClick={random}><Img src="watchlist/randomizer" />Что смотрим сегодня?</button>
+              )}
+              {tab === 'watched' && (
+                <button className="btn wide soft" onClick={() => setDone({ title: '', kind: 'movie', stars: 0 })}><Img src="watchlist/status_watched" />Мы уже посмотрели вместе</button>
+              )}
+              <div className="col" style={{ gap: 10 }}>
+                {list.map((it, i) => itemCard(it, i))}
+                {!list.length && (
+                  <div className="empty-col">
+                    <Img src="watchlist/empty_watchlist" />
+                    {tab === 'pending' ? `Предложи, что посмотреть: ${g.he} проголосует` : tab === 'both' ? 'Здесь то, что хотите оба' : tab === 'watching' ? 'Сейчас ничего не смотрите' : 'Здесь ваша история: всё, что посмотрели вместе, с оценками каждого'}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </>
       )}
-      <button className="fab" aria-label="Добавить" onClick={() => (tab === 'seen' ? setForm({ id: Date.now(), title: '', kind: 'movie', by: 'me' }) : setAdding(true))}>+</button>
+      {!query && (
+        <button className="fab" aria-label="Добавить" onClick={() => {
+          if (tab === 'seen') setForm({ id: Date.now(), title: '', kind: 'movie', by: 'me' })
+          else if (tab === 'watched') setDone({ title: '', kind: 'movie', stars: 0 })
+          else setAdding(true)
+        }}>+</button>
+      )}
 
       <Sheet open={!!pick} onClose={() => setPick(null)}>
         {pick && (
@@ -319,7 +383,7 @@ function Watchlist() {
           <Stars size={44} n={rate ? starsOf(rate, 'me') : 0} onPick={n => {
             if (!rate || !n) return
             patch(rate.id, x => ({ ...x, status: 'watched', stars: { ...x.stars, me: n } }))
-            setRate(null); setTab('watched'); s.toast('Оценка сохранена', 'watchlist/status_watched')
+            setRate(null); setTab('watched'); setQ(''); s.toast('Оценка сохранена', 'watchlist/status_watched')
           }} />
         </div>
       </Sheet>
@@ -332,8 +396,20 @@ function Watchlist() {
         ))}
         <button className="btn wide" onClick={() => {
           if (!title.trim()) return
-          if (suggest(title.trim(), kind)) { setTitle(''); setAdding(false); setTab('pending') }
+          if (suggest(title.trim(), kind)) { setTitle(''); setAdding(false); setTab('pending'); setQ('') }
         }}>Добавить</button>
+      </Sheet>
+
+      <Sheet open={!!done} onClose={() => setDone(null)} title="Уже посмотрели вместе" icon="watchlist/status_watched">
+        {done && (
+          <>
+            <input className="input" placeholder="Название" value={done.title} onChange={e => setDone({ ...done, title: e.target.value })} />
+            <Seg value={done.kind} onChange={k => setDone({ ...done, kind: k })} options={KINDS.map(k => ({ id: k.id, name: k.name }))} />
+            <p className="small muted b">Твоя оценка. {g.He} поставит свою.</p>
+            <div className="stars-big"><Stars size={40} n={done.stars} onPick={n => setDone({ ...done, stars: n })} /></div>
+            <button className="btn wide" onClick={saveDone}>Сохранить</button>
+          </>
+        )}
       </Sheet>
 
       <Sheet open={!!form} onClose={() => setForm(null)} title={form && seen.some(x => x.id === form.id) ? 'Моя запись' : `Я уже ${g.m('смотрел', 'смотрела')}`} icon="watchlist/status_watched">

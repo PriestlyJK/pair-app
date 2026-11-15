@@ -626,3 +626,7 @@ textarea.input { resize: none; min-height: 70px; }
 .chip.sm { padding: 5px 11px; font-size: 13px; }
 .witem[role=button] { cursor: pointer; align-items: center; }
 .witem .chev { color: var(--muted); font-weight: 900; font-size: 22px; }
+.search-box { position: relative; }
+.search-box .input { padding-right: 46px; }
+.search-box .x-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+.search-box input::-webkit-search-cancel-button { display: none; }
