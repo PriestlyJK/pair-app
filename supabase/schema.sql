@@ -136,3 +136,22 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   alter publication supabase_realtime add table events;
 exception when duplicate_object then null; end $$;
+
+-- Хранилище фото: корзина 'photos', у каждой пары своя папка <id пары>/…
+-- Каждый видит и меняет только файлы своей пары. Место отдельное от базы (1 ГБ бесплатно).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('photos', 'photos', false, 5242880, array['image/jpeg'])
+on conflict (id) do nothing;
+
+drop policy if exists "pair photos read" on storage.objects;
+create policy "pair photos read" on storage.objects for select to authenticated
+  using (bucket_id = 'photos' and (storage.foldername(name))[1] = public.my_couple()::text);
+drop policy if exists "pair photos add" on storage.objects;
+create policy "pair photos add" on storage.objects for insert to authenticated
+  with check (bucket_id = 'photos' and (storage.foldername(name))[1] = public.my_couple()::text);
+drop policy if exists "pair photos change" on storage.objects;
+create policy "pair photos change" on storage.objects for update to authenticated
+  using (bucket_id = 'photos' and (storage.foldername(name))[1] = public.my_couple()::text);
+drop policy if exists "pair photos delete" on storage.objects;
+create policy "pair photos delete" on storage.objects for delete to authenticated
+  using (bucket_id = 'photos' and (storage.foldername(name))[1] = public.my_couple()::text);

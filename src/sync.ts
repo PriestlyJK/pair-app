@@ -286,6 +286,31 @@ export async function missedEvents(since: string) {
 }
 
 // ---------- Фото ----------
+// ---------- Картинки как файлы (Supabase Storage, корзина 'photos') ----------
+// Лежат по папкам пар: <пара>/<id>.jpg — правила в базе пускают только в папку своей пары.
+// Место отдельное от базы (1 ГБ бесплатно), и файл меньше, чем та же картинка текстом в базе.
+const BUCKET = 'photos'
+const filePath = (id: string) => `${link!.couple}/${id.replace(/[^\w.-]/g, '_')}.jpg`
+export async function putFile(id: string, data: string) {
+  if (!cloud || !link) return false
+  try {
+    const blob = await (await fetch(data)).blob()
+    const { error } = await cloud.storage.from(BUCKET).upload(filePath(id), blob, { contentType: 'image/jpeg', upsert: true })
+    return !error
+  } catch { return false }
+}
+export async function getFile(id: string) {
+  if (!cloud || !link) return undefined
+  const { data, error } = await cloud.storage.from(BUCKET).download(filePath(id))
+  if (error || !data) return undefined
+  return new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(data) })
+}
+export async function delFile(id: string) {
+  if (!cloud || !link) return
+  await cloud.storage.from(BUCKET).remove([filePath(id)])
+}
+
+// Старый способ: картинка текстом в таблице blobs (читаем то, что так уже сохранено)
 export async function putBlob(id: string, data: string) {
   if (!cloud || !link) return false
   const { error } = await cloud.from('blobs').upsert({ couple_id: link.couple, id, data })

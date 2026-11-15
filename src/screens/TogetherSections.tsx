@@ -5,6 +5,7 @@ import type { Who } from '../data'
 import { TODAY_KEY, addDays, ago, diffDays, human, humanY } from '../dates'
 import { PhotosScreen } from './Photos'
 import { sendEvent } from '../sync'
+import { RefImg, dropImg, saveImage } from '../photos'
 
 // Разделы «Вместе». Каждый хранит свои данные в браузере; потом это станут таблицы в Supabase.
 
@@ -117,7 +118,14 @@ function Bucket() {
   const left = goals.filter(g => !g.done)
   const patch = (id: number, p: Partial<Goal>) => setGoals(xs => xs.map(x => (x.id === id ? { ...x, ...p } : x)))
   async function addPhoto(id: number, f: File) {
-    try { patch(id, { photo: await shrinkImage(f, 640) }); s.toast('Фото в альбоме', 'bucket/album') } catch { s.toast('Не получилось открыть фото', 'states/st_error') }
+    try {
+      const ref = await saveImage(`bucket-${id}-${Date.now()}`, await shrinkImage(f, 640, false, 0.78))
+      if (!ref) { s.toast('Нет связи — фото не отправилось, попробуй ещё раз', 'states/st_offline'); return }
+      const old = goals.find(x => x.id === id)?.photo
+      patch(id, { photo: ref })
+      if (old && !old.startsWith('data:')) dropImg(old)
+      s.toast('Фото в альбоме', 'bucket/album')
+    } catch { s.toast('Не получилось открыть фото', 'states/st_error') }
   }
   return (
     <Screen title="Bucket list" sub={`${done.length} из ${goals.length} сделали`} icon="bucket/bucket" onAdd={() => setAdding(true)}>
@@ -137,7 +145,7 @@ function Bucket() {
       <div className="album">
         {done.map(g => (
           <div key={g.id} className="album-it">
-            {g.photo ? <img src={g.photo} alt="" /> : (
+            {g.photo ? <RefImg src={g.photo} /> : (
               <PhotoPick onPick={f => addPhoto(g.id, f)} className="album-empty"><Img src="common/camera" />фото</PhotoPick>
             )}
             <Img src="bucket/done_stamp" className="stamp" />

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { usePersist, useStore } from './store'
 import { TODAY_KEY, addDays, diffDays } from './dates'
 import { shrinkImage } from './ui'
-import { getLink, putBlob, getBlob, delBlob, sendEvent } from './sync'
+import { getLink, putBlob, getBlob, delBlob, putFile, getFile, delFile, getView, setDoc, sendEvent } from './sync'
 import type { Who } from './data'
 
 // Фото дня. Подписи и время — в общем документе 'photos', сами картинки — отдельно:
@@ -55,14 +55,14 @@ export async function putImg(id: string, data: string) { await run('readwrite', 
 export async function delImg(id: string) { cache.delete(id); await run('readwrite', s => s.delete(id)) }
 export function clearImgs() { try { indexedDB.deleteDatabase(DB) } catch { /* нечего чистить */ } }
 
-const idOf = (ref?: string) => (ref && /^(idb|sb):/.test(ref) ? ref.slice(ref.indexOf(':') + 1) : null)
+// Ссылки: 'st:' — файл в облачном хранилище, 'sb:' — старый способ (текстом в базе), 'idb:' — только на этом телефоне
+const idOf = (ref?: string) => (ref && /^(idb|sb|st):/.test(ref) ? ref.slice(ref.indexOf(':') + 1) : null)
 
 // Достаёт картинку: память → телефон → облако (и кладёт копию на телефон)
 async function loadImg(ref: string, id: string) {
   const local = await run<string | undefined>('readonly', s => s.get(id)).catch(() => undefined)
   if (local) return local
-  if (!ref.startsWith('sb:')) return undefined
-  const remote = await getBlob(id)
+  const remote = ref.startsWith('st:') ? await getFile(id) : ref.startsWith('sb:') ? await getBlob(id) : undefined
   if (remote) putImg(id, remote).catch(() => {})
   return remote
 }
@@ -85,6 +85,60 @@ const dropImg = (ref?: string) => {
   if (!id) return
   delImg(id).catch(() => {})
   if (ref!.startsWith('sb:')) delBlob(id).catch(() => {})
+  if (ref!.startsWith('st:')) delFile(id).catch(() => {})
+}
+export { dropImg }
+
+/* Сохраняет картинку и отдаёт ссылку для документа. Копия всегда на телефоне;
+   в облако — файлом в хранилище, а если его ещё не создали в Supabase — по-старому, в базу.
+   null — облако есть, но отправить не вышло (нет сети). */
+export async function saveImage(id: string, data: string): Promise<string | null> {
+  await putImg(id, data)
+  if (!getLink()) return 'idb:' + id
+  if (await putFile(id, data)) return 'st:' + id
+  if (await putBlob(id, data)) return 'sb:' + id
+  return null
+}
+
+/* Переносит картинки, сохранённые текстом в базе, в хранилище файлов: фото дня ('sb:')
+   и фото из Bucket list (лежали прямо в документе). Идёт в фоне, по одной; если хранилища
+   ещё нет или пропала сеть — остановится и продолжит при следующем запуске. */
+let moving = false
+export async function moveImagesToFiles() {
+  if (moving || !getLink()) return
+  moving = true
+  try {
+    const photos = getView<Photos>('photos', {})
+    for (const [day, d] of Object.entries(photos)) {
+      for (const w of ['me', 'him'] as Who[]) {
+        const ref = d?.[w]?.ref
+        if (!ref?.startsWith('sb:')) continue
+        const id = ref.slice(3)
+        const data = cache.get(id) ?? (await run<string | undefined>('readonly', s => s.get(id)).catch(() => undefined)) ?? (await getBlob(id))
+        if (!data) continue
+        if (!(await putFile(id, data))) return
+        const cur = getView<Photos>('photos', {})
+        const p = cur[day]?.[w]
+        if (p?.ref === ref) setDoc('photos', { ...cur, [day]: { ...cur[day], [w]: { ...p, ref: 'st:' + id } } })
+        delBlob(id).catch(() => {})
+      }
+    }
+    type G = { id: number; photo?: string }
+    for (const g of getView<G[]>('bucket', [])) {
+      if (!g.photo?.startsWith('data:')) continue
+      const id = `bucket-${g.id}-${Date.now()}`
+      if (!(await putFile(id, g.photo))) return
+      await putImg(id, g.photo).catch(() => {})
+      setDoc('bucket', getView<G[]>('bucket', []).map(x => (x.id === g.id && x.photo === g.photo ? { ...x, photo: 'st:' + id } : x)))
+    }
+  } finally { moving = false }
+}
+
+// Картинка по ссылке из документа (или старая, вставленная прямо в документ как data:…)
+export function RefImg({ src, className }: { src?: string; className?: string }) {
+  const loaded = useImg(src?.startsWith('data:') ? undefined : src)
+  const url = src?.startsWith('data:') ? src : loaded
+  return url ? <img src={url} alt="" className={className} draggable={false} /> : <span className={'img-wait ' + (className ?? '')} />
 }
 
 const both = (d?: PhotoDay) => !!d?.me && !!d?.him && !d.me.late && !d.him.late
@@ -118,16 +172,16 @@ export function usePhotos() {
     const late = k < TODAY_KEY
     const day = photos[k] ?? {}
     try {
-      const data = await shrinkImage(f, 1080)
+      const data = await shrinkImage(f, 1080, false, 0.75)
       const l = getLink()
-      const id = `${k}:${l ? l.user.slice(0, 8) : 'me'}:${Date.now()}`
-      await putImg(id, data)
+      const id = `${k}_${l ? l.user.slice(0, 8) : 'me'}_${Date.now()}`
       // Сначала в облако, потом ссылка в общий документ — чтобы у партнёра картинка уже была
-      const inCloud = l ? await putBlob(id, data) : false
-      if (l && !inCloud) { s.toast('Нет связи — фото не отправилось, попробуй ещё раз', 'states/st_offline'); return }
+      const ref = await saveImage(id, data)
+      if (!ref) { s.toast('Нет связи — фото не отправилось, попробуй ещё раз', 'states/st_offline'); return }
+      const inCloud = !ref.startsWith('idb:')
       const old = day.me?.ref
       const first = !day.me
-      patchMe({ ref: (inCloud ? 'sb:' : 'idb:') + id, at: late ? '' : nowHM(), caption: day.me?.caption, late: late || undefined }, k)
+      patchMe({ ref, at: late ? '' : nowHM(), caption: day.me?.caption, late: late || undefined }, k)
       dropImg(old)
       if (inCloud) sendEvent('photo', { day: k })
       if (late) s.toast(first ? 'Фото добавлено в тот день' : 'Фото заменено', 'common/camera')

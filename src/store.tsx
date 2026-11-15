@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import type { Task, Who } from './data'
 import { TODAY_KEY, diffDays, human, type CycleDay } from './dates'
+import { moveImagesToFiles } from './photos'
 import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, type PairEvent } from './sync'
 
 // Общее состояние приложения. Пока хранится на телефоне (localStorage), потом переедет в Supabase.
@@ -182,6 +183,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVis) }
   }, [])
   const pet = useMemo(() => petNow(rawPet, now), [rawPet, now])
+  // Старые фото из базы — в хранилище файлов (в фоне, после того как подтянулись данные)
+  useEffect(() => { const t = setTimeout(() => { moveImagesToFiles() }, 6000); return () => clearTimeout(t) }, [])
   // Любое изменение кота сначала доводит сытость и счастье до текущей минуты и ставит новую отметку
   const setPet = useCallback((u: SetStateAction<Pet>) => setRawPet(p => {
     const ts = Date.now(), cur = petNow(p, ts)

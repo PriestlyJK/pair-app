@@ -71,7 +71,7 @@ export function useG() {
 }
 
 // Уменьшает фото с телефона: квадрат для аватарки или до max по длинной стороне. Возвращает JPEG data URL.
-export async function shrinkImage(file: File, max: number, square = false): Promise<string> {
+export async function shrinkImage(file: File, max: number, square = false, quality = 0.82): Promise<string> {
   const url = URL.createObjectURL(file)
   try {
     const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url })
@@ -87,7 +87,7 @@ export async function shrinkImage(file: File, max: number, square = false): Prom
       c.width = Math.round(w * k); c.height = Math.round(h * k)
       ctx.drawImage(img, 0, 0, c.width, c.height)
     }
-    return c.toDataURL('image/jpeg', 0.82)
+    return c.toDataURL('image/jpeg', quality)
   } finally { URL.revokeObjectURL(url) }
 }
 
