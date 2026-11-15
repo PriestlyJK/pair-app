@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { cloud, freshSide, sendEvent, signOut, startSync, type Link } from '../sync'
+import { cloud, sendEvent, signOut, startSync, type Link } from '../sync'
 import { useStore, NEW_PET } from '../store'
 import { Img, PhotoPick, shrinkImage, Ava } from '../ui'
 import type { Gender } from '../store'
@@ -209,10 +209,11 @@ export function PairScreen({ user, onDone }: { user: { id: string; email: string
     const { data, error } = await cloud!.rpc('join_couple', { p_code: c })
     setBusy(false)
     if (error) { setErr(/not found/.test(error.message) ? 'Такого кода нет. Проверь буквы' : /full/.test(error.message) ? 'В этой паре уже двое' : ru(error.message)); return }
-    const d = data as { couple_id: string; slot: 'b' }
-    const l: Link = { user: user.id, email: user.email, couple: d.couple_id, slot: 'b', code: c }
+    // Обычно второе место — 'b'; если создателя пары отвязали, новый участник займёт 'a'
+    const d = data as { couple_id: string; slot?: 'a' | 'b' }
+    const l: Link = { user: user.id, email: user.email, couple: d.couple_id, slot: d.slot ?? 'b', code: c }
     // Половина нового участника — с чистого листа (вдруг на это место раньше заходил кто-то другой)
-    if (await startSync(l)) freshSide()
+    await startSync(l, { joined: true })
     sendEvent('joined')
     onDone(l)
   }

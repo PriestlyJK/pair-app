@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useStore, type Gender } from '../store'
-import { Ava, PhotoPick, shrinkImage, useG } from '../ui'
-import { cloud, getLink, getStatus, onStatus, partnerJoined } from '../sync'
+import { Ava, PhotoPick, shrinkImage, useG, useName, usePartnerHere } from '../ui'
+import { cloud, getLink, getStatus, onStatus, partnerJoined, unlinkPartner } from '../sync'
 import { TODAY_KEY } from '../dates'
 import type { Who } from '../data'
 
@@ -30,6 +30,9 @@ export function ProfileSheet() {
   const [joined, setJoined] = useState<boolean | null>(null)
   const [sure, setSure] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [unlink, setUnlink] = useState<'ask' | 'busy' | 'update-db' | null>(null)
+  const here = usePartnerHere()
+  const name = useName()
 
   useEffect(() => { if (link) partnerJoined().then(setJoined) }, [link])
 
@@ -53,7 +56,7 @@ export function ProfileSheet() {
     <>
       {(['me', 'him'] as Who[]).map(who => (
         <div key={who} className="prof">
-          <Ava who={who} size={76} />
+          <Ava who={who} size={76} online={who === 'him' && here} />
           <div className="grow col" style={{ gap: 8 }}>
             <input
               className="input"
@@ -98,10 +101,29 @@ export function ProfileSheet() {
             <div className="row"><span className="grow small muted b">Синхронизация</span>
               <b className="small" style={{ color: STATUS[status][1] }}>{STATUS[status][0]}</b></div>
             <div className="row">
-              <span className="grow small muted b">{joined ? `${g.He} в паре` : joined === false ? `${g.He} ещё не ${g.p('присоединился', 'присоединилась')}` : 'Пара'}</span>
+              <span className="grow small muted b">{joined ? <>{g.He} в паре{here && <b className="online-txt"> · в сети</b>}</> : joined === false ? `${g.He} ещё не ${g.p('присоединился', 'присоединилась')}` : 'Пара'}</span>
               <b className="pair-code sm">{link.code}</b>
             </div>
             {!joined && <button className="btn wide peach" onClick={share}>{copied ? 'Скопировано' : 'Отправить код'}</button>}
+            {joined && !unlink && <button className="btn sm soft" style={{ alignSelf: 'flex-start' }} onClick={() => setUnlink('ask')}>Отвязать {g.his} от пары</button>}
+            {joined && (unlink === 'ask' || unlink === 'busy') && (
+              <div className="col" style={{ gap: 8 }}>
+                <b className="small">{name('him')} выйдет из пары и перестанет видеть ваши данные. Всё общее останется у тебя. Код пары тот же: {g.he} сможет вернуться со своими записями, а если войдёт кто-то другой, {g.his} половина начнётся заново.</b>
+                <div className="grid2">
+                  <button className="btn soft" onClick={() => setUnlink(null)}>Отмена</button>
+                  <button className="btn coral" disabled={unlink === 'busy'} onClick={async () => {
+                    setUnlink('busy')
+                    const err = await unlinkPartner()
+                    if (!err) { setUnlink(null); setJoined(false); s.toast(`${name('him')} больше не в паре`, 'common/cross_badge'); return }
+                    if (err === 'update-db') { setUnlink('update-db'); return }
+                    setUnlink(null); s.toast('Не получилось: ' + err, 'states/st_error')
+                  }}>{unlink === 'busy' ? 'Отвязываю…' : 'Отвязать'}</button>
+                </div>
+              </div>
+            )}
+            {unlink === 'update-db' && (
+              <p className="small b err">Сначала нужно обновить базу: в Supabase → SQL Editor вставить новый кусок из schema.sql и нажать Run. После этого кнопка заработает.</p>
+            )}
           </div>
           {!sure ? (
             <button className="btn wide soft" onClick={() => setSure(true)}>Выйти из аккаунта</button>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as R
 import { useStore, usePersist, describe, hoursToHungry, HUNGRY, type Pet, type RoomPos } from '../store'
 import { sendEvent, getLink, type PairEvent } from '../sync'
 import { PhotoCard } from './Photos'
-import { Img, Bar, Sheet, Coin, Ava, plural, useName, useG } from '../ui'
+import { Img, Bar, Sheet, Coin, Ava, plural, useName, useG, usePartnerHere } from '../ui'
 import { PetView, useHasAccArt, ACC_ICON, type Pose } from '../pet'
 import { BBOX } from '../bbox'
 import { TOUCHES, SHOP, type Who } from '../data'
@@ -342,6 +342,7 @@ export default function Home() {
   const [touchOpen, setTouchOpen] = useState(false)
   const [petOpen, setPetOpen] = useState(false)
   const [profOpen, setProfOpen] = useState(false)
+  const here = usePartnerHere()
   const [edit, setEdit] = useState(false)
   const [walkMs, setWalkMs] = useState(0)
   const [lifted, setLifted] = useState(false)
@@ -473,7 +474,7 @@ export default function Home() {
     <div className="screen">
       <div className="home-top">
         <button className="ava-btn" onClick={() => setProfOpen(true)} aria-label="Аватарки">
-          <Ava who="both" size={40} />
+          <Ava who="both" size={40} online={here} />
         </button>
         <div className="grow">
           <h1>Мы</h1>

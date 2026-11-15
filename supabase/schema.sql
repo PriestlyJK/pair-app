@@ -95,24 +95,38 @@ begin
   return json_build_object('couple_id', c, 'slot', 'a', 'code', k);
 end $$;
 
--- Присоединиться по коду
+-- Присоединиться по коду. Обычно второе место — 'b'; если создателя пары отвязали, свободно 'a'
 create or replace function join_couple(p_code text) returns json
 language plpgsql security definer set search_path = public as $$
-declare c uuid;
+declare c uuid; sl text;
 begin
   if auth.uid() is null then raise exception 'not signed in'; end if;
   if exists (select 1 from members where user_id = auth.uid()) then raise exception 'already paired'; end if;
   select id into c from couples where code = upper(trim(p_code));
   if c is null then raise exception 'code not found'; end if;
   if (select count(*) from members where couple_id = c) >= 2 then raise exception 'couple full'; end if;
-  insert into members (user_id, couple_id, slot) values (auth.uid(), c, 'b');
-  return json_build_object('couple_id', c, 'slot', 'b');
+  sl := case when exists (select 1 from members where couple_id = c and slot = 'a') then 'b' else 'a' end;
+  insert into members (user_id, couple_id, slot) values (auth.uid(), c, sl);
+  return json_build_object('couple_id', c, 'slot', sl);
+end $$;
+
+-- Отвязать партнёра: второй участник выходит из пары, все общие данные остаются
+create or replace function remove_partner() returns void
+language plpgsql security definer set search_path = public as $$
+declare c uuid;
+begin
+  if auth.uid() is null then raise exception 'not signed in'; end if;
+  c := my_couple();
+  if c is null then raise exception 'not paired'; end if;
+  delete from members where couple_id = c and user_id <> auth.uid();
 end $$;
 
 revoke all on function create_couple() from public;
 revoke all on function join_couple(text) from public;
 grant execute on function create_couple() to authenticated;
 grant execute on function join_couple(text) to authenticated;
+revoke all on function remove_partner() from public;
+grant execute on function remove_partner() to authenticated;
 grant execute on function my_couple() to authenticated;
 
 -- Изменения в реальном времени

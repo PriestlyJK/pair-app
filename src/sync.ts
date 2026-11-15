@@ -137,7 +137,8 @@ async function pullAll() {
   return true
 }
 
-export async function startSync(l: Link, opts: { uploadLocal?: boolean } = {}) {
+// joined — только что вошли в пару по коду: своя половина начинается заново (если это не возвращение)
+export async function startSync(l: Link, opts: { uploadLocal?: boolean; joined?: boolean } = {}) {
   if (!cloud) return false
   const prev = link
   // Другой аккаунт или другая пара на этом телефоне — старая копия не нужна
@@ -152,8 +153,11 @@ export async function startSync(l: Link, opts: { uploadLocal?: boolean } = {}) {
   for (const k of subs.keys()) emit(k)
 
   channel?.unsubscribe()
-  channel = cloud
-    .channel('pair-' + l.couple)
+  setHere(false)
+  const ch = cloud.channel('pair-' + l.couple, { config: { presence: { key: l.user } } })
+  channel = ch
+    // Кто сейчас в приложении: каждый отмечается в канале пары, пока приложение открыто
+    .on('presence', { event: 'sync' }, () => setHere(Object.keys(ch.presenceState()).some(k => k !== l.user)))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'docs', filter: `couple_id=eq.${l.couple}` }, p => {
       const row = p.new as { key?: string; value?: unknown; updated_by?: string }
       if (row?.key && row.updated_by !== l.user) applyRemote(row.key, row.value)
@@ -163,15 +167,55 @@ export async function startSync(l: Link, opts: { uploadLocal?: boolean } = {}) {
       const e: PairEvent = { id: r.id, kind: r.kind, payload: r.payload ?? {}, created_at: r.created_at, mine: r.from_user === l.user }
       eventSubs.forEach(f => f(e))
     })
-    .subscribe(st => { if (st === 'SUBSCRIBED') pullAll(); else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') setStatus('offline') })
+    .subscribe(st => { if (st === 'SUBSCRIBED') { pullAll(); trackMe() } else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') setStatus('offline') })
 
-  return pullAll()
+  const ok = await pullAll()
+  if (ok && opts.joined) freshSide(l.user)
+  // Запоминаем, чья это половина: если этот же человек когда-нибудь вернётся в пару, его записи не сотрутся
+  else if (ok && !getView<Record<string, string>>('owners', {}).me) setDoc('owners', { ...getView<Record<string, string>>('owners', {}), me: l.user })
+  return ok
+}
+
+// ---------- Кто сейчас в приложении ----------
+let partnerHere = false
+const presenceSubs = new Set<() => void>()
+function setHere(v: boolean) { if (v !== partnerHere) { partnerHere = v; presenceSubs.forEach(f => f()) } }
+export const isPartnerHere = () => partnerHere
+export const onPresence = (f: () => void) => { presenceSubs.add(f); return () => { presenceSubs.delete(f) } }
+// Пока приложение на экране — «в сети», свернули — сразу пропадаем
+function trackMe() {
+  if (!channel) return
+  const p = document.visibilityState === 'visible' ? channel.track({ at: Date.now() }) : channel.untrack()
+  p.catch(() => {})
+}
+
+// Пара сменилась или нас отвязали: забываем пару на этом телефоне, вход остаётся
+export function forgetLink() {
+  channel?.unsubscribe(); channel = null
+  link = null
+  ls.del('pair.link')
+  clearLocalDocs()
+  setHere(false)
+}
+
+// Отвязать партнёра: второй участник выходит из пары, всё общее остаётся
+export async function unlinkPartner() {
+  if (!cloud || !link) return 'нет связи'
+  sendEvent('unlinked')
+  await new Promise(r => setTimeout(r, 700))
+  const { error } = await cloud.rpc('remove_partner')
+  if (!error) return null
+  return /remove_partner|function|schema cache/i.test(error.message) ? 'update-db' : error.message
 }
 
 /* Новый участник пары начинает свою половину с чистого листа. Если на это место раньше
    заходил другой аккаунт (например, проверочный), его монеты, настроения, ответы в шпаргалке,
    фото и личные списки новому не достаются. Имя и пол оставляем — их можно поправить при знакомстве. */
-export function freshSide() {
+function freshSide(user: string) {
+  const owners = getView<Record<string, string>>('owners', {})
+  // Тот же человек вернулся в пару — его половина на месте, ничего не трогаем
+  if (owners.me === user) return
+  setDoc('owners', { ...owners, me: user })
   const upd = <T,>(k: string, f: (v: T) => T) => { if (values.has(k)) setDoc(k, f(getView<T>(k, undefined as T))) }
   type ByWho = Record<string, unknown>
   const notMine = (field: string) => (xs: ByWho[]) => (Array.isArray(xs) ? xs.filter(x => x[field] !== 'me') : xs)
@@ -188,7 +232,7 @@ export function freshSide() {
 cloud?.auth.onAuthStateChange(ev => { if (ev === 'TOKEN_REFRESHED' || ev === 'SIGNED_IN') setTimeout(() => pullAll()) })
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => pullAll())
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pullAll() })
+  document.addEventListener('visibilitychange', () => { trackMe(); if (document.visibilityState === 'visible') pullAll() })
 }
 
 function clearLocalDocs() {

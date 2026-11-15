@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { StoreProvider, useStore, type Tab } from './store'
 import { Img } from './ui'
-import { cloud, getLink, resolveLink, startSync, type Link } from './sync'
+import { cloud, forgetLink, getLink, onEvent, resolveLink, startSync, type Link } from './sync'
 import { AuthScreen, PairScreen, InstallGate, Onboarding, Splash, needInstall } from './screens/Start'
 import Home from './screens/Home'
 import Board from './screens/Board'
@@ -93,8 +93,13 @@ function Gate() {
   // Повторяем обновление входа при появлении сети и возвращении в приложение
   function keepTrying() {
     const tryNow = async () => {
-      const { error } = await cloud!.auth.refreshSession()
-      if (!error) { off(); return }
+      const { data, error } = await cloud!.auth.refreshSession()
+      if (!error) {
+        off()
+        const u = data.session?.user
+        if (u) setUser({ id: u.id, email: u.email ?? '' })
+        return
+      }
       // Вход отозван (сменили пароль, вышли на другом телефоне) — тогда уже просим войти
       if (!/fetch|network|timeout|Failed|retry/i.test(error.message) && !storedUser()) { off(); setPhase('auth') }
     }
@@ -117,6 +122,24 @@ function Gate() {
     })
     return () => data.subscription.unsubscribe()
   }, [])
+
+  // Нас отвязали от пары (партнёр нажал «Отвязать») — на экран пары, вход при этом остаётся
+  useEffect(() => {
+    if (phase !== 'ready' || !user || !cloud) return
+    let busy = false
+    const check = async () => {
+      if (busy) return
+      busy = true
+      const r = await resolveLink(user.id, user.email)
+      busy = false
+      if (r === null) { forgetLink(); setPhase('pair') }
+    }
+    check()
+    const onVis = () => { if (document.visibilityState === 'visible') check() }
+    document.addEventListener('visibilitychange', onVis)
+    const off = onEvent(e => { if (e.kind === 'unlinked' && !e.mine) setTimeout(check, 2500) })
+    return () => { document.removeEventListener('visibilitychange', onVis); off() }
+  }, [phase, user])
 
   if (phase === 'boot') return <Splash />
   if (phase === 'auth') return <AuthScreen />

@@ -1,6 +1,7 @@
-import { useEffect, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { A, type Assignee } from './data'
 import { useStore } from './store'
+import { isPartnerHere, onPresence } from './sync'
 
 export function Img({ src, size, className, style }: { src: string; size?: number; className?: string; style?: CSSProperties }) {
   return <img src={A(src)} alt="" draggable={false} className={className} style={{ width: size, height: size, ...style }} />
@@ -23,13 +24,14 @@ export function Bar({ value, max = 100, color = 'var(--apricot)', thin }: { valu
   )
 }
 
-export function Ava({ who, size = 24 }: { who: Assignee; size?: number }) {
+// online — зелёная точка «в сети» (для партнёра, пока у него открыто приложение)
+export function Ava({ who, size = 24, online }: { who: Assignee; size?: number; online?: boolean }) {
   const { profile } = useStore()
   if (who === 'both')
     return (
       <span className="ava-pair">
         <Ava who="me" size={size} />
-        <Ava who="him" size={size} />
+        <Ava who="him" size={size} online={online} />
       </span>
     )
   const p = profile[who]
@@ -38,6 +40,7 @@ export function Ava({ who, size = 24 }: { who: Assignee; size?: number }) {
   return (
     <span className={'ava ava-' + who + (p.photo ? ' photo' : '')} style={{ width: size, height: size, fontSize: size * (letter.length > 2 ? 0.32 : 0.42), backgroundImage: p.photo ? `url(${p.photo})` : undefined }}>
       {!p.photo && letter}
+      {online && <i className="online-dot" aria-label="в сети" />}
     </span>
   )
 }
@@ -156,3 +159,8 @@ export const plural = (n: number, one: string, few: string, many: string) => {
 }
 
 export const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
+
+// Партнёр сейчас в приложении
+export function usePartnerHere() {
+  return useSyncExternalStore(onPresence, isPartnerHere)
+}
