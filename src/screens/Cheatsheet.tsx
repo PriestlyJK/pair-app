@@ -39,7 +39,7 @@ function useCheat() {
   }
   const answer = (about: Who, key: string): string | undefined => vals[about]?.[key]
   // Все вопросы разделов одной колодой (кроме общего поля «Заметки» — это не вопрос)
-  const deck = (about: Who, only?: string): Card[] => CHEAT_SECTIONS.filter(x => !only || x.id === only).flatMap(x =>
+  const deck = (about: Who, only?: string): Card[] => CHEAT_SECTIONS.filter(x => (only ? x.id === only : !('extra' in x))).flatMap(x =>
     fieldsOf(about, x.id).filter(f => !(x.id === 'custom' && f.label === 'Заметки'))
       .map(f => ({ key: `${x.id}.${fieldKey(f)}`, f, secName: x.name, secIcon: x.icon })))
   const note = (key: string): string | undefined => notes.me?.[key]
@@ -58,7 +58,7 @@ export default function Cheatsheet() {
   const sec = CHEAT_SECTIONS.find(x => x.id === s.sub)
   if (s.sub === 'health') return <Health about={about} c={c} />
   if (s.sub === 'cards' || s.sub.startsWith('cards-')) return <Cards key={about + s.sub} about={about} only={s.sub.slice(6) || undefined} c={c} />
-  if (sec) return <Section id={sec.id} name={sec.name} icon={sec.icon} about={about} c={c} />
+  if (sec) return <Section id={sec.id} name={sec.name} icon={sec.icon} note={'note' in sec ? sec.note : undefined} about={about} c={c} />
 
   const has = (k: string) => !!c.answer(about, k)
   const count = (id: string) => {
@@ -67,7 +67,7 @@ export default function Cheatsheet() {
   }
   const health = MEDCARD.filter(f => has(`health.${fieldKey(f)}`)).length
   const sits = SITUATIONS.filter(x => ALL_SITUATION_FIELDS.some(f => has(`sit.${x.id}.${fieldKey(f)}`))).length
-  const all = CHEAT_SECTIONS.map(x => count(x.id)).reduce((a, x) => ({ filled: a.filled + x.filled, total: a.total + x.total }), { filled: health, total: MEDCARD.length })
+  const all = CHEAT_SECTIONS.filter(x => !('extra' in x)).map(x => count(x.id)).reduce((a, x) => ({ filled: a.filled + x.filled, total: a.total + x.total }), { filled: health, total: MEDCARD.length })
   const him = name('him')
   const partner = about === 'him'
   return (
@@ -175,7 +175,7 @@ function EditSheet({ f, about, k, c, onClose }: { f: CheatField | null; about: W
   )
 }
 
-function Section({ id, name, icon, about, c }: { id: string; name: string; icon: string; about: Who; c: C }) {
+function Section({ id, name, icon, note, about, c }: { id: string; name: string; icon: string; note?: string; about: Who; c: C }) {
   const s = useStore()
   const g = useG()
   const [edit, setEdit] = useState<CheatField | null>(null)
@@ -192,6 +192,7 @@ function Section({ id, name, icon, about, c }: { id: string; name: string; icon:
           <Img src="talk/deck" />{partner ? 'Проверить себя карточками' : 'Пройти раздел карточками'}
         </button>
       )}
+      {note && <p className="small muted b" style={{ margin: '0 4px' }}>{note}</p>}
       <div className="col" style={{ gap: 10 }}>
         {c.fieldsOf(about, id).map((f, n, all) => (
           <Fragment key={fieldKey(f)}>
