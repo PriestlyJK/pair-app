@@ -1,10 +1,16 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
 import { SUPABASE_KEY, SUPABASE_URL } from './config'
+import { deepEq, merge3 } from './merge'
 
 /* Синхронизация данных пары.
    Каждый раздел приложения (задачи, кот, календарь…) — один документ в таблице docs.
    На телефоне лежит копия всех документов (localStorage): приложение открывается мгновенно и работает без сети.
    Изменение сначала применяется у себя, потом отправляется в облако; изменения партнёра прилетают через realtime.
+
+   Два телефона не затирают друг друга: телефон помнит версию, которую последней видел в облаке (base, с updated_at),
+   и записывает, только если в облаке всё ещё она. Если кто-то успел записать раньше — забираем его версию,
+   сливаем изменения обоих (merge.ts) и пробуем снова. Так же сливаем, если изменения партнёра пришли,
+   пока наши ещё не отправлены.
 
    «Я» и «он» у каждого свои. В базе данные хранятся с точки зрения того, кто создал пару (slot a);
    у второго (slot b) при чтении и записи ключи me/him и поля who/by/… меняются местами. */
@@ -20,6 +26,8 @@ export type Slot = 'a' | 'b'
 export interface Link { user: string; email: string; couple: string; slot: Slot; code: string }
 
 const PREFIX = 'pair.v2.'
+// Последняя виденная версия из облака: { v: значение, at: updated_at }
+const BASE = 'pair.v2base.'
 // Только на этом телефоне: настройки экрана, входящие уведомления
 const LOCAL_ONLY = new Set(['cheat_about', 'inbox'])
 
@@ -39,10 +47,30 @@ const inits = new Map<string, unknown>()
 const subs = new Map<string, Set<() => void>>()
 const pending = new Set<string>(ls.get<string[]>('pair.pending') ?? [])
 const timers = new Map<string, number>()
+type Base = { v: unknown; at: string }
+const bases = new Map<string, Base>()
+const inflight = new Set<string>()
+const again = new Set<string>()
+const recheck = new Set<string>()
+function setBase(key: string, v: unknown, at: string) {
+  bases.set(key, { v, at })
+  ls.set(BASE + key, { v, at })
+}
+const savePending = () => ls.set('pair.pending', [...pending])
+// Время версии в миллисекундах (Postgres и realtime могут прислать его в чуть разном виде; Safari строже к формату)
+const ms = (at: string) => Date.parse(at.replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1').replace(/([+-]\d\d)$/, '$1:00'))
+// Версия at старше той, что уже видели? Непонятное время считаем новым — лучше лишний раз слить, чем пропустить
+const older = (at: string, than?: Base) => !!than && ms(at) < ms(than.at)
+// Метка новой версии всегда позже той, поверх которой пишем, даже если часы на телефонах расходятся
+function stamp(base?: Base) {
+  const b = base ? ms(base.at) : NaN
+  return new Date(isNaN(b) ? Date.now() : Math.max(Date.now(), b + 1)).toISOString()
+}
 
 try {
   for (const k of Object.keys(localStorage)) {
     if (k.startsWith(PREFIX)) values.set(k.slice(PREFIX.length), ls.get(k))
+    else if (k.startsWith(BASE)) { const b = ls.get<Base>(k); if (b?.at) bases.set(k.slice(BASE.length), b) }
     // Первые версии хранили примеры (pair.v1.) — убираем, чтобы старт был чистым
     else if (k.startsWith('pair.v1.')) localStorage.removeItem(k)
   }
@@ -91,26 +119,95 @@ export function setDoc(key: string, view: unknown) {
   emit(key)
   if (link && cloud && !LOCAL_ONLY.has(key)) {
     pending.add(key)
-    ls.set('pair.pending', [...pending])
+    savePending()
     clearTimeout(timers.get(key))
     timers.set(key, window.setTimeout(() => push(key), 300))
   }
 }
 
-function applyRemote(key: string, canon: unknown) {
-  if (pending.has(key) || LOCAL_ONLY.has(key)) return
+function setLocal(key: string, canon: unknown) {
   values.set(key, canon)
   ls.set(PREFIX + key, canon)
   emit(key)
 }
 
+// Пришла версия из облака (при загрузке или от партнёра через realtime)
+function applyRemote(key: string, canon: unknown, at?: string) {
+  if (LOCAL_ONLY.has(key)) return
+  // По времени старше того, что уже видели: обычно это запоздавшая копия (realtime и загрузка приходят не по порядку),
+  // но у телефона со старой версией приложения могут отставать часы — спрашиваем облако, что там сейчас
+  if (at && older(at, bases.get(key))) { recheck.add(key); verify(key); return }
+  take(key, canon, at)
+}
+
+function take(key: string, canon: unknown, at?: string) {
+  const base = bases.get(key)
+  if (pending.has(key)) {
+    // У нас есть неотправленное — сливаем его с пришедшим, отправим уже общее
+    setLocal(key, merge3(base?.v, values.get(key), canon))
+  } else setLocal(key, canon)
+  if (at) setBase(key, canon, at)
+}
+
+async function verify(key: string) {
+  if (!link || !cloud || inflight.has(key)) return // идёт запись — проверим после неё
+  recheck.delete(key)
+  const base = bases.get(key)
+  const { data, error } = await cloud.from('docs').select('value, updated_at').eq('couple_id', link.couple).eq('key', key).maybeSingle()
+  if (error || !data || bases.get(key) !== base) return // пока спрашивали, пришло новое — оно и есть свежее
+  if (inflight.has(key)) { recheck.add(key); return }
+  if (base && ms(data.updated_at) === ms(base.at)) return // у нас уже последняя
+  take(key, data.value, data.updated_at)
+}
+
+const retry = (key: string) => { setStatus('offline'); clearTimeout(timers.get(key)); timers.set(key, window.setTimeout(() => push(key), 8000)) }
+
 async function push(key: string) {
   if (!link || !cloud) return
-  const { error } = await cloud.from('docs').upsert({ couple_id: link.couple, key, value: values.get(key) ?? null, updated_by: link.user, updated_at: new Date().toISOString() })
-  if (error) { setStatus('offline'); timers.set(key, window.setTimeout(() => push(key), 8000)); return }
-  pending.delete(key)
-  ls.set('pair.pending', [...pending])
-  if (!pending.size) setStatus('online')
+  // Одна запись документа за раз; правки, пришедшие во время записи, уйдут следующей
+  if (inflight.has(key)) { again.add(key); return }
+  inflight.add(key)
+  const { couple, user } = link
+  try {
+    for (let i = 0, conflicts = 0; i < 20 && conflicts < 6; i++) {
+      const value = values.get(key) ?? null
+      const base = bases.get(key)
+      const row = { value, updated_by: user, updated_at: stamp(base) }
+      // Записываем, только если в облаке та версия, которую мы видели последней
+      const res = base
+        ? await cloud.from('docs').update(row).eq('couple_id', couple).eq('key', key).eq('updated_at', base.at).select('updated_at')
+        : await cloud.from('docs').insert({ couple_id: couple, key, ...row }).select('updated_at')
+      if (res.error && res.error.code !== '23505') { retry(key); return }
+      const saved: string | undefined = res.error ? undefined : res.data?.[0]?.updated_at
+      if (saved) {
+        // Пока ждали ответ, могла прийти версия партнёра, записанная поверх нашей, — её не откатываем
+        if (bases.get(key) === base) setBase(key, value, saved)
+      } else {
+        // Кто-то записал раньше нас — забираем его версию и сливаем с нашей
+        conflicts++
+        const cur = await cloud.from('docs').select('value, updated_at').eq('couple_id', couple).eq('key', key).maybeSingle()
+        if (cur.error) { retry(key); return }
+        if (!cur.data) { bases.delete(key); ls.del(BASE + key); continue }
+        // Это самая свежая версия в облаке. Если пока ждали, ничего не пришло через realtime — сливаем с ней;
+        // если пришло — оно уже слито, просто пробуем ещё раз поверх него. Часам телефонов здесь не доверяем.
+        if (bases.get(key) === base) {
+          setLocal(key, merge3(base?.v, values.get(key), cur.data.value))
+          setBase(key, cur.data.value, cur.data.updated_at)
+        }
+      }
+      // Всё наше уже в облаке — готово; иначе (новые правки или слили чужое) пишем ещё раз
+      if (deepEq(values.get(key), bases.get(key)?.v)) {
+        pending.delete(key); savePending()
+        if (!pending.size) setStatus('online')
+        return
+      }
+    }
+    retry(key)
+  } finally {
+    inflight.delete(key)
+    if (again.delete(key) && pending.has(key)) push(key)
+    else if (recheck.has(key)) verify(key)
+  }
 }
 
 // ---------- Состояние связи (для значка в профиле) ----------
@@ -128,9 +225,9 @@ export interface PairEvent { id: number; kind: string; payload: Record<string, u
 
 async function pullAll() {
   if (!link || !cloud) return false
-  const { data, error } = await cloud.from('docs').select('key, value').eq('couple_id', link.couple)
+  const { data, error } = await cloud.from('docs').select('key, value, updated_at').eq('couple_id', link.couple)
   if (error) { setStatus('offline'); return false }
-  for (const row of data ?? []) applyRemote(row.key, row.value)
+  for (const row of data ?? []) applyRemote(row.key, row.value, row.updated_at)
   // своё неотправленное — догоняем
   for (const k of [...pending]) push(k)
   if (!pending.size) setStatus('online')
@@ -149,7 +246,7 @@ export async function startSync(l: Link, opts: { uploadLocal?: boolean; joined?:
   ls.set('pair.link', l)
   views.clear()
   if (opts.uploadLocal) for (const k of values.keys()) if (!LOCAL_ONLY.has(k)) pending.add(k)
-  ls.set('pair.pending', [...pending])
+  savePending()
   for (const k of subs.keys()) emit(k)
 
   channel?.unsubscribe()
@@ -159,8 +256,8 @@ export async function startSync(l: Link, opts: { uploadLocal?: boolean; joined?:
     // Кто сейчас в приложении: каждый отмечается в канале пары, пока приложение открыто
     .on('presence', { event: 'sync' }, () => setHere(Object.keys(ch.presenceState()).some(k => k !== l.user)))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'docs', filter: `couple_id=eq.${l.couple}` }, p => {
-      const row = p.new as { key?: string; value?: unknown; updated_by?: string }
-      if (row?.key && row.updated_by !== l.user) applyRemote(row.key, row.value)
+      const row = p.new as { key?: string; value?: unknown; updated_by?: string; updated_at?: string }
+      if (row?.key && row.updated_by !== l.user) applyRemote(row.key, row.value, row.updated_at)
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events', filter: `couple_id=eq.${l.couple}` }, p => {
       const r = p.new as { id: number; kind: string; payload: Record<string, unknown>; created_at: string; from_user: string }
@@ -236,8 +333,8 @@ if (typeof window !== 'undefined') {
 }
 
 function clearLocalDocs() {
-  values.clear(); views.clear(); pending.clear()
-  try { for (const k of Object.keys(localStorage)) if (k.startsWith(PREFIX)) localStorage.removeItem(k) } catch { /* нет доступа */ }
+  values.clear(); views.clear(); pending.clear(); bases.clear()
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith(PREFIX) || k.startsWith(BASE)) localStorage.removeItem(k) } catch { /* нет доступа */ }
   ls.del('pair.pending')
 }
 

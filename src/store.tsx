@@ -199,6 +199,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [owned, setOwned] = usePersist<string[]>('owned', [])
   const [coupons, setCoupons] = usePersist<MyCoupon[]>('coupons', [])
   const [tasks, setTasks] = usePersist<Task[]>('tasks', [])
+  // Общую задачу отметили оба почти одновременно (с двух телефонов) — после слияния закрываем её
+  useEffect(() => {
+    const both = (t: Task) => t.assignee === 'both' && t.status !== 'done' && !!t.doneBy?.me && !!t.doneBy?.him
+    if (!tasks.some(both)) return
+    setTasks(ts => ts.map(t => {
+      if (!both(t)) return t
+      const a = t.doneBy!.me!, b = t.doneBy!.him!
+      return { ...t, status: 'done', doneAt: a > b ? a : b }
+    }))
+  }, [tasks, setTasks])
   const [profile, setProfile] = usePersist<Record<Who, Profile>>('profile', { me: { name: '', photo: null }, him: { name: '', photo: null } })
   const [room, setRoom] = usePersist<RoomState>('room', { pos: {}, hidden: [] })
   const [meetings, setMeetings] = usePersist<Record<string, string>>('meetings', {})
