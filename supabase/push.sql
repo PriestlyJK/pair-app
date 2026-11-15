@@ -1,5 +1,6 @@
 -- Уведомления на телефон (Web Push). Запустить один раз: Supabase → SQL Editor → вставить → Run.
 -- Можно запускать повторно. Таблицы видит только функция push (через service role), приложению они недоступны.
+-- Потом: Edge Functions → функция из supabase/functions/push/index.ts (имя = PUSH_FUNCTION в src/config.ts).
 
 -- Подписки телефонов: куда слать уведомления каждому
 create table if not exists push_subs (

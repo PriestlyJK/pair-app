@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { cloud, getLink } from './sync'
+import { PUSH_FUNCTION } from './config'
 import { useStore } from './store'
 import { Img, useName } from './ui'
 
 /* Уведомления на телефон, как от обычного приложения.
    Работают на iPhone с iOS 16.4+, когда «Мы» открыто с экрана «Домой» (а по-другому приложение и не открыть).
-   Телефон подписывается у службы доставки (у Apple), подписка хранится в облаке через функцию push,
+   Телефон подписывается у службы доставки (у Apple), подписка хранится в облаке через функцию Supabase (PUSH_FUNCTION в config.ts),
    и когда партнёр что-то делает, функция присылает уведомление на все его телефоны.
    Отправка — в sync.ts (sendEvent), текст — в store.tsx (pushText). */
 
@@ -23,7 +24,7 @@ export const pushSupported = () => 'serviceWorker' in navigator && 'PushManager'
 
 async function call<T>(body: object): Promise<T> {
   if (!cloud) throw new Error('нет облака')
-  const { data, error } = await cloud.functions.invoke('push', { body })
+  const { data, error } = await cloud.functions.invoke(PUSH_FUNCTION, { body })
   if (error) throw error
   return data as T
 }
@@ -144,7 +145,7 @@ export function PushSection() {
           <span className="small b muted">На этом телефоне не получится: нужен iPhone с iOS 16.4 или новее и приложение, открытое с экрана «Домой».</span>
         )}
         {p.state === 'nosetup' && (
-          <span className="small b muted">Уведомления ещё не настроены в облаке: в Supabase нужна функция push (инструкция в supabase/push.sql).</span>
+          <span className="small b muted">Уведомления ещё не настроены в облаке: в Supabase нужна функция уведомлений (инструкция в supabase/push.sql).</span>
         )}
       </div>
     </>

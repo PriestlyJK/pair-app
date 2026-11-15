@@ -1,7 +1,8 @@
 /* Supabase Edge Function «push» — уведомления на телефон партнёру (Web Push).
 
-   Как поставить: Supabase → Edge Functions → Deploy a new function → Via Editor,
-   имя функции: push, вставить весь этот файл, Deploy. Перед этим один раз запустить supabase/push.sql.
+   Как поставить: Supabase → Edge Functions → Deploy a new function → Via Editor, вставить весь этот файл, Deploy.
+   Перед этим один раз запустить supabase/push.sql. Имя функции должно совпадать с PUSH_FUNCTION в src/config.ts
+   (сейчас smart-service). В настройках функции «Verify JWT with legacy secret» — выключить: вход проверяем сами.
 
    Ключи VAPID создаются сами при первом запуске и лежат в таблице push_config — её видит только эта функция.
    Никаких сторонних библиотек: шифрование по RFC 8291, подпись VAPID по RFC 8292 — всё на WebCrypto.

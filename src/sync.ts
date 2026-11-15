@@ -1,5 +1,5 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
-import { SUPABASE_KEY, SUPABASE_URL } from './config'
+import { PUSH_FUNCTION, SUPABASE_KEY, SUPABASE_URL } from './config'
 import { deepEq, merge3 } from './merge'
 
 /* Синхронизация данных пары.
@@ -379,7 +379,7 @@ export function sendEvent(kind: string, payload: Record<string, unknown> = {}) {
   cloud.from('events').insert({ couple_id: link.couple, kind, payload }).then(() => {}, () => {})
   // Партнёр сейчас не в приложении — уведомление на телефон (в приложении он и так увидит сразу)
   const m = partnerHere ? null : pushText?.(kind, payload)
-  if (m) cloud.functions.invoke('push', { body: { action: 'send', ...m } }).then(() => {}, () => {})
+  if (m) cloud.functions.invoke(PUSH_FUNCTION, { body: { action: 'send', ...m } }).then(() => {}, () => {})
 }
 export function onEvent(f: (e: PairEvent) => void) { eventSubs.add(f); return () => { eventSubs.delete(f) } }
 
