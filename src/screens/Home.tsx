@@ -6,7 +6,7 @@ import { Img, Bar, Sheet, Coin, Ava, plural, useName, useG } from '../ui'
 import { PetView, useHasAccArt, ACC_ICON, type Pose } from '../pet'
 import { BBOX } from '../bbox'
 import { TOUCHES, SHOP, type Who } from '../data'
-import { TODAY_KEY, diffDays, human, isSunday, isoWeek, weekEnd, weekStart } from '../dates'
+import { TODAY_KEY, diffDays, human, isSunday, weekEnd, weekRange, weekStart } from '../dates'
 import { ProfileSheet } from './Profile'
 
 // «только что», «5 мин назад», «вчера в 21:40»
@@ -119,13 +119,13 @@ function Crop({ src, u0, u1, v0, v1, x, y, w }: { src: string; u0: number; u1: n
 const PET_CANVAS = 0.4 // ширина холста питомца в долях комнаты у переднего края
 
 interface RoomProps {
-  tod: Tod; pose: Pose; fx: string | null; bowlFull: boolean; toy?: string | null
+  tod: Tod; pose: Pose; fx: string | null; bowlFull: boolean; toy?: string | null; bowlHidden?: boolean
   edit?: boolean; onEditDone?: () => void
   walkMs?: number
   onPet?: () => void; onFloor?: (x: number, y: number) => void; onPetDrag?: (dragging: boolean) => void
 }
 
-export function Room({ tod, pose, fx, bowlFull, toy, edit = false, onEditDone, walkMs = 0, onPet, onFloor, onPetDrag }: RoomProps) {
+export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = false, onEditDone, walkMs = 0, onPet, onFloor, onPetDrag }: RoomProps) {
   const { pet, owned, room, setRoom, toast } = useStore()
   const layer = useRef<HTMLDivElement>(null)
   const drag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null)
@@ -251,7 +251,7 @@ export function Room({ tod, pose, fx, bowlFull, toy, edit = false, onEditDone, w
             />
           )
         })}
-        {(() => {
+        {!bowlHidden && (() => {
           const p = posOf('bowl')
           return (
             <Placed src={bowlFull ? 'shop/food/bowl_basic' : 'shop/food/bowl_empty'} x={p.x} y={p.y} w={widthOf('bowl', p.y)}
@@ -314,7 +314,21 @@ export function Room({ tod, pose, fx, bowlFull, toy, edit = false, onEditDone, w
 export default function Home() {
   const s = useStore()
   const { pet } = s
-  const [tod, setTod] = useState<Tod>(autoTod)
+  // Время суток идёт по часам телефона. Кнопками можно подсмотреть другое, но при возвращении
+  // в приложение и при смене утра/вечера/ночи комната снова показывает настоящее время.
+  const [auto, setAuto] = useState<Tod>(autoTod)
+  const [manual, setManual] = useState<Tod | null>(null)
+  const [atBowl, setAtBowl] = useState(false)
+  const tod = manual ?? auto
+  useEffect(() => {
+    const tick = () => setAuto(autoTod())
+    const onVis = () => { if (document.visibilityState === 'visible') { setManual(null); tick() } }
+    const id = setInterval(tick, 30_000)
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onVis)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', onVis) }
+  }, [])
+  useEffect(() => { setManual(null) }, [auto])
   const [action, setAction] = useState<Pose | null>(null)
   const [fx, setFx] = useState<string | null>(null)
   const [toy, setToy] = useState<string | null>(null)
@@ -333,8 +347,9 @@ export default function Home() {
   const [flyer, setFlyer] = useState<{ icon: string; k: number } | null>(null)
   const timer = useRef<number | undefined>(undefined)
   const walkTimer = useRef<number | undefined>(undefined)
+  const afterEat = useRef<number | undefined>(undefined)
 
-  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(walkTimer.current) }, [])
+  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(walkTimer.current); clearTimeout(afterEat.current) }, [])
 
   // Режим расстановки закрывается и кнопкой «Готово», и нажатием в любое место вне комнаты
   useEffect(() => {
@@ -356,14 +371,17 @@ export default function Home() {
     timer.current = window.setTimeout(() => { setAction(null); setFx(null); setToy(null) }, ms)
   }
   // Кот идёт в точку пола; возвращает время пути
-  function walkTo(x: number, y: number) {
+  function walkTo(x: number, y: number, face?: boolean) {
     const cur = s.room.pos.pet ?? petDefault(s.owned)
     const dist = Math.hypot(x - cur.x, (y - cur.y) * 1.5)
-    if (dist < 0.02) return 0
+    if (dist < 0.02) {
+      if (face !== undefined && face !== cur.flip) s.setRoom(r => ({ ...r, pos: { ...r.pos, pet: { ...cur, flip: face } } }))
+      return 0
+    }
     const ms = Math.round(clamp(dist * 2600, 400, 1800))
     clearTimeout(walkTimer.current)
     setWalkMs(ms)
-    s.setRoom(r => ({ ...r, pos: { ...r.pos, pet: { x, y, flip: Math.abs(x - cur.x) > 0.01 ? x > cur.x : cur.flip } } }))
+    s.setRoom(r => ({ ...r, pos: { ...r.pos, pet: { x, y, flip: face ?? (Math.abs(x - cur.x) > 0.01 ? x > cur.x : cur.flip) } } }))
     walkTimer.current = window.setTimeout(() => setWalkMs(0), ms)
     return ms
   }
@@ -383,12 +401,27 @@ export default function Home() {
     s.setPet(p => ({ ...p, satiety: Math.min(100, p.satiety + 50) }))
     s.toast('Покормили · −5', 'shop/food/bowl_basic')
     if (tod === 'night') return
-    // подходит к миске и ест
+    /* Подходит к нашей миске и ест из неё. В картинке «ест» миска уже нарисована — левее центра кота
+       на 0.135 ширины холста. Ставим кота так, чтобы эта миска встала ровно на место миски в комнате,
+       а комнатную на время еды прячем: выглядит, будто он ест из неё. */
     const bowl = s.room.pos.bowl ?? BOWL
-    const side = bowl.x > 0.3 ? -1 : 1
-    const ms = walkTo(clamp(bowl.x + side * 0.13, 0.08, 0.92), clamp(bowl.y + 0.005, ...BOUNDS.pet))
+    const reachable = bowl.y >= BOUNDS.pet[0] // миска на полу, а не на подоконнике
     clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => act('eat', 2600), ms)
+    if (!reachable) { setAtBowl(false); act('eat', 2600); return }
+    const cur = s.room.pos.pet ?? petDefault(s.owned)
+    const off = 0.135 * PET_CANVAS * depth(bowl.y) / depth(0.915)
+    let right = cur.x < bowl.x // подходит слева — смотрит вправо, миска у него справа
+    if (right && bowl.x - off < 0.06) right = false
+    if (!right && bowl.x + off > 0.94) right = true
+    const x = right ? bowl.x - off : bowl.x + off, y = clamp(bowl.y, ...BOUNDS.pet)
+    const ms = walkTo(x, y, right)
+    timer.current = window.setTimeout(() => { setAtBowl(true); act('eat', 2600) }, ms)
+    // Поел — отходит на шаг, чтобы не загораживать миску
+    clearTimeout(afterEat.current)
+    afterEat.current = window.setTimeout(() => {
+      if (document.visibilityState !== 'visible') return
+      walkTo(clamp(x + (right ? -0.14 : 0.14), 0.08, 0.92), clamp(y - 0.03, ...BOUNDS.pet), !right)
+    }, ms + 2700)
   }
   function play() {
     const toys = SHOP.toys.filter(t => s.owned.includes(t.id))
@@ -446,7 +479,7 @@ export default function Home() {
 
       <div>
         <div className="room-wrap">
-          <Room tod={tod} pose={pose} fx={fx} onPet={tapPet} bowlFull={pet.satiety > 40} toy={toy}
+          <Room tod={tod} pose={pose} fx={fx} onPet={tapPet} bowlFull={pet.satiety > 40} toy={toy} bowlHidden={pose === 'eat' && atBowl}
             edit={edit} onEditDone={() => setEdit(false)} walkMs={walkMs} onFloor={onFloor} onPetDrag={setLifted} />
           <div className="room-ui">
             <button className="name-tag" onClick={() => setPetOpen(true)}>
@@ -456,7 +489,7 @@ export default function Home() {
             </button>
             <div className="tod">
               {(['day', 'evening', 'night'] as Tod[]).map(t => (
-                <button key={t} className={t === tod ? 'on' : ''} onClick={() => { setTod(t); setAction(null) }} aria-label={t}>
+                <button key={t} className={t === tod ? 'on' : ''} onClick={() => { setManual(t === auto ? null : t); setAction(null) }} aria-label={t}>
                   <Img src={t === 'day' ? 'common/sun' : t === 'evening' ? 'common/cloud' : 'common/moon'} />
                 </button>
               ))}
@@ -522,7 +555,7 @@ export default function Home() {
           <span className="small muted b">
             {next ? `следующая через ${diffDays(next, TODAY_KEY)} ${plural(diffDays(next, TODAY_KEY), 'день', 'дня', 'дней')}` : past.length ? `последняя ${human(past[past.length - 1])}` : 'пока не отмечали'}
           </span>
-          <button className={'btn sm ' + (metToday ? 'soft' : 'sage')} onClick={toggleToday}>{metToday ? 'Сегодня вместе ✓' : 'Мы встретились'}</button>
+          <button className={'btn sm meet-btn ' + (metToday ? 'soft' : 'sage')} onClick={toggleToday}>{metToday ? 'Вместе ✓' : 'Мы встретились'}</button>
           <button className="linkish" onClick={() => s.go('calendar')}>все встречи в календаре</button>
         </div>
       </div>
@@ -530,7 +563,7 @@ export default function Home() {
       <button className="card row" style={{ textAlign: 'left' }} onClick={() => s.go('board')}>
         <Img src="tracker/sprint_start" size={52} />
         <div className="grow col" style={{ gap: 6 }}>
-          <div className="row"><b className="grow">Неделя {isoWeek(TODAY_KEY)}</b>{sprint.length > 0 && <span className="small muted b">{done} из {sprint.length}</span>}</div>
+          <div className="row"><b className="grow">Эта неделя · {weekRange(TODAY_KEY)}</b>{sprint.length > 0 && <span className="small muted b">{done} из {sprint.length}</span>}</div>
           {sprint.length > 0 && <Bar value={done} max={sprint.length} color="linear-gradient(90deg,#C8DDB9,#7FA66E)" />}
           <span className="small muted b">
             {!sprint.length ? 'Добавьте задачи на неделю на доске' : isSunday(TODAY_KEY) ? 'Сегодня воскресенье: итоги недели' : `до конца недели ${daysLeft} ${plural(daysLeft, 'день', 'дня', 'дней')}`}

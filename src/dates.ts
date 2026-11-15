@@ -76,3 +76,11 @@ export function nextPeriod(st: CycleStats, from: string) {
   while (k <= from) k = addDays(k, st.len)
   return k
 }
+
+// Неделя словами, без номера: «10–16 ноября» или «28 ноября – 4 декабря»
+export const weekRange = (k: string) => {
+  const a = fromKey(weekStart(k)), b = fromKey(weekEnd(k))
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()}–${b.getDate()} ${MONTHS_GEN[b.getMonth()]}`
+    : `${a.getDate()} ${MONTHS_GEN[a.getMonth()]} – ${b.getDate()} ${MONTHS_GEN[b.getMonth()]}`
+}

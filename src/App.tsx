@@ -47,6 +47,14 @@ function Shell() {
 type Phase = 'boot' | 'auth' | 'pair' | 'offline' | 'ready'
 type User = { id: string; email: string }
 
+// Вход, сохранённый на телефоне (Supabase держит его под 'pair.auth'): id пользователя или null
+function storedUser(): string | null {
+  try {
+    const j = JSON.parse(localStorage.getItem('pair.auth') ?? 'null')
+    return j?.refresh_token ? (j.user?.id ?? '?') : null
+  } catch { return null }
+}
+
 // Вход → пара → (первый запуск) → приложение. Без облака сразу приложение, всё хранится на телефоне.
 function Gate() {
   const [phase, setPhase] = useState<Phase>(cloud ? 'boot' : 'ready')
@@ -55,7 +63,21 @@ function Gate() {
   phaseRef.current = phase
 
   async function decide(session: Session | null) {
-    if (!session) { setPhase('auth'); return }
+    if (!session) {
+      /* Пропуск входа живёт час. Если приложение открыли позже, а сеть ещё не проснулась,
+         Supabase не может его обновить и говорит «сессии нет», хотя вход сохранён.
+         Тогда не выкидываем на экран входа: открываем приложение из копии на телефоне
+         и обновляем вход, когда появится сеть. На вход — только если вход правда отозван. */
+      const su = storedUser(), cached = getLink()
+      if (su && cached && (su === '?' || su === cached.user)) {
+        startSync(cached)
+        setPhase('ready')
+        keepTrying()
+        return
+      }
+      setPhase('auth')
+      return
+    }
     const u = { id: session.user.id, email: session.user.email ?? '' }
     setUser(u)
     const cached = getLink()
@@ -68,13 +90,30 @@ function Gate() {
     else { await startSync(l); setPhase('ready') }
   }
 
+  // Повторяем обновление входа при появлении сети и возвращении в приложение
+  function keepTrying() {
+    const tryNow = async () => {
+      const { error } = await cloud!.auth.refreshSession()
+      if (!error) { off(); return }
+      // Вход отозван (сменили пароль, вышли на другом телефоне) — тогда уже просим войти
+      if (!/fetch|network|timeout|Failed|retry/i.test(error.message) && !storedUser()) { off(); setPhase('auth') }
+    }
+    const onVis = () => { if (document.visibilityState === 'visible') tryNow() }
+    const off = () => { window.removeEventListener('online', tryNow); document.removeEventListener('visibilitychange', onVis); clearInterval(t) }
+    window.addEventListener('online', tryNow)
+    document.addEventListener('visibilitychange', onVis)
+    const t = setInterval(tryNow, 20000)
+    setTimeout(tryNow, 1500)
+  }
+
   useEffect(() => {
     if (!cloud) return
     const { data } = cloud.auth.onAuthStateChange((ev, session) => {
       // Внутри обработчика нельзя ждать запросы к Supabase — откладываем
       if (ev === 'INITIAL_SESSION') setTimeout(() => decide(session))
       else if (ev === 'SIGNED_IN' && (phaseRef.current === 'auth' || phaseRef.current === 'boot')) setTimeout(() => decide(session))
-      else if (ev === 'SIGNED_OUT') setPhase('auth')
+      // Выход — только если вход действительно стёрт с телефона
+      else if (ev === 'SIGNED_OUT' && !storedUser()) setPhase('auth')
     })
     return () => data.subscription.unsubscribe()
   }, [])

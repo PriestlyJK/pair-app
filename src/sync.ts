@@ -9,8 +9,10 @@ import { SUPABASE_KEY, SUPABASE_URL } from './config'
    «Я» и «он» у каждого свои. В базе данные хранятся с точки зрения того, кто создал пару (slot a);
    у второго (slot b) при чтении и записи ключи me/him и поля who/by/… меняются местами. */
 
+// Только при разработке: ?local — открыть без облака, чтобы проверять экраны
+const devLocal = import.meta.env.DEV && new URLSearchParams(location.search).has('local')
 export const cloud: SupabaseClient | null =
-  SUPABASE_URL && SUPABASE_KEY
+  SUPABASE_URL && SUPABASE_KEY && !devLocal
     ? createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'pair.auth' } })
     : null
 
@@ -165,7 +167,8 @@ export async function startSync(l: Link, opts: { uploadLocal?: boolean } = {}) {
   await pullAll()
 }
 
-// При возвращении в приложение и появлении сети — догоняем пропущенное
+// При возвращении в приложение, появлении сети и обновлении входа — догоняем пропущенное
+cloud?.auth.onAuthStateChange(ev => { if (ev === 'TOKEN_REFRESHED' || ev === 'SIGNED_IN') setTimeout(() => pullAll()) })
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => pullAll())
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pullAll() })

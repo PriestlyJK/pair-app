@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { Img, Coin, Bar, Ava, Sheet, Header, Seg, useName, plural, useG } from '../ui'
 import { COLUMNS, LABELS, PRIO_NAME, TYPE_ICON, TYPE_NAME, type Assignee, type Prio, type Task, type TaskType } from '../data'
 import { sendEvent } from '../sync'
-import { TODAY_KEY, addDays, diffDays, human, isSunday, isoWeek, short, weekEnd, weekStart } from '../dates'
+import { TODAY_KEY, addDays, diffDays, human, isSunday, short, weekEnd, weekRange, weekStart } from '../dates'
 
 type Filter = 'all' | 'me' | 'him' | 'both'
 const FILTERS: { id: Filter; name: string }[] = [
@@ -93,7 +93,7 @@ export default function Board() {
 
   return (
     <div className="screen">
-      <Header title="Доска" sub={`Неделя ${isoWeek(TODAY_KEY)} · ${short(WEEK0)} – ${short(weekEnd(TODAY_KEY))}`} right={<button className="coin-pill" onClick={() => s.openShop()}><Img src="coins/coin" /> {s.coins.me}</button>} />
+      <Header title="Доска" sub={`Эта неделя · ${weekRange(TODAY_KEY)}`} right={<button className="coin-pill" onClick={() => s.openShop()}><Img src="coins/coin" /> {s.coins.me}</button>} />
 
       {isSunday(TODAY_KEY) && sprint.length > 0 && (
         <button className="sunday" onClick={() => setSummary(true)}>
@@ -179,7 +179,7 @@ export default function Board() {
         <NewTask onDone={() => setCreating(false)} />
       </Sheet>
 
-      <Sheet open={summary} onClose={() => setSummary(false)} title={`Итоги недели ${isoWeek(TODAY_KEY)}`} icon="tracker/sprint_podium" tall>
+      <Sheet open={summary} onClose={() => setSummary(false)} title={`Итоги недели · ${weekRange(TODAY_KEY)}`} icon="tracker/sprint_podium" tall>
         <WeekSummary />
       </Sheet>
     </div>
