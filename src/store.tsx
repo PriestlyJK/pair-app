@@ -152,6 +152,7 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
     case 'coupon_buy': return { text: `${who} ${v('купил', 'купила')} твой купон «${p.name}»`, icon: 'shop/coupons/coupon_medium' }
     case 'cheat_ask': return { text: `${who} просит заполнить шпаргалку о себе`, icon: 'cheatsheet/suggest' }
     case 'wish': return { text: `${who} ${v('добавил', 'добавила')} желание «${p.title}»`, icon: 'wishlist/wishlist' }
+    case 'place': return { text: p.status === 'been' ? `${who} ${v('отметил', 'отметила')} на карте: ${p.name}` : `${who} хочет с тобой сюда: ${p.name}`, icon: 'cheatsheet/dreams/dream_travel' }
     case 'joined': return { text: `${who} теперь с тобой в паре!`, icon: 'common/two_hearts' }
     default: return null
   }

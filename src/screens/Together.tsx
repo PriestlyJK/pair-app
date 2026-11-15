@@ -1,15 +1,20 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useStore, usePersist } from '../store'
 import { Img, Header, Sheet, Bar, Ava, Seg, plural, useName, useG } from '../ui'
 import { ACHIEVEMENTS, ACH_HINT, TOGETHER_TILES, type Who } from '../data'
 import { humanY } from '../dates'
 import { usePhotos } from '../photos'
 import { SECTIONS, type Topic, type Wish, type Goal, type Bet, type Thanks, type Rule } from './TogetherSections'
+import type { Place } from './Places'
+
+// Карта тянет за собой Leaflet — грузим её, только когда открыли
+const Places = lazy(() => import('./Places'))
 
 export default function Together() {
   const s = useStore()
   if (s.sub === 'watchlist') return <Watchlist />
   if (s.sub === 'achievements') return <Achievements />
+  if (s.sub === 'places') return <Suspense fallback={<div className="screen"><Header title="Карта мест" icon="cheatsheet/dreams/dream_travel" onBack={() => s.go('together')} /><div className="map-box" /></div>}><Places /></Suspense>
   const Sec = SECTIONS[s.sub]
   if (Sec) return <Sec />
   return <TogetherHome />
@@ -25,13 +30,14 @@ function useCounts() {
   const [rules] = usePersist<Rule[]>('rules', [])
   const [talk] = usePersist<Topic[]>('topics', [])
   const [watch] = usePersist<WItem[]>('watchlist', [])
+  const [places] = usePersist<Place[]>('places', [])
   const [sent] = usePersist<Record<Who, Record<string, number>>>('sent', { me: {}, him: {} })
   const ph = usePhotos()
-  return { s, wishes, goals, bets, thanks, rules, talk, watch, sent, ph }
+  return { s, wishes, goals, bets, thanks, rules, talk, watch, sent, ph, places }
 }
 
 function TogetherHome() {
-  const { s, wishes, goals, bets, thanks, rules, talk, watch, ph } = useCounts()
+  const { s, wishes, goals, bets, thanks, rules, talk, watch, ph, places } = useCounts()
   const ach = useAchievements()
   const days = s.daysTogether
   const meets = s.meetCount
@@ -41,6 +47,7 @@ function TogetherHome() {
     watchlist: n(watch.filter(w => w.status !== 'watched').length, 'фильм', 'фильма', 'фильмов') || 'что посмотреть',
     wishlist: n(wishes.filter(w => !w.gifted).length, 'желание', 'желания', 'желаний') || 'что подарить',
     bucket: goals.length ? `${goals.filter(g => g.done).length} из ${goals.length}` : 'мечты на двоих',
+    places: places.length ? `${places.filter(p => p.status === 'been').length} были · ${places.filter(p => p.status === 'want').length} хотим` : 'где были, куда хотим',
     memory: 'цитаты и капсулы',
     challenges: 'вместе каждый день',
     bets: bets.length ? `счёт ${bets.filter(b => b.winner === 'me').length} : ${bets.filter(b => b.winner === 'him').length}` : 'на интерес',

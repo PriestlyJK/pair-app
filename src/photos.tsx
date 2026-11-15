@@ -134,6 +134,17 @@ export async function moveImagesToFiles() {
   } finally { moving = false }
 }
 
+// Адрес картинки для мест вне React (значки на карте): data:… или null
+export async function imgUrl(ref: string) {
+  if (ref.startsWith('data:')) return ref
+  const id = idOf(ref)
+  if (!id) return null
+  if (cache.has(id)) return cache.get(id)!
+  const v = await loadImg(ref, id).catch(() => undefined)
+  if (v) cache.set(id, v)
+  return v ?? null
+}
+
 // Картинка по ссылке из документа (или старая, вставленная прямо в документ как data:…)
 export function RefImg({ src, className }: { src?: string; className?: string }) {
   const loaded = useImg(src?.startsWith('data:') ? undefined : src)

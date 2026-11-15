@@ -318,6 +318,7 @@ export const TOGETHER_TILES = [
   { id: 'watchlist', name: 'Вотчлист', icon: 'watchlist/status_watching' },
   { id: 'wishlist', name: 'Вишлисты', icon: 'wishlist/wishlist' },
   { id: 'bucket', name: 'Bucket list', icon: 'bucket/bucket' },
+  { id: 'places', name: 'Карта мест', icon: 'cheatsheet/dreams/dream_travel' },
   { id: 'memory', name: 'Память', icon: 'memory/days_together' },
   { id: 'challenges', name: 'Челленджи', icon: 'challenges/challenge' },
   { id: 'bets', name: 'Споры', icon: 'bets/bet' },
