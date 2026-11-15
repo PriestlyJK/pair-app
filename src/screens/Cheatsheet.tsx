@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useStore, usePersist } from '../store'
 import { Img, Header, Seg, Bar, Sheet, useName, useG } from '../ui'
 import { sendEvent, getLink } from '../sync'
@@ -16,7 +16,7 @@ function useCheat() {
   const [notes, setNotes] = usePersist<Values>('cheat_notes', { me: {}, him: {} })
   const [custom, setCustom] = usePersist<Custom>('cheat_custom', { me: {}, him: {} })
   const fieldsOf = (about: Who, sec: string): CheatField[] => {
-    const base = SECTION_FIELDS[sec] ?? []
+    const base = (SECTION_FIELDS[sec] ?? []).filter(f => !f.retired || !!vals[about]?.[`${sec}.${fieldKey(f)}`])
     const taken = new Set(base.flatMap(f => [fieldKey(f), f.label]))
     const own = (custom[about]?.[sec] ?? []).filter(l => !taken.has(l)).map(label => ({ label, icon: 'cheatsheet/sec_custom' }))
     return [...base, ...own]
@@ -38,10 +38,15 @@ function useCheat() {
     setMine(`${sec}.${label}`, '')
   }
   const answer = (about: Who, key: string): string | undefined => vals[about]?.[key]
+  // Все вопросы разделов одной колодой (кроме общего поля «Заметки» — это не вопрос)
+  const deck = (about: Who, only?: string): Card[] => CHEAT_SECTIONS.filter(x => !only || x.id === only).flatMap(x =>
+    fieldsOf(about, x.id).filter(f => !(x.id === 'custom' && f.label === 'Заметки'))
+      .map(f => ({ key: `${x.id}.${fieldKey(f)}`, f, secName: x.name, secIcon: x.icon })))
   const note = (key: string): string | undefined => notes.me?.[key]
-  return { answer, note, setMine, setNote, fieldsOf, addField, delField }
+  return { answer, note, setMine, setNote, fieldsOf, addField, delField, deck }
 }
 type C = ReturnType<typeof useCheat>
+type Card = { key: string; f: CheatField; secName: string; secIcon: string }
 
 export default function Cheatsheet() {
   const g = useG()
@@ -52,6 +57,7 @@ export default function Cheatsheet() {
   const c = useCheat()
   const sec = CHEAT_SECTIONS.find(x => x.id === s.sub)
   if (s.sub === 'health') return <Health about={about} c={c} />
+  if (s.sub === 'cards' || s.sub.startsWith('cards-')) return <Cards key={about + s.sub} about={about} only={s.sub.slice(6) || undefined} c={c} />
   if (sec) return <Section id={sec.id} name={sec.name} icon={sec.icon} about={about} c={c} />
 
   const has = (k: string) => !!c.answer(about, k)
@@ -83,6 +89,22 @@ export default function Cheatsheet() {
           )}
         </div>
       </div>
+      {(() => {
+        const n = partner ? c.deck('him').filter(x => c.answer('him', x.key)).length : c.deck('me').filter(x => !c.answer('me', x.key)).length
+        if (partner && !n) return null
+        return (
+          <button className="secrow cards-entry" onClick={() => s.go('cheatsheet', 'cards')}>
+            <Img src="talk/deck" />
+            <div className="grow">
+              <b>{partner ? 'Карточки: проверь себя' : 'Отвечать по одной карточке'}</b>
+              <div className="small muted b">{partner
+                ? `${n} ${plural(n, 'ответ', 'ответа', 'ответов')} — вспомни и переверни`
+                : n ? `${n} ${plural(n, 'вопрос', 'вопроса', 'вопросов')} без ответа — по одному, без длинного списка` : `На всё ${g.m('ответил', 'ответила')} — можно пройтись и поправить`}</div>
+            </div>
+            <span className="chev">›</span>
+          </button>
+        )
+      })()}
       <button className="secrow sos" onClick={() => s.go('cheatsheet', 'health')}>
         <Img src="cheatsheet/sec_health" />
         <div className="grow">
@@ -165,10 +187,18 @@ function Section({ id, name, icon, about, c }: { id: string; name: string; icon:
   return (
     <div className="screen">
       <Header title={name} sub={partner ? g.about : 'обо мне'} icon={icon} onBack={() => s.go('cheatsheet')} />
+      {c.deck(about, id).some(x => !partner || c.answer('him', x.key)) && (
+        <button className="btn sm soft wide" onClick={() => s.go('cheatsheet', 'cards-' + id)}>
+          <Img src="talk/deck" />{partner ? 'Проверить себя карточками' : 'Пройти раздел карточками'}
+        </button>
+      )}
       <div className="col" style={{ gap: 10 }}>
-        {c.fieldsOf(about, id).map(f => (
-          <FieldRow key={fieldKey(f)} f={f} about={about} k={key(f)} c={c} onEdit={() => setEdit(f)}
-            onDelete={!partner && isCustom(f.label) ? () => c.delField(id, f.label) : undefined} />
+        {c.fieldsOf(about, id).map((f, n, all) => (
+          <Fragment key={fieldKey(f)}>
+            {f.group && f.group !== all[n - 1]?.group && <div className="sec-title">{f.group}</div>}
+            <FieldRow f={f} about={about} k={key(f)} c={c} onEdit={() => setEdit(f)}
+              onDelete={!partner && isCustom(f.label) ? () => c.delField(id, f.label) : undefined} />
+          </Fragment>
         ))}
       </div>
       <button className="btn wide soft" onClick={() => setAdding(true)}>{partner ? `+ Спросить ${g.p('его', 'её')} ещё о чём-то` : '+ Своё поле'}</button>
@@ -240,5 +270,145 @@ function Health({ about, c }: { about: Who; c: C }) {
       </Sheet>
       {edit && <EditSheet key={edit.key} f={edit.f} about={about} k={edit.key} c={c} onClose={() => setEdit(null)} />}
     </div>
+  )
+}
+
+const plural = (n: number, one: string, few: string, many: string) => {
+  const d = n % 10, h = n % 100
+  return d === 1 && h !== 11 ? one : d >= 2 && d <= 4 && (h < 12 || h > 14) ? few : many
+}
+const shuffle = <T,>(a: T[]) => {
+  const b = [...a]
+  for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]] }
+  return b
+}
+
+/* Карточки — та же шпаргалка, но по одному вопросу, а не списком.
+   «Обо мне»: вопросы без ответа по одному — ответил или пропустил, дальше следующий.
+   Партнёр: его ответы как флешкарточки — вспоминаешь, переворачиваешь, отмечаешь, помнил(а) ли. */
+function Cards({ about, only, c }: { about: Who; only?: string; c: C }) {
+  const s = useStore()
+  const g = useG()
+  const partner = about === 'him'
+  const sec = CHEAT_SECTIONS.find(x => x.id === only)
+  const make = (): Card[] => {
+    const all = c.deck(about, only)
+    if (partner) return shuffle(all.filter(x => c.answer('him', x.key)))
+    const open = all.filter(x => !c.answer('me', x.key))
+    return only ? open : shuffle(open)
+  }
+  // Колода фиксируется при входе: ответы не перемешивают её на ходу
+  const [deck, setDeck] = useState<Card[]>(make)
+  const [i, setI] = useState(0)
+  const [flipped, setFlipped] = useState(false)
+  const [known, setKnown] = useState<Record<string, boolean>>({})
+  const restart = (d: Card[]) => { setDeck(d); setI(0); setKnown({}); setFlipped(false) }
+  const back = () => s.go('cheatsheet', only ?? '')
+  const card = deck[i]
+
+  const head = (
+    <Header title="Карточки" sub={(sec ? sec.name + ' · ' : '') + (partner ? 'проверь себя' : 'по одному вопросу')} icon="talk/deck" onBack={back} />
+  )
+
+  if (!deck.length) {
+    return (
+      <div className="screen">
+        {head}
+        <div className="card col center" style={{ gap: 12, alignItems: 'center' }}>
+          <Img src={partner ? 'states/st_empty' : 'common/check_cookie'} size={84} />
+          <b>{partner ? `${g.He} ещё ничего не ${g.p('рассказал', 'рассказала')}${sec ? ' в этом разделе' : ''}` : `Тут на всё уже есть ответ`}</b>
+          {!partner && <button className="btn wide soft" onClick={() => restart(c.deck('me', only))}>Пройтись по всем и поправить</button>}
+          <button className="btn wide" onClick={back}>К шпаргалке</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!card) {
+    const answered = deck.filter(x => c.answer('me', x.key))
+    const skipped = deck.filter(x => !c.answer('me', x.key))
+    const forgot = deck.filter(x => !known[x.key])
+    return (
+      <div className="screen">
+        {head}
+        <div className="card col center" style={{ gap: 12, alignItems: 'center' }}>
+          <Img src="cheatsheet/suggest" size={84} />
+          {partner ? (
+            <>
+              <b style={{ fontSize: 20 }}>{g.m('Помнил', 'Помнила')} {deck.length - forgot.length} из {deck.length}</b>
+              <span className="small muted b">{forgot.length ? 'То, что не вспомнилось, можно прогнать ещё раз' : `Ты отлично знаешь ${g.p('его', 'её')}`}</span>
+              {forgot.length > 0 && <button className="btn wide peach" onClick={() => restart(shuffle(forgot))}>Ещё раз то, что не {g.m('вспомнил', 'вспомнила')} ({forgot.length})</button>}
+            </>
+          ) : (
+            <>
+              <b style={{ fontSize: 20 }}>Ответов: {answered.length} из {deck.length}</b>
+              <span className="small muted b">{skipped.length ? `${skipped.length} ${plural(skipped.length, 'вопрос', 'вопроса', 'вопросов')} ${g.m('пропустил', 'пропустила')} — можно вернуться к ним потом` : `${g.He} это увидит в шпаргалке`}</span>
+              {skipped.length > 0 && <button className="btn wide peach" onClick={() => restart(skipped)}>К пропущенным ({skipped.length})</button>}
+            </>
+          )}
+          <button className="btn wide soft" onClick={back}>К шпаргалке</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="screen">
+      {head}
+      <div className="row" style={{ gap: 10 }}>
+        <span className="small muted b" style={{ minWidth: 56 }}>{i + 1} из {deck.length}</span>
+        <div className="grow"><Bar thin value={i} max={deck.length} color="linear-gradient(90deg,#F7C4A0,#E5876A)" /></div>
+      </div>
+      {partner ? (
+        <>
+          <div key={card.key} className={'flip' + (flipped ? ' on' : '')} role="button" tabIndex={0} onClick={() => setFlipped(f => !f)}>
+            <div className="flip-in">
+              <div className="qcard flip-face">
+                <span className="qchip"><Img src={card.secIcon} />{card.secName}</span>
+                <Img src={card.f.icon} size={72} />
+                <b className="q">{card.f.label}</b>
+                <span className="small muted b">Вспомни, что {g.he} {g.p('ответил', 'ответила')}, и нажми на карточку</span>
+              </div>
+              <div className="qcard flip-face flip-back">
+                <span className="qchip"><Img src={card.secIcon} />{card.f.label}</span>
+                <div className="ans">{c.answer('him', card.key)}</div>
+                {c.note(card.key) && <div className="note-line">Моя заметка: {c.note(card.key)}</div>}
+              </div>
+            </div>
+          </div>
+          {flipped ? (
+            <div className="grid2">
+              <button className="btn soft" onClick={() => { setKnown(k => ({ ...k, [card.key]: false })); setFlipped(false); setI(i + 1) }}>Не {g.m('вспомнил', 'вспомнила')}</button>
+              <button className="btn sage" onClick={() => { setKnown(k => ({ ...k, [card.key]: true })); setFlipped(false); setI(i + 1) }}>{g.m('Помнил', 'Помнила')}</button>
+            </div>
+          ) : (
+            <button className="btn wide peach" onClick={() => setFlipped(true)}>Перевернуть</button>
+          )}
+        </>
+      ) : (
+        <FillCard key={card.key} card={card} c={c} first={i === 0} onPrev={() => setI(i - 1)} onNext={() => setI(i + 1)} />
+      )}
+    </div>
+  )
+}
+
+function FillCard({ card, c, first, onPrev, onNext }: { card: Card; c: C; first: boolean; onPrev: () => void; onNext: () => void }) {
+  const [v, setV] = useState(c.answer('me', card.key) ?? '')
+  const had = !!c.answer('me', card.key)
+  return (
+    <>
+      <div className="qcard">
+        <span className="qchip"><Img src={card.secIcon} />{card.secName}</span>
+        <Img src={card.f.icon} size={72} />
+        <b className="q">{card.f.label}</b>
+        {card.f.hint && <span className="ex">например: {card.f.hint}</span>}
+        <textarea className="input" style={{ minHeight: 110, textAlign: 'left' }} placeholder="Напиши, как есть" value={v} onChange={e => setV(e.target.value)} />
+      </div>
+      <div className="grid2">
+        <button className="btn soft" onClick={onNext}>{had ? 'Оставить как есть' : 'Пропустить'}</button>
+        <button className="btn peach" disabled={!v.trim() || v.trim() === c.answer('me', card.key)} onClick={() => { c.setMine(card.key, v); onNext() }}>Ответить</button>
+      </div>
+      {!first && <button className="btn sm soft" style={{ alignSelf: 'center' }} onClick={onPrev}>‹ Предыдущий вопрос</button>}
+    </>
   )
 }

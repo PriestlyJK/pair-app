@@ -703,3 +703,17 @@ a.btn { text-decoration: none; color: inherit; }
 .map-off { position: absolute; z-index: 400; inset: 30% 24px auto; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-weight: 800; font-size: 13px; color: var(--muted); pointer-events: none; }
 .tag.part-done { gap: 3px; color: var(--leaf); font-weight: 900; }
 .tag.part-done .ava, .tag.part-done img { width: 16px; height: 16px; }
+
+/* Шпаргалка карточками */
+.cards-entry { background: linear-gradient(135deg, #FFF6EC, #FDE3CF); }
+.qcard { background: var(--card); border: 1.5px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px 18px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; min-height: 300px; }
+.qcard .q { font-size: 22px; font-weight: 900; line-height: 1.2; }
+.qcard .ex { font-size: 14px; font-weight: 700; font-style: italic; color: #B08E76; }
+.qchip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; border-radius: 99px; background: var(--card-2); font-size: 12.5px; font-weight: 900; color: var(--muted); max-width: 100%; }
+.qchip img { width: 22px; height: 22px; }
+.qcard .ans { font-size: 20px; font-weight: 800; line-height: 1.3; white-space: pre-wrap; margin: auto 0; }
+.flip { perspective: 1200px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.flip-in { display: grid; transition: transform .45s cubic-bezier(.3, .7, .3, 1); transform-style: preserve-3d; }
+.flip.on .flip-in { transform: rotateY(180deg); }
+.flip-face { grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden; justify-content: center; }
+.flip-back { transform: rotateY(180deg); background: linear-gradient(160deg, #FFFCF8, #FDEBDC); }
