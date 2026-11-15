@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import type { Task, Who } from './data'
 import { TODAY_KEY, diffDays, human, type CycleDay } from './dates'
 import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, type PairEvent } from './sync'
@@ -19,6 +19,44 @@ export interface Pet {
   satiety: number
   happiness: number
   acc: string | null
+  // Когда сытость и счастье были такими, как записано. Текущие считаются от этого момента
+  at?: string
+}
+
+/* Голод и настроение убывают со временем, даже когда приложение закрыто.
+   В документе лежат значения на момент `at`, а сейчас — считаем: на обоих телефонах выходит одинаково.
+   Сытость: 7 в час днём и 3.5 ночью (кот спит с 23 до 7) — полная миска (+50) примерно на 7 часов,
+   кормить 2–3 раза в день. Счастье: 2.5 в час днём, 1 ночью — за сутки без внимания около половины. */
+const RATE = { satiety: [7, 3.5], happiness: [2.5, 1] } as const
+export const HUNGRY = 45
+const nightHour = (h: number) => h >= 23 || h < 7
+function drain(p: Pet, from: number, to: number) {
+  let t = Math.max(from, to - 14 * 864e5), s = p.satiety, h = p.happiness
+  while (t < to && (s > 0 || h > 0)) {
+    const d = new Date(t)
+    const next = Math.min(to, new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours() + 1).getTime())
+    const hrs = (next - t) / 36e5, n = nightHour(d.getHours()) ? 1 : 0
+    s -= RATE.satiety[n] * hrs
+    h -= RATE.happiness[n] * hrs
+    t = next
+  }
+  return { s: Math.max(0, s), h: Math.max(0, h) }
+}
+export function petNow(p: Pet, now = Date.now()): Pet {
+  const at = p.at ? Date.parse(p.at) : NaN
+  if (!(at < now)) return p
+  const { s, h } = drain(p, at, now)
+  return { ...p, satiety: Math.round(s * 10) / 10, happiness: Math.round(h * 10) / 10 }
+}
+// Через сколько часов кот проголодается (0 — уже голоден)
+export function hoursToHungry(p: Pet, now = Date.now()) {
+  if (p.satiety < HUNGRY) return 0
+  let t = now
+  while (t - now < 48 * 36e5) {
+    t += 15 * 60000
+    if (drain(p, now, t).s < HUNGRY) break
+  }
+  return (t - now) / 36e5
 }
 
 // owner — у кого купон (купил за свои монеты и может предъявить)
@@ -133,7 +171,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = usePersist<Settings>('settings', { since: '', meetBase: 0, cycle: true })
   const [coins, setCoins] = usePersist<Record<Who, number>>('coins', { me: 0, him: 0 })
   const [jar, setJar] = usePersist<Record<Who, number>>('jar', { me: 0, him: 0 })
-  const [pet, setPet] = usePersist<Pet>('pet', NEW_PET)
+  const [rawPet, setRawPet] = usePersist<Pet>('pet', NEW_PET)
+  // Пересчитываем сытость каждые 5 минут и при возвращении в приложение
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const tick = () => setNow(Date.now())
+    const t = setInterval(tick, 5 * 60000)
+    const onVis = () => { if (document.visibilityState === 'visible') tick() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVis) }
+  }, [])
+  const pet = useMemo(() => petNow(rawPet, now), [rawPet, now])
+  // Любое изменение кота сначала доводит сытость и счастье до текущей минуты и ставит новую отметку
+  const setPet = useCallback((u: SetStateAction<Pet>) => setRawPet(p => {
+    const ts = Date.now(), cur = petNow(p, ts)
+    const next = typeof u === 'function' ? (u as (x: Pet) => Pet)(cur) : u
+    setNow(ts)
+    return { ...next, at: new Date(ts).toISOString() }
+  }), [setRawPet])
+  // Кот, заведённый до этого обновления, начинает голодать с этой минуты
+  useEffect(() => { if (rawPet.name && !rawPet.at) setPet(p => p) }, [rawPet.name, rawPet.at, setPet])
   const [owned, setOwned] = usePersist<string[]>('owned', [])
   const [coupons, setCoupons] = usePersist<MyCoupon[]>('coupons', [])
   const [tasks, setTasks] = usePersist<Task[]>('tasks', [])

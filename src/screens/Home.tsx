@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
-import { useStore, usePersist, describe, type RoomPos } from '../store'
+import { useStore, usePersist, describe, hoursToHungry, HUNGRY, type Pet, type RoomPos } from '../store'
 import { sendEvent, getLink, type PairEvent } from '../sync'
 import { PhotoCard } from './Photos'
 import { Img, Bar, Sheet, Coin, Ava, plural, useName, useG } from '../ui'
@@ -19,6 +19,13 @@ function agoText(iso: string) {
   const y = new Date(); y.setDate(y.getDate() - 1)
   if (d.toDateString() === y.toDateString()) return `вчера в ${hm}`
   return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')} в ${hm}`
+}
+
+// Подпись под сытостью: голоден или через сколько проголодается
+function hungerNote(p: Pet) {
+  if (p.satiety < HUNGRY) return 'хочет есть'
+  const h = hoursToHungry(p)
+  return h < 1 ? 'скоро захочет есть' : `сыт ещё ~${Math.round(h)} ч`
 }
 
 type Tod = 'day' | 'evening' | 'night'
@@ -162,7 +169,7 @@ export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = 
   const petZ = live?.id === 'pet' ? 141 : onBed ? Math.round(bed.y * 100) + 1 : sitOn ? Math.round(sitOn.p.y * 100) + 1 : Math.round(pp.y * 100) + 1
   const key = `pet/${pet.breed}/${pet.stage}_${pose}`
   const bb = BBOX[key] ?? [0, 0, 1, 1]
-  const hungry = pet.satiety < 30 && pose !== 'eat' && tod !== 'night'
+  const hungry = pet.satiety < HUNGRY && pose !== 'eat' && tod !== 'night'
   const toyX = clamp(pp.x + (pp.flip ? 0.13 : -0.13), 0.08, 0.92)
 
   function local(e: { clientX: number; clientY: number }) {
@@ -396,7 +403,7 @@ export default function Home() {
     act('happy', 1800, 'fx_hearts')
   }
   function feed() {
-    if (pet.satiety >= 100) { s.toast(`${pet.name} уже сыт`, 'shop/food/bowl_basic'); return }
+    if (pet.satiety >= 90) { s.toast(`${pet.name} ещё сытый, покормишь позже`, 'shop/food/bowl_basic'); return }
     if (!s.spend(5)) return
     s.setPet(p => ({ ...p, satiety: Math.min(100, p.satiety + 50) }))
     s.toast('Покормили · −5', 'shop/food/bowl_basic')
@@ -479,7 +486,7 @@ export default function Home() {
 
       <div>
         <div className="room-wrap">
-          <Room tod={tod} pose={pose} fx={fx} onPet={tapPet} bowlFull={pet.satiety > 40} toy={toy} bowlHidden={pose === 'eat' && atBowl}
+          <Room tod={tod} pose={pose} fx={fx} onPet={tapPet} bowlFull={pet.satiety >= HUNGRY} toy={toy} bowlHidden={pose === 'eat' && atBowl}
             edit={edit} onEditDone={() => setEdit(false)} walkMs={walkMs} onFloor={onFloor} onPetDrag={setLifted} />
           <div className="room-ui">
             <button className="name-tag" onClick={() => setPetOpen(true)}>
@@ -510,14 +517,17 @@ export default function Home() {
         <div className="stat">
           <div className="row"><Img src="shop/food/bowl_basic" />Сытость</div>
           <Bar value={pet.satiety} color="linear-gradient(90deg,#F5C77A,#F2A27A)" />
+          <span className={'stat-note' + (pet.satiety < HUNGRY ? ' warn' : '')}>{hungerNote(pet)}</span>
         </div>
         <div className="stat">
           <div className="row"><Img src="common/heart" />Счастье</div>
           <Bar value={pet.happiness} color="linear-gradient(90deg,#F7B7B2,#E98A86)" />
+          <span className={'stat-note' + (pet.happiness < 30 ? ' warn' : '')}>{pet.happiness < 30 ? 'скучает' : pet.happiness >= 80 ? 'доволен' : 'нормально'}</span>
         </div>
         <div className="stat">
           <div className="row"><Img src="common/star" />Опыт</div>
           <Bar value={pet.xp} max={pet.xpNext} color="linear-gradient(90deg,#F8DE96,#E8B04A)" />
+          <span className="stat-note">{pet.xp}/{pet.xpNext} до ур. {pet.level + 1}</span>
         </div>
       </div>
 
