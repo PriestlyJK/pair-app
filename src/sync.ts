@@ -127,17 +127,18 @@ const eventSubs = new Set<(e: PairEvent) => void>()
 export interface PairEvent { id: number; kind: string; payload: Record<string, unknown>; created_at: string; mine: boolean }
 
 async function pullAll() {
-  if (!link || !cloud) return
+  if (!link || !cloud) return false
   const { data, error } = await cloud.from('docs').select('key, value').eq('couple_id', link.couple)
-  if (error) { setStatus('offline'); return }
+  if (error) { setStatus('offline'); return false }
   for (const row of data ?? []) applyRemote(row.key, row.value)
   // своё неотправленное — догоняем
   for (const k of [...pending]) push(k)
   if (!pending.size) setStatus('online')
+  return true
 }
 
 export async function startSync(l: Link, opts: { uploadLocal?: boolean } = {}) {
-  if (!cloud) return
+  if (!cloud) return false
   const prev = link
   // Другой аккаунт или другая пара на этом телефоне — старая копия не нужна
   if (!prev || prev.user !== l.user || prev.couple !== l.couple) {
@@ -164,7 +165,23 @@ export async function startSync(l: Link, opts: { uploadLocal?: boolean } = {}) {
     })
     .subscribe(st => { if (st === 'SUBSCRIBED') pullAll(); else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') setStatus('offline') })
 
-  await pullAll()
+  return pullAll()
+}
+
+/* Новый участник пары начинает свою половину с чистого листа. Если на это место раньше
+   заходил другой аккаунт (например, проверочный), его монеты, настроения, ответы в шпаргалке,
+   фото и личные списки новому не достаются. Имя и пол оставляем — их можно поправить при знакомстве. */
+export function freshSide() {
+  const upd = <T,>(k: string, f: (v: T) => T) => { if (values.has(k)) setDoc(k, f(getView<T>(k, undefined as T))) }
+  type ByWho = Record<string, unknown>
+  const notMine = (field: string) => (xs: ByWho[]) => (Array.isArray(xs) ? xs.filter(x => x[field] !== 'me') : xs)
+  const clearMe = (empty: unknown) => (v: ByWho) => (v && typeof v === 'object' ? { ...v, me: empty } : v)
+  upd<ByWho>('profile', p => ({ ...p, me: { ...(p.me as ByWho), photo: null, ready: false } }))
+  upd('coins', clearMe(0)); upd('jar', clearMe(0))
+  for (const k of ['moods', 'sent', 'cheat', 'cheat_notes']) upd(k, clearMe({}))
+  upd<Record<string, ByWho>>('photos', ph => Object.fromEntries(Object.entries(ph ?? {}).map(([d, v]) => { const { me: _drop, ...rest } = v ?? {}; void _drop; return [d, rest] })))
+  upd('seen', notMine('by')); upd('offers', notMine('by')); upd('wishes', notMine('who')); upd('coupons', notMine('owner'))
+  upd<ByWho>('settings', st => (st?.cycleBy === 'me' ? { ...st, cycle: false, cycleBy: undefined } : st))
 }
 
 // При возвращении в приложение, появлении сети и обновлении входа — догоняем пропущенное
