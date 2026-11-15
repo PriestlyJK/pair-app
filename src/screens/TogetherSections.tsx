@@ -68,11 +68,12 @@ function Wishlist() {
               <b>{it.title}</b>
               <div className="small muted b">
                 {it.price ? uah(it.price) : 'без цены'}
+                {it.link ? ` · ${host(it.link)}` : ''}
                 {it.gifted ? ' · подарено' : whose === 'him' && it.reserved ? ' · ты забронировала' : ''}
               </div>
             </button>
             {it.link && (
-              <a className="link-chip" href={fixUrl(it.link)} target="_blank" rel="noopener noreferrer">{host(it.link)} ↗</a>
+              <a className="link-chip" href={fixUrl(it.link)} target="_blank" rel="noopener noreferrer">Открыть ↗</a>
             )}
             {whose === 'him' && !it.gifted && (
               <button className={'btn sm ' + (it.reserved ? 'soft' : 'peach')} onClick={() => { patch(it.id, { reserved: !it.reserved }); s.toast(it.reserved ? 'Бронь снята' : 'Забронировано. Он не узнает', 'wishlist/reserved') }}>
