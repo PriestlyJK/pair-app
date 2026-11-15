@@ -45,7 +45,33 @@ const bytes = (s: string) => {
   const t = s.replace(/-/g, '+').replace(/_/g, '/')
   return Uint8Array.from(atob(t + '==='.slice((t.length + 3) % 4)), c => c.charCodeAt(0))
 }
-const registration = () => navigator.serviceWorker.getRegistration()
+// Фоновый помощник приложения (service worker): через него приходят уведомления.
+// Если его почему-то нет — ставим сейчас, а не говорим «не получится».
+async function registration(): Promise<ServiceWorkerRegistration | undefined> {
+  const reg = await navigator.serviceWorker.getRegistration()
+  if (reg || import.meta.env.DEV) return reg
+  try {
+    await navigator.serviceWorker.register('./sw.js')
+    return await Promise.race([navigator.serviceWorker.ready, new Promise<undefined>(r => setTimeout(() => r(undefined), 8000))])
+  } catch { return undefined }
+}
+
+// Что видит телефон — короткая строка для скриншота, чтобы понять причину
+const iosVer = () => navigator.userAgent.match(/OS (\d+)_(\d+)/)
+const standalone = () => !!(navigator as Navigator & { standalone?: boolean }).standalone || matchMedia('(display-mode: standalone)').matches
+export function pushDiag() {
+  const v = iosVer()
+  const yes = (b: boolean) => (b ? '✓' : '✗')
+  return [v ? `iOS ${v[1]}.${v[2]}` : 'не iOS', standalone() ? 'с экрана «Домой»' : 'в браузере',
+    `sw ${yes('serviceWorker' in navigator)}`, `push ${yes('PushManager' in window)}`, `notif ${yes('Notification' in window)}`].join(' · ')
+}
+function unsupportedWhy() {
+  const v = iosVer()
+  if (v && (Number(v[1]) < 16 || (Number(v[1]) === 16 && Number(v[2]) < 4)))
+    return `На iPhone сейчас iOS ${v[1]}.${v[2]}, а уведомления для таких приложений появились в iOS 16.4. Обнови iPhone: Настройки → Основные → Обновление ПО.`
+  if (!standalone()) return 'Приложение открыто в браузере — открой «Мы» значком с экрана «Домой».'
+  return ''
+}
 
 // Подписка этого телефона (с нашим ключом) — и запоминаем её в облаке
 async function subscribe(reg: ServiceWorkerRegistration, key: string) {
@@ -55,13 +81,16 @@ async function subscribe(reg: ServiceWorkerRegistration, key: string) {
   await call({ action: 'save', sub: sub.toJSON() })
 }
 
-async function pushState(): Promise<PushState> {
-  if (!pushSupported() || !cloud || !getLink()) return 'unsupported'
-  if (Notification.permission === 'denied') return 'denied'
+type Check = { state: PushState; why?: string }
+async function pushState(): Promise<Check> {
+  if (!cloud || !getLink()) return { state: 'unsupported', why: 'Нет связи с облаком.' }
+  if (!pushSupported()) return { state: 'unsupported', why: unsupportedWhy() }
+  if (Notification.permission === 'denied') return { state: 'denied' }
   const reg = await registration()
-  if (!reg) return 'unsupported'
-  if (Notification.permission === 'granted' && (await reg.pushManager.getSubscription())) return 'on'
-  return (await serverKey()) ? 'off' : 'nosetup'
+  if (!reg) return { state: 'unsupported', why: 'Не запустился фоновый помощник приложения. Закрой «Мы» полностью (смахни вверх) и открой снова.' }
+  if (!reg.pushManager) return { state: 'unsupported', why: unsupportedWhy() }
+  if (Notification.permission === 'granted' && (await reg.pushManager.getSubscription())) return { state: 'on' }
+  return { state: (await serverKey()) ? 'off' : 'nosetup' }
 }
 
 // При запуске: если уведомления разрешены — проверяем, что подписка жива и облако о ней знает
@@ -75,18 +104,24 @@ export async function refreshPush() {
 export function usePush() {
   const s = useStore()
   const [state, setState] = useState<PushState>('loading')
+  const [why, setWhy] = useState('')
   const [busy, setBusy] = useState(false)
+  const [n, setN] = useState(0)
   useEffect(() => {
     let alive = true
-    pushState().then(st => { if (alive) setState(st) }, () => { if (alive) setState('unsupported') })
+    pushState().then(
+      c => { if (alive) { setState(c.state); setWhy(c.why ?? '') } },
+      e => { if (alive) { setState('unsupported'); setWhy('Ошибка: ' + ((e as Error)?.message ?? e)) } },
+    )
     return () => { alive = false }
-  }, [])
+  }, [n])
   const run = async (f: () => Promise<void>) => {
     setBusy(true)
     try { await f() } catch (e) { s.toast('Не получилось: ' + ((e as Error)?.message ?? e), 'states/st_error') } finally { setBusy(false) }
   }
   return {
-    state, busy,
+    state, why, busy,
+    recheck: () => { setState('loading'); setN(x => x + 1) },
     // Сначала спрашиваем разрешение — прямо по нажатию, иначе iPhone окно не покажет
     enable: () => run(async () => {
       const perm = await Notification.requestPermission()
@@ -142,7 +177,11 @@ export function PushSection() {
           <span className="small b">Уведомления запрещены в настройках iPhone. Включить: Настройки → Уведомления → «Мы» → Допуск уведомлений.</span>
         )}
         {p.state === 'unsupported' && (
-          <span className="small b muted">На этом телефоне не получится: нужен iPhone с iOS 16.4 или новее и приложение, открытое с экрана «Домой».</span>
+          <>
+            <span className="small b muted">{p.why || 'На этом телефоне не получилось включить: нужен iPhone с iOS 16.4 или новее и приложение, открытое с экрана «Домой».'}</span>
+            <span className="muted b" style={{ fontSize: 11 }}>{pushDiag()}</span>
+            <button className="btn sm soft" style={{ alignSelf: 'flex-start' }} onClick={p.recheck}>Проверить ещё раз</button>
+          </>
         )}
         {p.state === 'nosetup' && (
           <span className="small b muted">Уведомления ещё не настроены в облаке: в Supabase нужна функция уведомлений (инструкция в supabase/push.sql).</span>
