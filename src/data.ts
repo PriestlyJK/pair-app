@@ -1,13 +1,8 @@
-// Пример данных для показа экранов. Потом всё это будет приходить из базы (Supabase).
+// Справочники приложения: магазин, метки, разделы шпаргалки и т. п. Данных пользователя здесь нет.
 
 // Пути относительные: так приложение работает и с корня сайта, и из подпапки (GitHub Pages)
 export const A = (p: string) => `assets/${p}.webp`
 
-// «Сегодня» для примера: воскресенье, последний день спринта
-export const TODAY = new Date(2026, 10, 15)
-export const TODAY_D = 15
-export const TOGETHER_SINCE = new Date(2025, 8, 29)
-export const daysTogether = () => Math.round((TODAY.getTime() - TOGETHER_SINCE.getTime()) / 864e5)
 
 export type Who = 'me' | 'him'
 export type Assignee = Who | 'both'
@@ -31,7 +26,9 @@ export interface Task {
   status: Status
   price: number
   prio: Prio
-  deadline?: number // день месяца
+  deadline?: string // 'YYYY-MM-DD'
+  since?: string // когда попала в спринт
+  doneAt?: string
   labels: string[]
   checklist?: { text: string; done: boolean }[]
   carried?: number
@@ -71,21 +68,6 @@ export const COLUMNS: { id: Status; name: string; icon: string }[] = [
   { id: 'done', name: 'Готово', icon: 'common/check_cookie' },
 ]
 
-export const TASKS: Task[] = [
-  { id: 1, title: 'Выбрать билеты на концерт', type: 'task', assignee: 'both', author: 'me', status: 'todo', price: 5, prio: 'urgent', deadline: 15, labels: ['date'] },
-  { id: 2, title: 'Онлайн-свидание: готовим одно блюдо по видеосвязи', type: 'date', assignee: 'both', author: 'him', status: 'todo', price: 6, prio: 'normal', deadline: 16, labels: ['us'] },
-  { id: 3, title: 'Обновить резюме', type: 'task', assignee: 'him', author: 'him', status: 'todo', price: 8, prio: 'normal', deadline: 18, labels: ['work'], checklist: [ { text: 'Опыт', done: true }, { text: 'Навыки', done: false }, { text: 'Фото', done: false } ] },
-  { id: 4, title: 'Прислать голосовое с песней', type: 'wish', assignee: 'him', author: 'me', status: 'todo', price: 2, prio: 'low', labels: ['us'] },
-  { id: 5, title: 'Записаться к стоматологу', type: 'task', assignee: 'me', author: 'me', status: 'doing', price: 3, prio: 'normal', deadline: 14, labels: ['health'], carried: 1 },
-  { id: 6, title: 'Поездка в Питер летом', type: 'epic', assignee: 'both', author: 'me', status: 'doing', price: 10, prio: 'normal', labels: ['trip'], epic: { done: 2, total: 6 } },
-  { id: 7, title: 'Курсовая: глава 2', type: 'task', assignee: 'me', author: 'me', status: 'doing', price: 9, prio: 'urgent', deadline: 17, labels: ['study'], checklist: [ { text: 'Источники', done: true }, { text: 'Черновик', done: true }, { text: 'Правки', done: false } ] },
-  { id: 8, title: 'Зал 3 раза за неделю', type: 'task', assignee: 'me', author: 'me', status: 'done', price: 6, prio: 'normal', labels: ['health'], photo: true },
-  { id: 9, title: 'Подготовить презентацию', type: 'task', assignee: 'him', author: 'him', status: 'done', price: 7, prio: 'normal', labels: ['work'] },
-  { id: 10, title: 'Научиться печь круассаны', type: 'task', assignee: 'both', author: 'him', status: 'backlog', price: 8, prio: 'low', labels: ['growth'] },
-  { id: 11, title: 'Сходить на каток', type: 'date', assignee: 'both', author: 'me', status: 'backlog', price: 5, prio: 'low', labels: ['date'] },
-  { id: 12, title: 'Подарок на Новый год', type: 'task', assignee: 'him', author: 'him', status: 'backlog', price: 6, prio: 'normal', labels: ['gift'] },
-]
-
 // ---------- Касания ----------
 export const TOUCHES = [
   { id: 'hug', name: 'Объятие', icon: 'touches/hug' },
@@ -118,29 +100,7 @@ export const NEEDS = [
   { id: 'listen', name: 'Выслушать', icon: 'calendar/needs/need_listen' },
 ]
 
-const moodCycle: MoodId[] = ['good', 'calm', 'great', 'tired', 'good', 'meh', 'calm', 'good', 'sad', 'good', 'great', 'calm', 'anxious', 'good']
-const moodCycle2: MoodId[] = ['calm', 'good', 'good', 'meh', 'great', 'good', 'tired', 'calm', 'good', 'angry', 'good', 'great', 'calm']
-export function moodFor(who: Who, day: number): MoodId | undefined {
-  if (day > TODAY_D) return undefined
-  if (day === TODAY_D && who === 'me') return undefined // своё настроение на сегодня ещё не отмечено
-  return (who === 'me' ? moodCycle : moodCycle2)[(day * 3) % (who === 'me' ? moodCycle.length : moodCycle2.length)]
-}
-export function energyFor(who: Who, day: number) {
-  return ((day * (who === 'me' ? 7 : 5)) % 5) + 1
-}
-
 export type Phase = 'menstrual' | 'follicular' | 'ovulation' | 'luteal' | 'pms'
-export const PERIOD_START = 3 // этого месяца
-export const CYCLE = 28
-export const PERIOD_LEN = 5
-export function phaseFor(day: number): Phase {
-  const d = ((day - PERIOD_START) % CYCLE + CYCLE) % CYCLE // 0..27
-  if (d < PERIOD_LEN) return 'menstrual'
-  if (d < 12) return 'follicular'
-  if (d < 16) return 'ovulation'
-  if (d >= CYCLE - 5) return 'pms'
-  return 'luteal'
-}
 export const PHASES: Record<Phase, { name: string; icon: string; color: string; hint: string }> = {
   menstrual: { name: 'Менструальная фаза', icon: 'cycle/phase_menstrual', color: '#F6C4C0', hint: 'Эстроген и прогестерон на минимуме, матка сокращается: могут быть спазмы и тянуть поясницу, энергии меньше, тянет к теплу и отдыху.' },
   follicular: { name: 'Фолликулярная фаза', icon: 'cycle/phase_follicular', color: '#E1EDD6', hint: 'Эстроген растёт: энергия, настроение и концентрация растут, кожа обычно лучше.' },
@@ -149,58 +109,35 @@ export const PHASES: Record<Phase, { name: string; icon: string; color: string; 
   pms: { name: 'ПМС', icon: 'cheatsheet/situations/sit_pms', color: '#D9D2F0', hint: 'Эстроген и прогестерон падают: возможны раздражительность, отёки, вздутие, чувствительность груди, перепады настроения.' },
 }
 
-export const MEETING_DAYS = [1, 8]
-export const IMPORTANT_DAYS: Record<number, { name: string; icon: string }> = {
-  12: { name: 'Годовщина знакомства', icon: 'dates/date_anniversary' },
-  19: { name: 'ДР мамы', icon: 'cheatsheet/people/ppl_birthday' },
-}
-
-// ---------- Вотчлист ----------
-export type WStatus = 'pending' | 'both' | 'watching' | 'watched'
-export interface WItem {
-  id: number
-  title: string
-  year: number
-  kind: 'movie' | 'series'
-  by: Who
-  status: WStatus
-  myVote?: 'want' | 'maybe' | 'no'
-  progress?: { me: number; him: number; total: number }
-  rating?: { me: number; him: number }
-}
-export const WATCHLIST: WItem[] = [
-  { id: 1, title: 'Унесённые призраками', year: 2001, kind: 'movie', by: 'him', status: 'pending' },
-  { id: 2, title: 'Гордость и предубеждение', year: 2005, kind: 'movie', by: 'him', status: 'pending' },
-  { id: 3, title: 'Интерстеллар', year: 2014, kind: 'movie', by: 'me', status: 'both' },
-  { id: 4, title: 'Амели', year: 2001, kind: 'movie', by: 'him', status: 'both' },
-  { id: 5, title: 'Отель «Гранд Будапешт»', year: 2014, kind: 'movie', by: 'me', status: 'both' },
-  { id: 6, title: 'Друзья', year: 1994, kind: 'series', by: 'me', status: 'watching', progress: { me: 7, him: 6, total: 24 } },
-  { id: 7, title: 'Шерлок', year: 2010, kind: 'series', by: 'him', status: 'watching', progress: { me: 2, him: 3, total: 3 } },
-  { id: 8, title: 'Ла-Ла Ленд', year: 2016, kind: 'movie', by: 'me', status: 'watched', rating: { me: 9, him: 8 } },
-  { id: 9, title: 'Начало', year: 2010, kind: 'movie', by: 'him', status: 'watched', rating: { me: 7, him: 10 } },
-]
-
 // ---------- Ачивки ----------
+// Получены они или нет, считается из ваших данных (screens/Together.tsx)
 export const ACHIEVEMENTS = [
-  { name: 'Первая встреча', tier: 'bronze', icon: 'meetings/meet_button', done: true },
-  { name: '10 встреч', tier: 'silver', icon: 'common/two_hearts', done: true },
-  { name: '25 встреч', tier: 'gold', icon: 'common/two_hearts', done: true },
-  { name: '50 встреч', tier: 'gold', icon: 'common/two_hearts', done: false },
-  { name: 'Первая задача', tier: 'bronze', icon: 'common/check_cookie', done: true },
-  { name: '50 задач', tier: 'silver', icon: 'tracker/type_task', done: true },
-  { name: 'Покорили вершину', tier: 'gold', icon: 'tracker/type_epic', done: false },
-  { name: 'Без хвостов', tier: 'silver', icon: 'tracker/sprint_start', done: true },
-  { name: 'Новый питомец', tier: 'bronze', icon: 'pet/selection/basket_open', done: true },
-  { name: 'Питомец вырос', tier: 'gold', icon: 'pet/ui/level_badge', done: false },
-  { name: 'Неделя кадров', tier: 'bronze', icon: 'common/camera', done: true },
-  { name: 'Месяц кадров', tier: 'silver', icon: 'common/camera', done: false },
-  { name: '100 объятий', tier: 'silver', icon: 'touches/hug', done: true },
-  { name: 'Киноклуб', tier: 'silver', icon: 'watchlist/status_watched', done: false },
-  { name: '100 дней', tier: 'silver', icon: 'memory/days_together', done: true },
-  { name: 'Год вместе', tier: 'gold', icon: 'memory/days_together', done: false },
-  { name: 'Первый спор', tier: 'bronze', icon: 'bets/bet', done: true },
-  { name: 'Нас стало больше', tier: 'special', icon: 'shop/coupons/second_pet', done: false },
+  { id: 'meet1', name: 'Первая встреча', tier: 'bronze', icon: 'meetings/meet_button' },
+  { id: 'meet10', name: '10 встреч', tier: 'silver', icon: 'common/two_hearts' },
+  { id: 'meet25', name: '25 встреч', tier: 'gold', icon: 'common/two_hearts' },
+  { id: 'meet50', name: '50 встреч', tier: 'gold', icon: 'common/two_hearts' },
+  { id: 'task1', name: 'Первая задача', tier: 'bronze', icon: 'common/check_cookie' },
+  { id: 'task50', name: '50 задач', tier: 'silver', icon: 'tracker/type_task' },
+  { id: 'epic', name: 'Покорили вершину', tier: 'gold', icon: 'tracker/type_epic' },
+  { id: 'clean', name: 'Без хвостов', tier: 'silver', icon: 'tracker/sprint_start' },
+  { id: 'pet', name: 'Новый питомец', tier: 'bronze', icon: 'pet/selection/basket_open' },
+  { id: 'grown', name: 'Питомец вырос', tier: 'gold', icon: 'pet/ui/level_badge' },
+  { id: 'photo7', name: 'Неделя кадров', tier: 'bronze', icon: 'common/camera' },
+  { id: 'photo30', name: 'Месяц кадров', tier: 'silver', icon: 'common/camera' },
+  { id: 'hug100', name: '100 объятий', tier: 'silver', icon: 'touches/hug' },
+  { id: 'movies', name: 'Киноклуб', tier: 'silver', icon: 'watchlist/status_watched' },
+  { id: 'days100', name: '100 дней', tier: 'silver', icon: 'memory/days_together' },
+  { id: 'year', name: 'Год вместе', tier: 'gold', icon: 'memory/days_together' },
+  { id: 'bet1', name: 'Первый спор', tier: 'bronze', icon: 'bets/bet' },
+  { id: 'pet2', name: 'Нас стало больше', tier: 'special', icon: 'shop/coupons/second_pet' },
 ] as const
+export const ACH_HINT: Record<string, string> = {
+  meet1: 'Отметьте первую встречу', meet10: '10 встреч вживую', meet25: '25 встреч вживую', meet50: '50 встреч вживую',
+  task1: 'Закройте первую задачу', task50: 'Закройте 50 задач', epic: 'Закройте эпик', clean: 'Закройте все задачи недели (от 3 штук)',
+  pet: 'Заведите питомца', grown: 'Питомец дорастёт до 10 уровня', photo7: '7 дней подряд фото дня вдвоём', photo30: '30 дней подряд фото дня вдвоём',
+  hug100: 'Отправьте 100 объятий', movies: 'Посмотрите вместе 5 фильмов', days100: '100 дней вместе', year: 'Год вместе',
+  bet1: 'Заключите первый спор', pet2: 'Накопите на второго питомца',
+}
 
 // ---------- Магазин ----------
 export interface ShopItem { id: string; name: string; price: number; icon: string; note?: string }
@@ -258,145 +195,134 @@ export const SHOP: Record<string, ShopItem[]> = {
   ],
 }
 
-export const COUPONS_FROM_HIM = [
-  { id: 'c1', name: 'Я выбираю фильм', price: 60, icon: 'watchlist/movie', size: 'small' },
-  { id: 'c2', name: 'Массаж 30 минут при встрече', price: 200, icon: 'shop/coupons/cpn_massage', size: 'medium' },
-  { id: 'c3', name: 'Завтрак доставкой', price: 250, icon: 'shop/coupons/cpn_breakfast', size: 'medium' },
-  { id: 'c4', name: 'Свидание полностью по твоему сценарию', price: 600, icon: 'tracker/type_date', size: 'large' },
-  { id: 'c5', name: 'День исполнения желаний', price: 1000, icon: 'tracker/type_wish', size: 'large' },
-] as const
-
 // ---------- Шпаргалка ----------
 export const CHEAT_SECTIONS = [
-  { id: 'sizes', name: 'Размеры', icon: 'cheatsheet/sec_sizes', filled: 6, total: 7 },
-  { id: 'health', name: 'Здоровье', icon: 'cheatsheet/sec_health', filled: 14, total: 27 },
-  { id: 'food', name: 'Еда', icon: 'cheatsheet/sec_food', filled: 8, total: 10 },
-  { id: 'gifts', name: 'Подарки', icon: 'common/gift', filled: 5, total: 8 },
-  { id: 'emotions', name: 'Эмоции', icon: 'cheatsheet/sec_emotions', filled: 4, total: 6 },
-  { id: 'people', name: 'Люди', icon: 'cheatsheet/sec_people', filled: 3, total: 4 },
-  { id: 'tastes', name: 'Вкусы', icon: 'cheatsheet/sec_tastes', filled: 5, total: 6 },
-  { id: 'dreams', name: 'Мечты', icon: 'cheatsheet/sec_dreams', filled: 2, total: 3 },
-  { id: 'custom', name: 'Своё', icon: 'cheatsheet/sec_custom', filled: 1, total: 1 },
+  { id: 'sizes', name: 'Размеры', icon: 'cheatsheet/sec_sizes' },
+  { id: 'food', name: 'Еда', icon: 'cheatsheet/sec_food' },
+  { id: 'gifts', name: 'Подарки', icon: 'common/gift' },
+  { id: 'emotions', name: 'Эмоции', icon: 'cheatsheet/sec_emotions' },
+  { id: 'people', name: 'Люди', icon: 'cheatsheet/sec_people' },
+  { id: 'tastes', name: 'Вкусы', icon: 'cheatsheet/sec_tastes' },
+  { id: 'dreams', name: 'Мечты', icon: 'cheatsheet/sec_dreams' },
+  { id: 'custom', name: 'Своё', icon: 'cheatsheet/sec_custom' },
 ]
 
-export const SECTION_FIELDS: Record<string, { label: string; icon: string; value?: string }[]> = {
+export interface CheatField { label: string; icon: string; hint?: string }
+export const SECTION_FIELDS: Record<string, CheatField[]> = {
   sizes: [
-    { label: 'Одежда: верх', icon: 'cheatsheet/sizes/size_top', value: 'L, худи — XL' },
-    { label: 'Одежда: низ', icon: 'cheatsheet/sizes/size_bottom', value: '32/32' },
-    { label: 'Обувь', icon: 'cheatsheet/sizes/size_shoes', value: '43 · стопа 27,5 см' },
-    { label: 'Кольцо', icon: 'cheatsheet/sizes/size_ring', value: '20,5 · безымянный' },
-    { label: 'Бельё', icon: 'cheatsheet/sizes/size_underwear', value: 'L' },
-    { label: 'Носки', icon: 'cheatsheet/sizes/size_socks', value: '42–44' },
+    { label: 'Одежда: верх', icon: 'cheatsheet/sizes/size_top', hint: 'например, M, худи — L' },
+    { label: 'Одежда: низ', icon: 'cheatsheet/sizes/size_bottom' },
+    { label: 'Обувь', icon: 'cheatsheet/sizes/size_shoes', hint: 'размер и длина стопы' },
+    { label: 'Кольцо', icon: 'cheatsheet/sizes/size_ring' },
+    { label: 'Бельё', icon: 'cheatsheet/sizes/size_underwear' },
+    { label: 'Носки', icon: 'cheatsheet/sizes/size_socks' },
     { label: 'Перчатки', icon: 'cheatsheet/sizes/size_gloves' },
   ],
   food: [
-    { label: 'Любимое', icon: 'cheatsheet/food/food_love', value: 'паста с креветками, сырники' },
-    { label: 'Нелюбимое', icon: 'cheatsheet/food/food_hate', value: 'варёный лук, оливки' },
-    { label: 'Заказ в кофейне', icon: 'cheatsheet/food/food_coffee', value: 'раф на овсяном, без сиропа' },
-    { label: 'Суши', icon: 'cheatsheet/food/food_sushi', value: 'Филадельфия, без огурца' },
-    { label: 'Фастфуд', icon: 'cheatsheet/food/food_fastfood', value: 'чизбургер + наггетсы' },
-    { label: 'Сладкое', icon: 'cheatsheet/food/food_sweets', value: 'медовик' },
-    { label: 'Алкоголь', icon: 'cheatsheet/food/food_drinks', value: 'сидр, без крепкого' },
-    { label: 'Когда грустно', icon: 'common/pot', value: 'суп с фрикадельками' },
+    { label: 'Любимое', icon: 'cheatsheet/food/food_love' },
+    { label: 'Нелюбимое', icon: 'cheatsheet/food/food_hate' },
+    { label: 'Заказ в кофейне', icon: 'cheatsheet/food/food_coffee' },
+    { label: 'Суши', icon: 'cheatsheet/food/food_sushi' },
+    { label: 'Фастфуд', icon: 'cheatsheet/food/food_fastfood' },
+    { label: 'Сладкое', icon: 'cheatsheet/food/food_sweets' },
+    { label: 'Алкоголь', icon: 'cheatsheet/food/food_drinks' },
+    { label: 'Когда грустно', icon: 'common/pot' },
     { label: 'Перекусы', icon: 'cheatsheet/food/food_snacks' },
   ],
   gifts: [
-    { label: 'Любимые цвета', icon: 'cheatsheet/gifts/gift_colors', value: 'тёмно-зелёный, бежевый' },
+    { label: 'Любимые цвета', icon: 'cheatsheet/gifts/gift_colors' },
     { label: 'Цветы', icon: 'cheatsheet/gifts/gift_flowers' },
-    { label: 'Ароматы', icon: 'cheatsheet/gifts/gift_scents', value: 'древесные, без сладкого' },
-    { label: 'Бренды', icon: 'cheatsheet/gifts/gift_brands', value: 'Uniqlo, New Balance' },
-    { label: 'Украшения', icon: 'cheatsheet/gifts/gift_jewelry', value: 'серебро, только часы' },
-    { label: 'Уже есть', icon: 'cheatsheet/gifts/gift_has', value: 'наушники, термос' },
-    { label: 'Не дарить', icon: 'cheatsheet/gifts/gift_no', value: 'парфюм без пробы' },
+    { label: 'Ароматы', icon: 'cheatsheet/gifts/gift_scents' },
+    { label: 'Бренды', icon: 'cheatsheet/gifts/gift_brands' },
+    { label: 'Украшения', icon: 'cheatsheet/gifts/gift_jewelry' },
+    { label: 'Уже есть', icon: 'cheatsheet/gifts/gift_has' },
+    { label: 'Не дарить', icon: 'cheatsheet/gifts/gift_no' },
   ],
   emotions: [
-    { label: 'Что бесит', icon: 'cheatsheet/situations/sit_anger', value: 'когда перебивают' },
-    { label: 'Как успокоить', icon: 'cheatsheet/emotions/emo_calm', value: 'дать выговориться, не советовать сразу' },
-    { label: 'Как поддержать', icon: 'cheatsheet/emotions/emo_support', value: 'голосовое + сказать «я рядом»' },
-    { label: 'Язык любви', icon: 'common/two_hearts', value: '1. время 2. прикосновения 3. слова' },
+    { label: 'Что бесит', icon: 'cheatsheet/situations/sit_anger' },
+    { label: 'Как успокоить', icon: 'cheatsheet/emotions/emo_calm' },
+    { label: 'Как поддержать', icon: 'cheatsheet/emotions/emo_support' },
+    { label: 'Язык любви', icon: 'common/two_hearts' },
     { label: 'О чём не шутить', icon: 'cheatsheet/emotions/emo_no_jokes' },
-    { label: 'Что радует', icon: 'cheatsheet/emotions/emo_joys', value: 'мемы с котами, кофе с утра' },
+    { label: 'Что радует', icon: 'cheatsheet/emotions/emo_joys' },
   ],
   people: [
-    { label: 'Родители', icon: 'cheatsheet/people/ppl_parents', value: 'мама Ольга (ДР 19.11), папа Игорь' },
-    { label: 'Друзья', icon: 'cheatsheet/people/ppl_friends', value: 'Дима, Саша — со школы' },
-    { label: 'Коллеги', icon: 'cheatsheet/people/ppl_colleagues', value: 'тимлид Аня' },
+    { label: 'Родители', icon: 'cheatsheet/people/ppl_parents', hint: 'имена, дни рождения' },
+    { label: 'Друзья', icon: 'cheatsheet/people/ppl_friends' },
+    { label: 'Коллеги', icon: 'cheatsheet/people/ppl_colleagues' },
     { label: 'Другие', icon: 'cheatsheet/sec_people' },
   ],
   tastes: [
-    { label: 'Фильмы', icon: 'watchlist/movie', value: 'Нолан, Уэс Андерсон' },
-    { label: 'Сериалы', icon: 'watchlist/series', value: 'ситкомы' },
-    { label: 'Музыка', icon: 'cheatsheet/tastes/taste_music', value: 'инди, lo-fi' },
-    { label: 'Книги', icon: 'cheatsheet/tastes/taste_books', value: 'фантастика' },
-    { label: 'Игры', icon: 'cheatsheet/tastes/taste_games', value: 'кооп-игры' },
+    { label: 'Фильмы', icon: 'watchlist/movie' },
+    { label: 'Сериалы', icon: 'watchlist/series' },
+    { label: 'Музыка', icon: 'cheatsheet/tastes/taste_music' },
+    { label: 'Книги', icon: 'cheatsheet/tastes/taste_books' },
+    { label: 'Игры', icon: 'cheatsheet/tastes/taste_games' },
     { label: 'Хобби', icon: 'cheatsheet/tastes/taste_hobby' },
   ],
   dreams: [
-    { label: 'Куда поехать', icon: 'cheatsheet/dreams/dream_travel', value: 'Япония весной' },
-    { label: 'Чему научиться', icon: 'cheatsheet/dreams/dream_learn', value: 'гитара' },
+    { label: 'Куда поехать', icon: 'cheatsheet/dreams/dream_travel' },
+    { label: 'Чему научиться', icon: 'cheatsheet/dreams/dream_learn' },
     { label: 'Большие мечты', icon: 'cheatsheet/dreams/dream_big' },
   ],
-  custom: [{ label: 'Заметки', icon: 'cheatsheet/sec_custom', value: 'не любит звонки без предупреждения' }],
+  custom: [{ label: 'Заметки', icon: 'cheatsheet/sec_custom' }],
 }
 
-export const MEDCARD = [
-  { label: 'Аллергии', icon: 'cheatsheet/health/med_allergy', value: 'пыльца берёзы (апрель–май)' },
-  { label: 'Нельзя есть', icon: 'cheatsheet/health/med_intolerance', value: 'лактоза — немного можно' },
-  { label: 'Плохая реакция', icon: 'cheatsheet/health/med_bad_reaction' },
-  { label: 'Постоянные', icon: 'cheatsheet/health/med_regular', value: 'витамин D' },
+export const MEDCARD: CheatField[] = [
+  { label: 'Аллергии', icon: 'cheatsheet/health/med_allergy' },
+  { label: 'Нельзя есть', icon: 'cheatsheet/health/med_intolerance' },
+  { label: 'Плохая реакция', icon: 'cheatsheet/health/med_bad_reaction', hint: 'на какие лекарства' },
+  { label: 'Постоянные', icon: 'cheatsheet/health/med_regular', hint: 'что принимает постоянно' },
   { label: 'Хроническое', icon: 'cheatsheet/health/med_chronic' },
-  { label: 'Группа крови', icon: 'cheatsheet/health/med_blood', value: 'II+' },
+  { label: 'Группа крови', icon: 'cheatsheet/health/med_blood' },
   { label: 'Врачи', icon: 'cheatsheet/health/med_doctors' },
-  { label: 'Экстренный контакт', icon: 'cheatsheet/health/med_emergency', value: 'мама' },
-  { label: 'Аптечка дома', icon: 'cheatsheet/health/home_kit', value: 'есть: нурофен, пластыри' },
+  { label: 'Экстренный контакт', icon: 'cheatsheet/health/med_emergency' },
+  { label: 'Аптечка дома', icon: 'cheatsheet/health/home_kit' },
 ]
 
 export const SITUATIONS = [
-  { id: 'headache', name: 'Болит голова', icon: 'cheatsheet/situations/sit_headache', filled: true },
-  { id: 'stomach', name: 'Живот, тошнота', icon: 'cheatsheet/situations/sit_stomach', filled: true },
-  { id: 'fever', name: 'Простуда', icon: 'cheatsheet/situations/sit_fever', filled: true },
+  { id: 'headache', name: 'Болит голова', icon: 'cheatsheet/situations/sit_headache' },
+  { id: 'stomach', name: 'Живот, тошнота', icon: 'cheatsheet/situations/sit_stomach' },
+  { id: 'fever', name: 'Простуда', icon: 'cheatsheet/situations/sit_fever' },
   { id: 'throat', name: 'Горло, насморк', icon: 'cheatsheet/situations/sit_throat' },
   { id: 'period', name: 'Месячные', icon: 'cheatsheet/situations/sit_period' },
   { id: 'pms', name: 'ПМС', icon: 'cheatsheet/situations/sit_pms' },
-  { id: 'allergy', name: 'Аллергия', icon: 'cheatsheet/health/med_allergy', filled: true },
+  { id: 'allergy', name: 'Аллергия', icon: 'cheatsheet/health/med_allergy' },
   { id: 'tooth', name: 'Зуб', icon: 'cheatsheet/situations/sit_tooth' },
   { id: 'back', name: 'Спина, мышцы', icon: 'cheatsheet/situations/sit_back' },
   { id: 'injury', name: 'Порез, ушиб', icon: 'cheatsheet/situations/sit_injury' },
   { id: 'hangover', name: 'Похмелье', icon: 'cheatsheet/situations/sit_hangover' },
   { id: 'insomnia', name: 'Не спится', icon: 'cheatsheet/situations/sit_insomnia' },
   { id: 'tired', name: 'Усталость', icon: 'calendar/energy/energy_1' },
-  { id: 'anxiety', name: 'Тревога', icon: 'cheatsheet/situations/sit_anxiety', filled: true },
+  { id: 'anxiety', name: 'Тревога', icon: 'cheatsheet/situations/sit_anxiety' },
   { id: 'burnout', name: 'Выгорание', icon: 'cheatsheet/situations/sit_burnout' },
-  { id: 'sad', name: 'Грусть', icon: 'common/raincloud', filled: true },
+  { id: 'sad', name: 'Грусть', icon: 'common/raincloud' },
   { id: 'anger', name: 'Злость', icon: 'cheatsheet/situations/sit_anger' },
   { id: 'overwhelmed', name: 'Накрыло', icon: 'cheatsheet/situations/sit_overwhelmed' },
 ]
 
-export const SITUATION_EXAMPLE = {
-  name: 'Болит голова',
-  icon: 'cheatsheet/situations/sit_headache',
-  fields: [
-    { label: 'Что принимает', icon: 'cheatsheet/health/field_meds', value: 'Ибупрофен 400 мг, не больше 2 раз в день (пишет сам)' },
-    { label: 'Что принести', icon: 'cheatsheet/health/field_bring', value: 'холодную воду с лимоном, тёмные очки' },
-    { label: 'Заказать доставкой', icon: 'cheatsheet/health/field_delivery', value: 'вода без газа, бананы, таблетки из списка выше' },
-    { label: 'Что помогает', icon: 'cheatsheet/health/field_helps', value: 'тишина, затемнить комнату, лёгкий массаж шеи' },
-    { label: 'Чего не делать', icon: 'common/cross_badge', value: 'не звонить по видео, не включать музыку' },
-    { label: 'Как быть рядом', icon: 'cheatsheet/health/near_alone', value: 'дать побыть одному, написать через час' },
-    { label: 'Когда к врачу', icon: 'cheatsheet/health/field_doctor', value: 'если больше суток или с температурой и тошнотой' },
-  ],
-}
+// Одинаковые поля у каждой ситуации
+export const SITUATION_FIELDS: CheatField[] = [
+  { label: 'Что принимает', icon: 'cheatsheet/health/field_meds', hint: 'лекарство и дозировку пишет сам человек' },
+  { label: 'Что принести', icon: 'cheatsheet/health/field_bring' },
+  { label: 'Заказать доставкой', icon: 'cheatsheet/health/field_delivery' },
+  { label: 'Что помогает', icon: 'cheatsheet/health/field_helps' },
+  { label: 'Чего не делать', icon: 'common/cross_badge' },
+  { label: 'Как быть рядом', icon: 'cheatsheet/health/near_alone' },
+  { label: 'Когда к врачу', icon: 'cheatsheet/health/field_doctor' },
+]
 
 // ---------- Вместе ----------
 export const TOGETHER_TILES = [
-  { id: 'photos', name: 'Фото дня', icon: 'common/camera', note: 'архив' },
-  { id: 'watchlist', name: 'Вотчлист', icon: 'watchlist/status_watching', note: '2 ждут голоса' },
-  { id: 'wishlist', name: 'Вишлисты', icon: 'wishlist/wishlist', note: '12 желаний' },
-  { id: 'bucket', name: 'Bucket list', icon: 'bucket/bucket', note: '4 из 23' },
-  { id: 'memory', name: 'Память', icon: 'memory/days_together', note: '1 капсула' },
-  { id: 'challenges', name: 'Челленджи', icon: 'challenges/challenge', note: 'день 4 из 7' },
-  { id: 'bets', name: 'Споры', icon: 'bets/bet', note: 'счёт 3 : 2' },
-  { id: 'talk', name: 'Надо поговорить', icon: 'talk/talk_queue', note: '1 тема' },
-  { id: 'gratitude', name: 'Благодарности', icon: 'talk/gratitude', note: '38 «спасибо»' },
-  { id: 'agreements', name: 'Договорённости', icon: 'talk/agreements', note: '6 правил' },
-  { id: 'achievements', name: 'Ачивки', icon: 'achievements/frame_gold', note: '11 из 47' },
+  { id: 'photos', name: 'Фото дня', icon: 'common/camera' },
+  { id: 'watchlist', name: 'Вотчлист', icon: 'watchlist/status_watching' },
+  { id: 'wishlist', name: 'Вишлисты', icon: 'wishlist/wishlist' },
+  { id: 'bucket', name: 'Bucket list', icon: 'bucket/bucket' },
+  { id: 'memory', name: 'Память', icon: 'memory/days_together' },
+  { id: 'challenges', name: 'Челленджи', icon: 'challenges/challenge' },
+  { id: 'bets', name: 'Споры', icon: 'bets/bet' },
+  { id: 'talk', name: 'Надо поговорить', icon: 'talk/talk_queue' },
+  { id: 'gratitude', name: 'Благодарности', icon: 'talk/gratitude' },
+  { id: 'agreements', name: 'Договорённости', icon: 'talk/agreements' },
+  { id: 'achievements', name: 'Ачивки', icon: 'achievements/frame_gold' },
 ]

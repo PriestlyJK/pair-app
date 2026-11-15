@@ -34,18 +34,37 @@ export function Ava({ who, size = 24 }: { who: Assignee; size?: number }) {
     )
   const p = profile[who]
   const name = p.name.trim()
-  const letter = name ? name[0].toUpperCase() : who === 'me' ? 'Я' : 'Он'
+  const letter = name ? name[0].toUpperCase() : who === 'me' ? 'Я' : p.g === 'f' ? 'Она' : 'Он'
   return (
-    <span className={'ava ava-' + who + (p.photo ? ' photo' : '')} style={{ width: size, height: size, fontSize: size * 0.42, backgroundImage: p.photo ? `url(${p.photo})` : undefined }}>
+    <span className={'ava ava-' + who + (p.photo ? ' photo' : '')} style={{ width: size, height: size, fontSize: size * (letter.length > 2 ? 0.32 : 0.42), backgroundImage: p.photo ? `url(${p.photo})` : undefined }}>
       {!p.photo && letter}
     </span>
   )
 }
 
-// Имя для подписи: своё, если задано, иначе «Я» / «Он»
+// Имя для подписи: своё, если задано, иначе «Я» / «Он» / «Она»
 export function useName() {
   const { profile } = useStore()
-  return (who: 'me' | 'him') => profile[who].name.trim() || (who === 'me' ? 'Я' : 'Он')
+  return (who: 'me' | 'him') => profile[who].name.trim() || (who === 'me' ? 'Я' : profile.him.g === 'f' ? 'Она' : 'Он')
+}
+
+/* Род в текстах. Приложением пользуются оба, у каждого «я» и «партнёр» свои,
+   поэтому «он/она», «сделал/сделала» берём из профилей (по умолчанию: я — она, партнёр — он).
+   g.p('сделал', 'сделала') — про партнёра, g.m('рад', 'рада') — про меня. */
+export function useG() {
+  const { profile } = useStore()
+  const mine = profile.me.g ?? 'f', his = profile.him.g ?? 'm'
+  const m = (male: string, female: string) => (mine === 'm' ? male : female)
+  const p = (male: string, female: string) => (his === 'm' ? male : female)
+  return {
+    m, p,
+    he: p('он', 'она'), He: p('Он', 'Она'),
+    his: p('его', 'её'), His: p('Его', 'Её'),
+    to: p('ему', 'ей'), // дать ему / ей
+    about: p('о нём', 'о ней'), About: p('О нём', 'О ней'),
+    for: p('для него', 'для неё'), from: p('от него', 'от неё'),
+    named: !!profile.him.name.trim(),
+  }
 }
 
 // Уменьшает фото с телефона: квадрат для аватарки или до max по длинной стороне. Возвращает JPEG data URL.

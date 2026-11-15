@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
-import { useStore, type ShopTab } from '../store'
-import { Img, Coin, Header, Bar, Sheet } from '../ui'
-import { COUPONS_FROM_HIM, SHOP, type ShopItem } from '../data'
+import { useStore, usePersist, type ShopTab } from '../store'
+import { Img, Coin, Header, Bar, Sheet, useG, useName } from '../ui'
+import { SHOP, type ShopItem, type Who } from '../data'
 import { FitPet } from './Home'
+import { sendEvent, getLink } from '../sync'
 
 const TABS: { id: ShopTab; name: string; icon: string }[] = [
   { id: 'food', name: 'Еда', icon: 'shop/food/treat_fish' },
@@ -114,44 +115,82 @@ function CouponCard({ icon, name, size, right, used }: { icon: string; name: str
   )
 }
 
+// Купоны создаёт каждый для другого: ты придумываешь, партнёр покупает за свои монеты, и наоборот.
+interface Offer { id: number; name: string; price: number; size: string; by: Who }
+const sizeOf = (p: number) => (p >= 500 ? 'large' : p >= 150 ? 'medium' : 'small')
+const ICON_OF: Record<string, string> = { small: 'common/gift', medium: 'common/two_hearts', large: 'tracker/type_wish' }
+
 function Coupons() {
   const s = useStore()
+  const g = useG()
+  const name = useName()
+  const [offers, setOffers] = usePersist<Offer[]>('offers', [])
   const [creating, setCreating] = useState(false)
-  const [name, setName] = useState('')
+  const [title, setTitle] = useState('')
   const [price, setPrice] = useState(100)
+  const fromHim = offers.filter(o => o.by === 'him')
+  const mine = offers.filter(o => o.by === 'me')
+  const hisBought = s.allCoupons.filter(c => c.owner === 'him' && !c.used)
+
+  function buy(o: Offer) {
+    if (!s.spend(o.price)) { s.toast(`Не хватает монет: нужно ${o.price}`, 'coins/coin'); return }
+    s.addCoupon({ id: 'offer-' + o.id, name: o.name, icon: ICON_OF[o.size], size: o.size })
+    sendEvent('coupon_buy', { name: o.name })
+    s.toast('Купон твой — предъяви, когда захочешь', ICON_OF[o.size])
+  }
+
   return (
     <>
       <div className="row" style={{ margin: '0 4px' }}>
         <Img src="shop/coupons/inventory" size={44} />
-        <div className="grow"><b>Купоны от него</b><div className="small muted b">Он придумывает, ты покупаешь за свои монеты</div></div>
+        <div className="grow"><b>Купоны {g.from}</b><div className="small muted b">{name('him')} придумывает, ты покупаешь за свои монеты</div></div>
       </div>
+      {fromHim.length ? (
+        <div className="col" style={{ gap: 10 }}>
+          {fromHim.map(o => (
+            <CouponCard key={o.id} icon={ICON_OF[o.size]} name={o.name} size={o.size}
+              right={<button className="btn sm" onClick={() => buy(o)}><Coin n={o.price} /></button>} />
+          ))}
+        </div>
+      ) : (
+        <div className="empty-col"><Img src="shop/coupons/coupon_small" />{getLink() ? `${g.He} пока не ${g.p('создал', 'создала')} купонов` : `Купоны ${g.from} появятся, когда вы будете в паре`}</div>
+      )}
+
+      {s.coupons.length > 0 && (
+        <>
+          <div className="sec-title">Мои купоны</div>
+          <div className="col" style={{ gap: 10 }}>
+            {s.coupons.map(c => (
+              <CouponCard key={c.uid} icon={c.icon} name={c.name} size={c.size} used={c.used}
+                right={c.used ? null : (
+                  <button className="btn sm sage" onClick={() => { s.useCoupon(c.uid); sendEvent('coupon', { name: c.name }); s.toast('Купон предъявлен', c.icon) }}>Предъявить</button>
+                )} />
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="sec-title">Я предлагаю {g.to}</div>
       <div className="col" style={{ gap: 10 }}>
-        {COUPONS_FROM_HIM.map(c => (
-          <CouponCard key={c.id} icon={c.icon} name={c.name} size={c.size}
+        {mine.map(o => (
+          <CouponCard key={o.id} icon={ICON_OF[o.size]} name={o.name} size={o.size}
             right={
-              <button className="btn sm" onClick={() => {
-                if (!s.spend(c.price)) return
-                s.addCoupon({ id: c.id, name: c.name, icon: c.icon, size: c.size })
-                s.toast('Купон куплен', c.icon)
-              }}><Img src="coins/coin" />{c.price}</button>
+              <div className="col" style={{ gap: 6, alignItems: 'flex-end' }}>
+                <Coin n={o.price} />
+                <button className="x-btn" aria-label="Убрать" onClick={() => setOffers(xs => xs.filter(x => x.id !== o.id))}>×</button>
+              </div>
             } />
         ))}
+        {!mine.length && <p className="small muted b" style={{ margin: '0 4px' }}>Придумай, что можешь сделать {g.for}: ужин, массаж, фильм на {g.his} выбор. {g.He} купит за свои монеты.</p>}
+        {hisBought.length > 0 && (
+          <p className="small b" style={{ margin: '0 4px' }}>У {g.p('него', 'неё')} есть: {hisBought.map(c => `«${c.name}»`).join(', ')}. Ждите, когда {g.he} {g.p('предъявит', 'предъявит')} 😉</p>
+        )}
       </div>
 
-      <div className="sec-title">Мои купоны</div>
-      <div className="col" style={{ gap: 10 }}>
-        {s.coupons.map(c => (
-          <CouponCard key={c.uid} icon={c.icon} name={c.name} size={c.size} used={c.used}
-            right={c.used ? null : (
-              <button className="btn sm sage" onClick={() => { s.useCoupon(c.uid); s.toast('Купон предъявлен, он увидит это в приложении', c.icon) }}>Предъявить</button>
-            )} />
-        ))}
-      </div>
+      <button className="btn wide peach" onClick={() => setCreating(true)}>+ Создать купон {g.for}</button>
 
-      <button className="btn wide peach" onClick={() => setCreating(true)}>+ Создать купон для него</button>
-
-      <Sheet open={creating} onClose={() => setCreating(false)} title="Купон для него" icon="shop/coupons/coupon_medium">
-        <input className="input" placeholder="Например: «Я готовлю ужин»" value={name} onChange={e => setName(e.target.value)} />
+      <Sheet open={creating} onClose={() => setCreating(false)} title={`Купон ${g.for}`} icon="shop/coupons/coupon_medium">
+        <input className="input" placeholder="Например: «Я готовлю ужин»" maxLength={50} value={title} onChange={e => setTitle(e.target.value)} />
         <div className="field"><span>Цена: от 50, чтобы копить по-настоящему</span>
           <div className="price-pick" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
             {[50, 100, 150, 250, 300, 500, 750, 1000].map(p => (
@@ -160,7 +199,11 @@ function Coupons() {
           </div>
         </div>
         <p className="small muted b">Малый 50–100 · средний 150–300 · большой 500–1000</p>
-        <button className="btn wide" onClick={() => { if (!name.trim()) return; setCreating(false); setName(''); s.toast('Купон появится у него в магазине', 'shop/coupons/coupon_medium') }}>Создать</button>
+        <button className="btn wide" onClick={() => {
+          if (!title.trim()) return
+          setOffers(xs => [...xs, { id: Date.now(), name: title.trim(), price, size: sizeOf(price), by: 'me' }])
+          setCreating(false); setTitle(''); s.toast('Купон создан', ICON_OF[sizeOf(price)])
+        }}>Создать</button>
       </Sheet>
     </>
   )
@@ -168,6 +211,7 @@ function Coupons() {
 
 function Jar() {
   const s = useStore()
+  const name = useName()
   const total = s.jar.me + s.jar.him
   const lvl = total >= JAR_GOAL ? 3 : total >= JAR_GOAL * 0.5 ? 2 : total > 0 ? 1 : 0
   return (
@@ -179,7 +223,7 @@ function Jar() {
         <span className="b">Общая копилка на второго питомца</span>
         <div className="row small b muted" style={{ gap: 16 }}>
           <span>Мой вклад: {s.jar.me}</span>
-          <span>Его вклад: {s.jar.him}</span>
+          <span>{name('him')}: {s.jar.him}</span>
         </div>
       </div>
       <div className="grid3">

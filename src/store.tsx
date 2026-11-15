@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
-import { TASKS, type Task, type Who } from './data'
-import type { CycleDay } from './dates'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import type { Task, Who } from './data'
+import { TODAY_KEY, diffDays, type CycleDay } from './dates'
+import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, type PairEvent } from './sync'
 
-// Общее состояние приложения. Пока хранится в этом браузере (localStorage), потом переедет в Supabase.
+// Общее состояние приложения. Пока хранится на телефоне (localStorage), потом переедет в Supabase.
+// Новый пользователь начинает с пустыми данными: всё заполняется в процессе.
 
 export type Tab = 'home' | 'board' | 'calendar' | 'together' | 'cheatsheet'
 export type ShopTab = 'food' | 'toys' | 'acc' | 'furniture' | 'coupons' | 'jar'
@@ -19,16 +21,22 @@ export interface Pet {
   acc: string | null
 }
 
-export interface MyCoupon { uid: number; id: string; name: string; icon: string; size: string; used?: boolean }
-export interface Profile { name: string; photo: string | null }
+// owner — у кого купон (купил за свои монеты и может предъявить)
+export interface MyCoupon { uid: number; id: string; name: string; icon: string; size: string; used?: boolean; owner?: Who }
+export type Gender = 'f' | 'm'
+export interface Profile { name: string; photo: string | null; ready?: boolean; g?: Gender }
 export interface RoomPos { x: number; y: number; flip?: boolean }
 export interface RoomState { pos: Record<string, RoomPos>; hidden: string[] }
+// Настройки пары: заполняются при первом запуске, меняются в профиле
+// cycleBy — кто из двоих ведёт календарь цикла
+export interface Settings { since: string; meetBase: number; cycle: boolean; cycleBy?: Who }
 
 interface Toast { text: string; icon: string; key: number }
 
 interface Store {
   coins: Record<Who, number>
   earn(n: number, text?: string, icon?: string): void
+  gift(n: number, text: string, icon?: string): void
   spend(n: number): boolean
   jar: Record<Who, number>
   addToJar(n: number): void
@@ -37,6 +45,7 @@ interface Store {
   owned: string[]
   own(id: string): void
   coupons: MyCoupon[]
+  allCoupons: MyCoupon[]
   addCoupon(c: Omit<MyCoupon, 'uid'>): void
   useCoupon(uid: number): void
   tasks: Task[]
@@ -49,6 +58,10 @@ interface Store {
   setMeetings: Dispatch<SetStateAction<Record<string, string>>>
   cycle: Record<string, CycleDay>
   setCycle: Dispatch<SetStateAction<Record<string, CycleDay>>>
+  settings: Settings
+  setSettings: Dispatch<SetStateAction<Settings>>
+  daysTogether: number | null
+  meetCount: number
   resetAll(): void
   toast(text: string, icon?: string): void
   shop: ShopTab | null
@@ -66,41 +79,42 @@ export const useStore = () => {
   return s
 }
 
-// ---------- Хранение в браузере ----------
-const PREFIX = 'pair.v1.'
+// ---------- Хранение ----------
+// Каждый ключ — документ: копия на телефоне + облако (см. sync.ts)
 export function usePersist<T>(key: string, init: T | (() => T)) {
-  const [v, setV] = useState<T>(() => {
-    try {
-      const raw = localStorage.getItem(PREFIX + key)
-      if (raw != null) return JSON.parse(raw) as T
-    } catch { /* приватный режим или битые данные: берём начальные */ }
-    return typeof init === 'function' ? (init as () => T)() : init
-  })
-  useEffect(() => {
-    try { localStorage.setItem(PREFIX + key, JSON.stringify(v)) } catch { /* место кончилось — живём в памяти */ }
-  }, [key, v])
-  return [v, setV] as const
-}
-function clearPersist() {
-  try {
-    Object.keys(localStorage).filter(k => k.startsWith(PREFIX)).forEach(k => localStorage.removeItem(k))
-  } catch { /* нечего чистить */ }
+  const v = useSyncExternalStore(cb => subscribe(key, cb), () => getView<T>(key, init))
+  const set = useCallback((u: SetStateAction<T>) => {
+    const cur = getView<T>(key, init)
+    setDoc(key, typeof u === 'function' ? (u as (p: T) => T)(cur) : u)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+  return [v, set] as const
 }
 
-// Пример данных цикла: месячные в октябре и ноябре, остальное приложение считает само
-const FLOW5 = ['flow_medium', 'flow_heavy', 'flow_heavy', 'flow_medium', 'flow_light']
-const CYCLE_SEED: Record<string, CycleDay> = {
-  ...Object.fromEntries(FLOW5.map((f, i) => [`2026-10-${String(6 + i).padStart(2, '0')}`, { flow: f }])),
-  ...Object.fromEntries(FLOW5.map((f, i) => [`2026-11-0${3 + i}`, { flow: f }])),
-  '2026-11-04': { flow: 'flow_heavy', sym: ['sym_cramps', 'sym_energy'] },
-  '2026-11-01': { sex: 'sex_protected' },
-  '2026-11-08': { sex: 'sex_protected' },
+export const NEW_PET: Pet = { name: '', breed: 'domestic_ginger', stage: 'baby', level: 1, xp: 0, xpNext: 30, satiety: 60, happiness: 70, acc: null }
+
+// Текст уведомления о действии партнёра
+const TOUCH_NAME: Record<string, [string, string]> = {
+  hug: ['обнимает тебя', 'touches/hug'], kiss: ['целует тебя', 'touches/kiss'], miss: ['скучает', 'touches/miss_you'],
+  call: ['просит позвонить', 'touches/call_me'], proud: ['гордится тобой', 'touches/proud'],
+  morning: ['желает доброго утра', 'touches/good_morning'], night: ['желает спокойной ночи', 'touches/good_night'],
 }
-const MEET_SEED: Record<string, string> = {
-  '2026-10-18': 'Выходные у него',
-  '2026-11-01': 'Кофейня и прогулка по набережной',
-  '2026-11-08': 'Кино и ужин',
-  '2026-11-28': 'Он приезжает на выходные',
+export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: string; icon: string } | null {
+  const p = e.payload as Record<string, string>
+  const v = (m: string, f: string) => (g === 'f' ? f : m)
+  switch (e.kind) {
+    case 'touch': { const t = TOUCH_NAME[p.id]; return t ? { text: `${who} ${t[0]}`, icon: t[1] } : null }
+    case 'photo': return { text: `${who} ${v('выложил', 'выложила')} фото дня`, icon: 'common/camera' }
+    case 'task': return { text: `${who} ${v('закрыл', 'закрыла')} задачу «${p.title}»`, icon: 'common/check_cookie' }
+    case 'meet': return { text: `${who} ${v('отметил', 'отметила')} встречу`, icon: 'meetings/meet_button' }
+    case 'thanks': return { text: `${who}: спасибо — ${p.text}`, icon: 'talk/gratitude' }
+    case 'coupon': return { text: `${who} ${v('предъявил', 'предъявила')} купон «${p.name}»`, icon: 'shop/coupons/coupon_used_stamp' }
+    case 'mood': return { text: `${who} ${v('отметил', 'отметила')} настроение`, icon: 'calendar/mood/mood_' + p.mood }
+    case 'coupon_buy': return { text: `${who} ${v('купил', 'купила')} твой купон «${p.name}»`, icon: 'shop/coupons/coupon_medium' }
+    case 'wish': return { text: `${who} ${v('добавил', 'добавила')} желание «${p.title}»`, icon: 'wishlist/wishlist' }
+    case 'joined': return { text: `${who} теперь с тобой в паре!`, icon: 'common/two_hearts' }
+    default: return null
+  }
 }
 
 function readHash(): { tab: Tab; sub: string; shop: ShopTab | null } {
@@ -115,19 +129,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [tab, setTab] = useState<Tab>(init.tab)
   const [sub, setSub] = useState(init.sub)
   const [shop, setShop] = useState<ShopTab | null>(init.shop)
-  const [coins, setCoins] = usePersist<Record<Who, number>>('coins', { me: 186, him: 142 })
-  const [jar, setJar] = usePersist<Record<Who, number>>('jar', { me: 720, him: 520 })
-  const [pet, setPet] = usePersist<Pet>('pet', { name: 'Персик', breed: 'domestic_ginger', stage: 'baby', level: 4, xp: 32, xpNext: 60, satiety: 70, happiness: 85, acc: 'scarf' })
-  const [owned, setOwned] = usePersist<string[]>('owned', ['rug', 'bed', 'curtains', 'plant', 'frame', 'toybasket', 'ball', 'scarf', 'bow'])
-  const [coupons, setCoupons] = usePersist<MyCoupon[]>('coupons', [
-    { uid: 1, id: 'c1', name: 'Я выбираю фильм', icon: 'watchlist/movie', size: 'small' },
-    { uid: 2, id: 'c2', name: 'Массаж 30 минут при встрече', icon: 'shop/coupons/cpn_massage', size: 'medium', used: true },
-  ])
-  const [tasks, setTasks] = usePersist<Task[]>('tasks', TASKS)
+  const [settings, setSettings] = usePersist<Settings>('settings', { since: '', meetBase: 0, cycle: true })
+  const [coins, setCoins] = usePersist<Record<Who, number>>('coins', { me: 0, him: 0 })
+  const [jar, setJar] = usePersist<Record<Who, number>>('jar', { me: 0, him: 0 })
+  const [pet, setPet] = usePersist<Pet>('pet', NEW_PET)
+  const [owned, setOwned] = usePersist<string[]>('owned', [])
+  const [coupons, setCoupons] = usePersist<MyCoupon[]>('coupons', [])
+  const [tasks, setTasks] = usePersist<Task[]>('tasks', [])
   const [profile, setProfile] = usePersist<Record<Who, Profile>>('profile', { me: { name: '', photo: null }, him: { name: '', photo: null } })
   const [room, setRoom] = usePersist<RoomState>('room', { pos: {}, hidden: [] })
-  const [meetings, setMeetings] = usePersist<Record<string, string>>('meetings', MEET_SEED)
-  const [cycle, setCycle] = usePersist<Record<string, CycleDay>>('cycle', CYCLE_SEED)
+  const [meetings, setMeetings] = usePersist<Record<string, string>>('meetings', {})
+  const [cycle, setCycle] = usePersist<Record<string, CycleDay>>('cycle', {})
   const [toastState, setToast] = useState<Toast | null>(null)
 
   useEffect(() => {
@@ -149,6 +161,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const toast = useCallback((text: string, icon = 'common/sparkle') => setToast({ text, icon, key: Date.now() }), [])
 
+  // Что делает партнёр — прилетает сразу. Касания ещё и складываются во «входящие» на главной.
+  const [, setInbox] = usePersist<PairEvent[]>('inbox', [])
+  const hisG = profile.him.g ?? 'm'
+  const hisName = profile.him.name || (hisG === 'f' ? 'Она' : 'Он')
+  useEffect(() => {
+    const take = (e: PairEvent) => {
+      if (e.mine) return
+      const m = describe(e, hisName, hisG)
+      if (m) toast(m.text, m.icon)
+      if (e.kind === 'touch') setInbox(xs => [...xs.filter(x => x.id !== e.id), e].slice(-30))
+    }
+    const off = onEvent(take)
+    let seen = ''
+    try { seen = localStorage.getItem('pair.seen') ?? '' } catch { /* нет доступа */ }
+    if (seen) missedEvents(seen).then(es => es.filter(e => e.kind === 'touch').forEach(e => setInbox(xs => (xs.some(x => x.id === e.id) ? xs : [...xs, e].slice(-30)))))
+    const mark = () => { try { localStorage.setItem('pair.seen', new Date().toISOString()) } catch { /* нет доступа */ } }
+    mark()
+    const onHide = () => { if (document.visibilityState === 'hidden') mark() }
+    document.addEventListener('visibilitychange', onHide)
+    return () => { off(); document.removeEventListener('visibilitychange', onHide) }
+  }, [hisName, hisG, toast, setInbox])
+
   const levelUp = useCallback((gain: number) => {
     setPet(p => {
       let { xp, level, xpNext } = p
@@ -167,6 +201,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       levelUp(n)
       toast(text ?? `+${n}`, icon)
     },
+    // Монеты без опыта для кота (стартовый подарок)
+    gift(n, text, icon = 'coins/coin') {
+      setCoins(c => ({ ...c, me: c.me + n }))
+      toast(text, icon)
+    },
     spend(n) {
       if (coins.me < n) { toast(`Не хватает ${n - coins.me} монет`, 'coins/wallet'); return false }
       setCoins(c => ({ ...c, me: c.me - n }))
@@ -182,15 +221,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     pet, setPet,
     owned,
     own: id => setOwned(o => (o.includes(id) ? o : [...o, id])),
-    coupons,
-    addCoupon: c => setCoupons(cs => [...cs, { ...c, uid: Date.now() }]),
+    coupons: coupons.filter(c => (c.owner ?? 'me') === 'me'),
+    allCoupons: coupons,
+    addCoupon: c => setCoupons(cs => [...cs, { owner: 'me', ...c, uid: Date.now() }]),
     useCoupon: uid => setCoupons(cs => cs.map(c => (c.uid === uid ? { ...c, used: true } : c))),
     tasks, setTasks,
     profile, setProfile,
     room, setRoom,
     meetings, setMeetings,
     cycle, setCycle,
-    resetAll() { clearPersist(); try { indexedDB.deleteDatabase('pair-photos') } catch { /* нет базы */ } location.hash = ''; location.reload() },
+    settings, setSettings,
+    daysTogether: settings.since ? Math.max(0, diffDays(TODAY_KEY, settings.since)) : null,
+    meetCount: settings.meetBase + Object.keys(meetings).filter(k => k <= TODAY_KEY).length,
+    async resetAll() { if (cloud && getLink()) await signOut(); else resetLocal(); location.hash = ''; location.reload() },
     toast,
     shop,
     openShop: (t = 'food') => setShop(t),

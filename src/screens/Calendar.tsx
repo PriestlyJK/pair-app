@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useStore, usePersist } from '../store'
-import { Img, Sheet, Ava, useName, plural } from '../ui'
-import { IMPORTANT_DAYS, MOODS, NEEDS, PHASES, TYPE_ICON, energyFor, moodFor, type MoodId, type Who } from '../data'
+import { Img, Sheet, Ava, useName, useG, plural } from '../ui'
+import { sendEvent } from '../sync'
+import { MOODS, NEEDS, PHASES, TYPE_ICON, type MoodId, type Who } from '../data'
+import { usePhotos } from '../photos'
 import { TODAY_KEY, cycleStats, dayInfo, diffDays, dkey, fromKey, human, nextPeriod, type CycleDay } from '../dates'
 
 type Layer = 'tasks' | 'meet' | 'mood' | 'cycle' | 'dates' | 'photo'
@@ -15,7 +17,6 @@ const LAYERS: { id: Layer; name: string; icon: string }[] = [
 ]
 const WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
-const PHOTO_DAYS = [1, 2, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14]
 const FLOWS = [
   { id: 'flow_spotting', name: 'Мажет' },
   { id: 'flow_light', name: 'Слабо' },
@@ -39,32 +40,45 @@ const SYM_NAME = Object.fromEntries(SYMS.map(x => [x.id, x.name]))
 const moodColor = (m?: MoodId) => MOODS.find(x => x.id === m)?.color
 type MyMood = { mood: MoodId; energy: number; needs: string[] }
 
-// Пример данных (задачи, важные даты, фото, настроение) есть только в ноябре 2026
-const isDemoMonth = (y: number, m: number) => y === 2026 && m === 10
+// Важные даты считаются от дня, с которого вы вместе: годовщины и круглые числа дней
+const MILESTONES = [100, 200, 300, 500, 1000, 1500, 2000, 3000]
+function importantOf(k: string, since: string) {
+  if (!since || k < since) return undefined
+  if (k === since) return { name: 'День, когда всё началось', icon: 'dates/date_anniversary' }
+  if (k.slice(5) === since.slice(5)) { const y = Number(k.slice(0, 4)) - Number(since.slice(0, 4)); return { name: `Годовщина: ${y} ${plural(y, 'год', 'года', 'лет')} вместе`, icon: 'dates/date_anniversary' } }
+  const d = diffDays(k, since)
+  if (MILESTONES.includes(d)) return { name: `${d} дней вместе`, icon: 'memory/days_together' }
+  return undefined
+}
 
 export default function Calendar() {
   const s = useStore()
   const name = useName()
-  const [ym, setYm] = useState({ y: 2026, m: 10 })
-  const [layers, setLayers] = useState<Layer[]>(['cycle', 'mood', 'meet', 'tasks', 'dates'])
+  const [ym, setYm] = useState(() => { const d = fromKey(TODAY_KEY); return { y: d.getFullYear(), m: d.getMonth() } })
+  const g = useG()
+  const cycleOn = s.settings.cycle
+  // Цикл ведёт один из двоих: у себя — всё, у партнёра — только фазы и подсказки
+  const cycleMine = (s.settings.cycleBy ?? 'me') === 'me'
+  const [layers, setLayers] = useState<Layer[]>(cycleOn ? ['cycle', 'mood', 'meet', 'tasks', 'dates', 'photo'] : ['mood', 'meet', 'tasks', 'dates', 'photo'])
+  const { photos } = usePhotos()
   const [sel, setSel] = useState(TODAY_KEY)
   const [moodOpen, setMoodOpen] = useState(false)
   const [cycleOpen, setCycleOpen] = useState(false)
   const [meetOpen, setMeetOpen] = useState(false)
   const [howOpen, setHowOpen] = useState(false)
-  const [moods, setMoods] = usePersist<Record<string, MyMood>>('moods', {})
-  const on = (l: Layer) => layers.includes(l)
+  // Настроение у каждого своё: { me: {день: …}, him: {день: …} }
+  const [moodsAll, setMoodsAll] = usePersist<Record<Who, Record<string, MyMood>>>('moods', { me: {}, him: {} })
+  const moods = moodsAll.me ?? {}
+  const on = (l: Layer) => layers.includes(l) && (l !== 'cycle' || cycleOn)
   const toggle = (l: Layer) => setLayers(ls => (ls.includes(l) ? ls.filter(x => x !== l) : [...ls, l]))
 
   const st = cycleStats(s.cycle)
-  const demo = isDemoMonth(ym.y, ym.m)
-  const selD = fromKey(sel)
-  const selDemo = isDemoMonth(selD.getFullYear(), selD.getMonth())
   const dayNum = (k: string) => fromKey(k).getDate()
-  const myMood = (k: string): MyMood | undefined => moods[k] ?? (isDemoMonth(fromKey(k).getFullYear(), fromKey(k).getMonth()) && moodFor('me', dayNum(k)) ? { mood: moodFor('me', dayNum(k))!, energy: energyFor('me', dayNum(k)), needs: [] } : undefined)
-  const hisMood = (k: string) => (isDemoMonth(fromKey(k).getFullYear(), fromKey(k).getMonth()) ? moodFor('him', dayNum(k)) : undefined)
-  const tasksOn = (k: string) => (isDemoMonth(fromKey(k).getFullYear(), fromKey(k).getMonth()) ? s.tasks.filter(t => t.deadline === dayNum(k)) : [])
-  const important = (k: string) => (isDemoMonth(fromKey(k).getFullYear(), fromKey(k).getMonth()) ? IMPORTANT_DAYS[dayNum(k)] : undefined)
+  const myMood = (k: string): MyMood | undefined => moods[k]
+  const hisMood = (k: string): MyMood | undefined => moodsAll.him?.[k]
+  const tasksOn = (k: string) => s.tasks.filter(t => t.deadline === k && t.status !== 'done')
+  const important = (k: string) => importantOf(k, s.settings.since)
+  const photoN = (k: string) => (photos[k]?.me ? 1 : 0) + (photos[k]?.him ? 1 : 0)
 
   function setDay(k: string, patch: Partial<CycleDay> | null) {
     s.setCycle(c => {
@@ -106,7 +120,7 @@ export default function Calendar() {
       </div>
 
       <div className="chips">
-        {LAYERS.map(l => (
+        {LAYERS.filter(l => l.id !== 'cycle' || cycleOn).map(l => (
           <button key={l.id} className={'chip' + (on(l.id) ? ' on' : '')} onClick={() => toggle(l.id)}>
             <Img src={l.icon} />{l.name}
           </button>
@@ -125,10 +139,10 @@ export default function Calendar() {
             if (on('meet') && s.meetings[k]) marks.push('meetings/meet_place')
             if (on('dates') && important(k)) marks.push(important(k)!.icon)
             if (on('tasks') && tasksOn(k).length) marks.push(TYPE_ICON[tasksOn(k)[0].type])
-            if (on('cycle') && c?.sex) marks.push('cycle/' + c.sex)
-            if (on('photo') && demo && PHOTO_DAYS.includes(d)) marks.push('common/camera')
+            if (on('cycle') && cycleMine && c?.sex) marks.push('cycle/' + c.sex)
+            if (on('photo') && photoN(k)) marks.push('common/camera')
             const mm = on('mood') ? myMood(k)?.mood : undefined
-            const hm = on('mood') ? hisMood(k) : undefined
+            const hm = on('mood') ? hisMood(k)?.mood : undefined
             return (
               <button
                 key={k}
@@ -195,11 +209,11 @@ export default function Calendar() {
           ) : (
             <div className="phase" style={{ background: 'var(--card-2)' }}>
               <Img src="cycle/phase_menstrual" />
-              <span className="small b">Отметь дни последних месячных, и календарь сам посчитает фазы и следующие.</span>
+              <span className="small b">{cycleMine ? 'Отметь дни последних месячных, и календарь сам посчитает фазы и следующие.' : `Когда ${name('him')} ${g.p('отметит', 'отметит')} дни цикла, здесь появятся фазы и подсказки, когда нужна забота.`}</span>
             </div>
           )}
 
-          <div className="flow-row">
+          {cycleMine && <div className="flow-row">
             <div className="row"><b className="grow">Месячные в этот день</b><button className="linkish" onClick={() => setHowOpen(true)}>как это работает</button></div>
             {future ? (
               <span className="small muted b">Отметить можно, когда день наступит. Сейчас тут прогноз.</span>
@@ -213,9 +227,9 @@ export default function Calendar() {
                 ))}
               </div>
             )}
-          </div>
+          </div>}
 
-          {!future && (
+          {!future && cycleMine && (
             <button className="ev" onClick={() => setCycleOpen(true)}>
               <Img src="cycle/symptoms/sym_mood_swings" />
               <div className="grow" style={{ textAlign: 'left' }}>
@@ -233,7 +247,7 @@ export default function Calendar() {
       {on('mood') && (
         <div className="col">
           <MoodRow who="me" label={name('me')} m={myMood(sel)} onAdd={sel === TODAY_KEY && !moods[sel] ? () => setMoodOpen(true) : undefined} />
-          <MoodRow who="him" label={name('him')} m={hisMood(sel) ? { mood: hisMood(sel)!, energy: energyFor('him', dayNum(sel)), needs: sel === TODAY_KEY ? ['listen'] : [] } : undefined} />
+          <MoodRow who="him" label={name('him')} m={hisMood(sel)} />
         </div>
       )}
 
@@ -242,7 +256,7 @@ export default function Calendar() {
         {on('tasks') && tasksOn(sel).map(t => (
           <button key={t.id} className="ev" onClick={() => s.go('board')}><Img src={TYPE_ICON[t.type]} />{t.title}</button>
         ))}
-        {on('photo') && selDemo && PHOTO_DAYS.includes(dayNum(sel)) && <div className="ev"><Img src="common/camera" />2 фото дня</div>}
+        {on('photo') && photoN(sel) > 0 && <button className="ev" onClick={() => s.go('together', 'photos')}><Img src="common/camera" />{photoN(sel) === 2 ? 'Фото дня от вас обоих' : 'Фото дня'}</button>}
       </div>
 
       {sel === TODAY_KEY && (
@@ -252,7 +266,8 @@ export default function Calendar() {
       <Sheet open={moodOpen} onClose={() => setMoodOpen(false)} title="Как ты сегодня?" icon="calendar/mood/mood_good">
         <MoodForm init={moods[TODAY_KEY]} onSave={v => {
           const first = !moods[TODAY_KEY]
-          setMoods(m => ({ ...m, [TODAY_KEY]: v })); setMoodOpen(false); setSel(TODAY_KEY)
+          setMoodsAll(m => ({ ...m, me: { ...(m.me ?? {}), [TODAY_KEY]: v } })); setMoodOpen(false); setSel(TODAY_KEY)
+          if (first) sendEvent('mood', { mood: v.mood })
           if (first) s.earn(1, 'Настроение отмечено · +1', 'calendar/mood/mood_' + v.mood)
           else s.toast('Настроение обновлено', 'calendar/mood/mood_' + v.mood)
         }} />
@@ -267,6 +282,7 @@ export default function Calendar() {
       <Sheet open={meetOpen} onClose={() => setMeetOpen(false)} title={future ? 'Планируем встречу' : 'Мы встретились'} icon="meetings/meet_place">
         <MeetForm future={future} date={human(sel)} onSave={note => {
           s.setMeetings(m => ({ ...m, [sel]: note }))
+          if (!future) sendEvent('meet', { day: sel })
           setMeetOpen(false)
           s.toast(future ? `Встреча ${human(sel)} в календаре` : 'Встреча отмечена', 'meetings/meet_button')
         }} />
@@ -279,7 +295,7 @@ export default function Calendar() {
           <p><b>3.</b> Длину цикла оно считает по прошлым месяцам. Сейчас выходит {st.len} {plural(st.len, 'день', 'дня', 'дней')}, месячные около {st.plen} {plural(st.plen, 'дня', 'дней', 'дней')}.</p>
           <p><b>4.</b> Фазы раскрашиваются автоматически, будущие месячные показаны пунктиром.</p>
           <p><b>5.</b> Отметка лишняя? Выбери день и нажми «Нет». Симптомы стираются кнопкой «Очистить день».</p>
-          <p className="small muted b">Он видит только цвета фаз и подсказки, без симптомов.</p>
+          <p className="small muted b">{g.He} видит только фазы и подсказки, без симптомов и отметок о сексе.</p>
         </div>
       </Sheet>
     </div>
@@ -377,7 +393,7 @@ function MeetForm({ future, date, onSave }: { future: boolean; date: string; onS
   return (
     <>
       <p className="small muted b">{date}. {future ? 'Встреча появится в календаре у обоих, на главной будет обратный отсчёт.' : 'Встреча добавится в счётчик на главной.'}</p>
-      <input className="input" placeholder={future ? 'Например: он приезжает на выходные' : 'Где были, что делали (можно пусто)'} value={note} onChange={e => setNote(e.target.value)} />
+      <input className="input" placeholder={future ? 'Например: приезд на выходные, город' : 'Где были, что делали (можно пусто)'} value={note} onChange={e => setNote(e.target.value)} />
       <button className="btn wide sage" onClick={() => onSave(note.trim() || (future ? 'Планируем встретиться' : 'Встреча'))}>{future ? 'Запланировать' : 'Отметить встречу'}</button>
     </>
   )

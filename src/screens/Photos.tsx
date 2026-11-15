@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { Img, Header, Sheet, Ava, PhotoPick, useName, plural } from '../ui'
+import { Img, Header, Sheet, Ava, PhotoPick, useName, plural, useG } from '../ui'
 import { TODAY_KEY, human } from '../dates'
 import { GRADS, themeOf, useImg, usePhotos, type DayPhoto, type PhotoDay } from '../photos'
 import type { Who } from '../data'
@@ -20,6 +20,7 @@ export function Shot({ p, locked, className = '' }: { p?: DayPhoto; locked?: boo
 
 // Карточка на главной
 export function PhotoCard() {
+  const g = useG()
   const s = useStore()
   const { today, streak, theme, post } = usePhotos()
   const name = useName()
@@ -45,7 +46,7 @@ export function PhotoCard() {
         )}
         <button className="polaroid b" onClick={() => s.go('together', 'photos')}>
           <Shot p={today.him} locked={!!today.him && !today.me} className="ph" />
-          <small>{today.him ? (today.me ? (name('him') === 'Он' ? 'от него' : name('him')) : 'скрыто') : 'ждём'}</small>
+          <small>{today.him ? (today.me ? (g.named ? name('him') : g.from) : 'скрыто') : 'ждём'}</small>
         </button>
       </div>
     </div>

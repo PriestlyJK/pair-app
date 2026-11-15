@@ -1,12 +1,25 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
-import { useStore, type RoomPos } from '../store'
+import { useStore, usePersist, describe, type RoomPos } from '../store'
+import { sendEvent, getLink, type PairEvent } from '../sync'
 import { PhotoCard } from './Photos'
-import { Img, Bar, Sheet, Coin, Ava, plural } from '../ui'
+import { Img, Bar, Sheet, Coin, Ava, plural, useName, useG } from '../ui'
 import { PetView, useHasAccArt, ACC_ICON, type Pose } from '../pet'
 import { BBOX } from '../bbox'
-import { TOUCHES, SHOP, daysTogether } from '../data'
-import { TODAY_KEY, diffDays, human } from '../dates'
+import { TOUCHES, SHOP, type Who } from '../data'
+import { TODAY_KEY, diffDays, human, isSunday, isoWeek, weekEnd, weekStart } from '../dates'
 import { ProfileSheet } from './Profile'
+
+// «только что», «5 мин назад», «вчера в 21:40»
+function agoText(iso: string) {
+  const d = new Date(iso), min = Math.round((Date.now() - d.getTime()) / 60000)
+  if (min < 1) return 'только что'
+  if (min < 60) return `${min} мин назад`
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  if (d.toDateString() === new Date().toDateString()) return `сегодня в ${hm}`
+  const y = new Date(); y.setDate(y.getDate() - 1)
+  if (d.toDateString() === y.toDateString()) return `вчера в ${hm}`
+  return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')} в ${hm}`
+}
 
 type Tod = 'day' | 'evening' | 'night'
 const autoTod = (): Tod => {
@@ -276,7 +289,7 @@ export function Room({ tod, pose, fx, bowlFull, toy, edit = false, onEditDone, w
               )}
             </div>
           ) : (
-            <div className="re-hint">Перетаскивай вещи пальцем. Нажми на вещь, чтобы отразить или убрать её.</div>
+            <div className="re-hint">Перетаскивай вещи пальцем. Нажми на вещь, чтобы отразить или убрать её. Закончить — «Готово» или нажми в любое место вне комнаты.</div>
           )}
           {hidden.length > 0 && (
             <div className="re-tray">
@@ -290,7 +303,7 @@ export function Room({ tod, pose, fx, bowlFull, toy, edit = false, onEditDone, w
           )}
           <div className="row" style={{ gap: 8 }}>
             <button className="btn sm soft grow" onClick={() => { setRoom({ pos: {}, hidden: [] }); setSel(null); toast('Комната как была', 'nav/home') }}>Сбросить</button>
-            <button className="btn sm sage grow" onClick={onEditDone}>Готово</button>
+            <button className="btn sm sage grow" onClick={onEditDone}>✓ Готово</button>
           </div>
         </div>
       )}
@@ -311,12 +324,28 @@ export default function Home() {
   const [edit, setEdit] = useState(false)
   const [walkMs, setWalkMs] = useState(0)
   const [lifted, setLifted] = useState(false)
-  const [received, setReceived] = useState(true)
+  const [sent, setSent] = usePersist<Record<Who, Record<string, number>>>('sent', { me: {}, him: {} })
+  const name = useName()
+  const g = useG()
+  const [inbox, setInbox] = usePersist<PairEvent[]>('inbox', [])
+  const last = inbox[inbox.length - 1]
+  const lastMsg = last ? describe(last, name('him'), s.profile.him.g) : null
   const [flyer, setFlyer] = useState<{ icon: string; k: number } | null>(null)
   const timer = useRef<number | undefined>(undefined)
   const walkTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => () => { clearTimeout(timer.current); clearTimeout(walkTimer.current) }, [])
+
+  // Режим расстановки закрывается и кнопкой «Готово», и нажатием в любое место вне комнаты
+  useEffect(() => {
+    if (!edit) return
+    const off = (e: PointerEvent) => {
+      const t = e.target as HTMLElement
+      if (!t.closest('.room-wrap, .room-edit, .sheet')) setEdit(false)
+    }
+    document.addEventListener('pointerdown', off)
+    return () => document.removeEventListener('pointerdown', off)
+  }, [edit])
 
   const basePose: Pose = tod === 'night' ? 'sleep' : pet.satiety < 25 ? 'sad' : 'idle'
   const pose = lifted ? 'happy' : action ?? basePose
@@ -369,13 +398,16 @@ export default function Home() {
     act('play', 2600, 'fx_sparkles', t.icon)
   }
   function sendTouch(t: (typeof TOUCHES)[number]) {
+    setSent(x => ({ ...x, me: { ...x.me, [t.id]: (x.me[t.id] ?? 0) + 1 } }))
+    sendEvent('touch', { id: t.id })
+    setInbox([])
     setFlyer({ icon: t.icon, k: Date.now() })
     setTouchOpen(false)
     setTimeout(() => s.toast(`«${t.name}» отправлено`, t.icon), 500)
     setTimeout(() => setFlyer(null), 1200)
   }
 
-  // Встречи: до приложения было 24, дальше считаем по календарю
+  // Встречи: сколько было до приложения (из настроек) + отмеченные в календаре
   const meetKeys = Object.keys(s.meetings).sort()
   const past = meetKeys.filter(k => k <= TODAY_KEY)
   const next = meetKeys.find(k => k > TODAY_KEY)
@@ -388,12 +420,14 @@ export default function Home() {
       return n
     })
     if (metToday) s.toast('Отметка убрана', 'meetings/meet_empty')
-    else s.toast(`Встреча №${24 + past.length + 1}!`, 'meetings/meet_button')
+    else { s.toast(`Встреча №${s.meetCount + 1}!`, 'meetings/meet_button'); sendEvent('meet', { day: TODAY_KEY }) }
   }
 
-  const days = daysTogether()
-  const sprint = s.tasks.filter(t => t.status !== 'backlog')
+  const days = s.daysTogether
+  const wk = weekStart(TODAY_KEY)
+  const sprint = s.tasks.filter(t => t.status !== 'backlog' && (t.status !== 'done' || !t.doneAt || t.doneAt >= wk))
   const done = sprint.filter(t => t.status === 'done').length
+  const daysLeft = diffDays(weekEnd(TODAY_KEY), TODAY_KEY)
 
   return (
     <div className="screen">
@@ -403,27 +437,12 @@ export default function Home() {
         </button>
         <div className="grow">
           <h1>Мы</h1>
-          <p>{days} {plural(days, 'день', 'дня', 'дней')} вместе</p>
+          <p>{days != null ? `${days} ${plural(days, 'день', 'дня', 'дней')} вместе` : `${name('me')} и ${name('him')}`}</p>
         </div>
         <button className="coin-pill" onClick={() => s.openShop()}>
           <Img src="coins/coin" /> {s.coins.me}
         </button>
       </div>
-
-      {received && (
-        <div className="note">
-          <Img src="common/envelope" className="ic" />
-          <div className="grow">
-            <div className="b">Он думает о тебе</div>
-            <div className="touch-ics">
-              <span><Img src="touches/hug" />×3</span>
-              <span><Img src="touches/kiss" />×1</span>
-              <span><Img src="touches/good_morning" /></span>
-            </div>
-          </div>
-          <button className="btn sm peach" onClick={() => { setReceived(false); setTouchOpen(true) }}>Ответить</button>
-        </div>
-      )}
 
       <div>
         <div className="room-wrap">
@@ -448,7 +467,7 @@ export default function Home() {
             setEdit(true)
             setTimeout(() => document.querySelector('.room-edit')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60)
           }}>
-            <Img src={edit ? 'common/check_cookie' : 'shop/furniture/armchair'} />{edit ? 'Готово' : 'Расставить'}
+            {edit ? <>✓ Готово</> : <><Img src="shop/furniture/armchair" />Расставить</>}
           </button>
         </div>
         {!edit && <p className="room-tip">Нажми на пол — {pet.name} пойдёт туда. Кота можно взять и перенести.</p>}
@@ -475,6 +494,18 @@ export default function Home() {
         <button className="btn soft" onClick={() => s.openShop()}><Img src="nav/shop" />Магазин<small>{s.coins.me} монет</small></button>
       </div>
 
+      {lastMsg && (
+        <div className="inbox">
+          <Img src={lastMsg.icon} />
+          <div className="grow">
+            <b>{lastMsg.text}</b>
+            <small>{inbox.length > 1 ? `и ещё ${inbox.length - 1} · ` : ''}{agoText(last!.created_at)}</small>
+          </div>
+          <button className="btn sm peach" onClick={() => setTouchOpen(true)}>Ответить</button>
+          <button className="x" aria-label="Скрыть" onClick={() => setInbox([])}>×</button>
+        </div>
+      )}
+
       <button className="think" onClick={() => setTouchOpen(true)}>
         <Img src="touches/touch_button" />
         <div>
@@ -487,7 +518,7 @@ export default function Home() {
         <PhotoCard />
         <div className="card col" style={{ gap: 6, alignItems: 'center', textAlign: 'center' }}>
           <h3>Встречи</h3>
-          <div className="meet"><Img src="meetings/meet_counter" /><b>{24 + past.length}</b></div>
+          <div className="meet"><Img src="meetings/meet_counter" /><b>{s.meetCount}</b></div>
           <span className="small muted b">
             {next ? `следующая через ${diffDays(next, TODAY_KEY)} ${plural(diffDays(next, TODAY_KEY), 'день', 'дня', 'дней')}` : past.length ? `последняя ${human(past[past.length - 1])}` : 'пока не отмечали'}
           </span>
@@ -499,22 +530,16 @@ export default function Home() {
       <button className="card row" style={{ textAlign: 'left' }} onClick={() => s.go('board')}>
         <Img src="tracker/sprint_start" size={52} />
         <div className="grow col" style={{ gap: 6 }}>
-          <div className="row"><b className="grow">Неделя 46</b><span className="small muted b">{done} из {sprint.length}</span></div>
-          <Bar value={done} max={sprint.length} color="linear-gradient(90deg,#C8DDB9,#7FA66E)" />
-          <span className="small muted b">Сегодня воскресенье: итоги недели</span>
+          <div className="row"><b className="grow">Неделя {isoWeek(TODAY_KEY)}</b>{sprint.length > 0 && <span className="small muted b">{done} из {sprint.length}</span>}</div>
+          {sprint.length > 0 && <Bar value={done} max={sprint.length} color="linear-gradient(90deg,#C8DDB9,#7FA66E)" />}
+          <span className="small muted b">
+            {!sprint.length ? 'Добавьте задачи на неделю на доске' : isSunday(TODAY_KEY) ? 'Сегодня воскресенье: итоги недели' : `до конца недели ${daysLeft} ${plural(daysLeft, 'день', 'дня', 'дней')}`}
+          </span>
         </div>
       </button>
 
-      <div className="card row">
-        <Img src="memory/on_this_day" size={56} />
-        <div className="grow">
-          <div className="small muted b">В этот день · месяц назад</div>
-          <div className="b">Смотрели «Ла-Ла Ленд»: тебе 9, ему 8</div>
-        </div>
-      </div>
-
       <Sheet open={touchOpen} onClose={() => setTouchOpen(false)} title="Думаю о тебе" icon="touches/touch_button">
-        <p className="muted b small">Он увидит, когда откроет приложение</p>
+        <p className="muted b small">{getLink() ? `${g.He} получит сразу, а если приложение закрыто — увидит, когда откроет` : 'Заработает, когда вы будете в паре'}</p>
         <div className="touch-grid">
           {TOUCHES.map(t => (
             <button key={t.id} onClick={() => sendTouch(t)}>
@@ -542,6 +567,7 @@ function PetSheet() {
   const s = useStore()
   const { pet } = s
   const [preview, setPreview] = useState<'baby' | 'adult'>(pet.stage)
+  const [nm, setNm] = useState(pet.name)
   const accs = SHOP.acc.filter(a => s.owned.includes(a.id))
   return (
     <>
@@ -555,6 +581,10 @@ function PetSheet() {
           </div>
           <span className="small muted b">Взрослеет на 10 уровне. Опыт = заработанные вами монеты.</span>
         </div>
+      </div>
+      <div className="row" style={{ gap: 8 }}>
+        <input className="input grow" maxLength={16} value={nm} placeholder="Имя питомца" onChange={e => setNm(e.target.value)} />
+        {nm.trim() && nm.trim() !== pet.name && <button className="btn sm" onClick={() => { s.setPet(p => ({ ...p, name: nm.trim() })); s.toast('Имя сохранено', 'pet/ui/level_badge') }}>Сохранить</button>}
       </div>
       <div className="seg">
         <button className={preview === 'baby' ? 'on' : ''} onClick={() => setPreview('baby')}>Маленький</button>

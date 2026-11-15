@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { useStore, usePersist } from '../store'
-import { Img, Header, Sheet, Bar, Ava, Seg, PhotoPick, shrinkImage, useName, plural } from '../ui'
-import { daysTogether, type Who } from '../data'
-import { TODAY_KEY, addDays, diffDays, human } from '../dates'
+import { Img, Header, Sheet, Bar, Ava, Seg, PhotoPick, shrinkImage, useName, plural, useG } from '../ui'
+import type { Who } from '../data'
+import { TODAY_KEY, addDays, ago, diffDays, human, humanY } from '../dates'
 import { PhotosScreen } from './Photos'
+import { sendEvent } from '../sync'
 
 // Разделы «Вместе». Каждый хранит свои данные в браузере; потом это станут таблицы в Supabase.
 
@@ -26,14 +27,7 @@ function Empty({ icon, text }: { icon: string; text: string }) {
 
 // ---------- Вишлисты ----------
 export interface Wish { id: number; who: Who; title: string; price?: number; link?: string; reserved?: boolean; gifted?: boolean }
-export const WISH_SEED: Wish[] = [
-  { id: 1, who: 'me', title: 'Плёночный фотоаппарат', price: 3500 },
-  { id: 2, who: 'me', title: 'Сертификат в спа на двоих', price: 2500 },
-  { id: 3, who: 'me', title: 'Плед с рукавами', price: 900, gifted: true },
-  { id: 4, who: 'him', title: 'Беспроводные наушники', price: 4000 },
-  { id: 5, who: 'him', title: 'Настольная игра на двоих', price: 800, reserved: true },
-  { id: 6, who: 'him', title: 'Термокружка', price: 600 },
-]
+export const WISH_SEED: Wish[] = []
 // Старые записи хранили цену строкой в рублях — переводим в число
 export const normWish = (w: Wish): Wish => (typeof w.price === 'string' ? { ...w, price: Number(String(w.price).replace(/\D/g, '')) || undefined } : w)
 export const uah = (n: number) => `${n.toLocaleString('ru-RU')} грн`
@@ -41,6 +35,7 @@ const fixUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : 'https://' + u)
 const host = (u: string) => { try { return new URL(fixUrl(u)).hostname.replace(/^www\./, '') } catch { return 'ссылка' } }
 
 function Wishlist() {
+  const g = useG()
   const s = useStore()
   const name = useName()
   const [whose, setWhose] = useState<Who>('me')
@@ -53,13 +48,13 @@ function Wishlist() {
     if (!form || !form.title.trim()) return
     const v = { title: form.title.trim(), price: Number(form.price.replace(/\D/g, '')) || undefined, link: form.link.trim() || undefined }
     if (form.id) patch(form.id, v)
-    else { setItems(xs => [...xs.map(normWish), { id: uid(), who: 'me', ...v }]); setWhose('me') }
+    else { setItems(xs => [...xs.map(normWish), { id: uid(), who: 'me', ...v }]); setWhose('me'); sendEvent('wish', { title: v.title }) }
     s.toast(form.id ? 'Сохранено' : 'Добавлено в твой вишлист', 'wishlist/wishlist')
     setForm(null)
   }
   return (
     <Screen title="Вишлисты" sub="Бронь подарка видна только дарящему" icon="wishlist/wishlist" onAdd={() => setForm({ title: '', price: '', link: '' })}>
-      <Seg value={whose} onChange={setWhose} options={[{ id: 'me', name: `Мой · ${items.filter(i => i.who === 'me').length}` }, { id: 'him', name: `${name('him') === 'Он' ? 'Его' : name('him')} · ${items.filter(i => i.who === 'him').length}` }]} />
+      <Seg value={whose} onChange={setWhose} options={[{ id: 'me', name: `Мой · ${items.filter(i => i.who === 'me').length}` }, { id: 'him', name: `${g.named ? name('him') : g.His} · ${items.filter(i => i.who === 'him').length}` }]} />
       <div className="col" style={{ gap: 10 }}>
         {list.map(it => (
           <div key={it.id} className={'li wish' + (it.gifted ? ' done' : '')}>
@@ -69,14 +64,14 @@ function Wishlist() {
               <div className="small muted b">
                 {it.price ? uah(it.price) : 'без цены'}
                 {it.link ? ` · ${host(it.link)}` : ''}
-                {it.gifted ? ' · подарено' : whose === 'him' && it.reserved ? ' · ты забронировала' : ''}
+                {it.gifted ? ' · подарено' : whose === 'him' && it.reserved ? ` · ты ${g.m('забронировал', 'забронировала')}` : ''}
               </div>
             </button>
             {it.link && (
               <a className="link-chip" href={fixUrl(it.link)} target="_blank" rel="noopener noreferrer">Открыть ↗</a>
             )}
             {whose === 'him' && !it.gifted && (
-              <button className={'btn sm ' + (it.reserved ? 'soft' : 'peach')} onClick={() => { patch(it.id, { reserved: !it.reserved }); s.toast(it.reserved ? 'Бронь снята' : 'Забронировано. Он не узнает', 'wishlist/reserved') }}>
+              <button className={'btn sm ' + (it.reserved ? 'soft' : 'peach')} onClick={() => { patch(it.id, { reserved: !it.reserved }); s.toast(it.reserved ? 'Бронь снята' : `Забронировано. ${g.He} не узнает`, 'wishlist/reserved') }}>
                 {it.reserved ? 'Снять бронь' : 'Подарю я'}
               </button>
             )}
@@ -87,7 +82,7 @@ function Wishlist() {
         ))}
         {!list.length && <Empty icon="wishlist/empty_wishlist" text="Список пуст. Добавь, что хочется" />}
       </div>
-      {whose === 'me' && <p className="small muted b" style={{ textAlign: 'center' }}>Нажми на желание, чтобы изменить. Что из твоего списка он забронировал, ты не увидишь: сюрприз.</p>}
+      {whose === 'me' && <p className="small muted b" style={{ textAlign: 'center' }}>Нажми на желание, чтобы изменить. Что из твоего списка {g.he} {g.p('забронировал', 'забронировала')}, ты не увидишь: сюрприз.</p>}
 
       <Sheet open={!!form} onClose={() => setForm(null)} title={form?.id ? 'Изменить желание' : 'Хочу в подарок'} icon="wishlist/wishlist">
         {form && (
@@ -111,18 +106,7 @@ function Wishlist() {
 
 // ---------- Bucket list ----------
 export interface Goal { id: number; title: string; done?: string; photo?: string }
-export const GOAL_SEED: Goal[] = [
-  { id: 1, title: 'Встретить рассвет на крыше', done: '2025-11-02' },
-  { id: 2, title: 'Сходить вместе на концерт', done: '2026-02-14' },
-  { id: 3, title: 'Слепить пельмени с нуля', done: '2026-04-05' },
-  { id: 4, title: 'Поехать в другой город на выходные', done: '2026-08-21' },
-  { id: 5, title: 'Увидеть море вместе' },
-  { id: 6, title: 'Сплавиться на байдарках' },
-  { id: 7, title: 'Сходить на мастер-класс по керамике' },
-  { id: 8, title: 'Провести неделю без телефонов' },
-  { id: 9, title: 'Посмотреть северное сияние' },
-  { id: 10, title: 'Устроить пикник под звёздами' },
-]
+export const GOAL_SEED: Goal[] = []
 
 function Bucket() {
   const s = useStore()
@@ -147,9 +131,9 @@ function Bucket() {
             <button className="x-btn" onClick={() => setGoals(xs => xs.filter(x => x.id !== g.id))} aria-label="Удалить">×</button>
           </div>
         ))}
-        {!left.length && <Empty icon="bucket/empty_bucket" text="Всё сбылось! Пора придумать новое" />}
+        {!left.length && <Empty icon="bucket/empty_bucket" text={goals.length ? 'Всё сбылось! Пора придумать новое' : 'Запишите, что хотите сделать вместе хотя бы раз в жизни'} />}
       </div>
-      <div className="sec-title">Сделали · альбом</div>
+      {done.length > 0 && <div className="sec-title">Сделали · альбом</div>}
       <div className="album">
         {done.map(g => (
           <div key={g.id} className="album-it">
@@ -173,17 +157,11 @@ function Bucket() {
 // ---------- Память ----------
 interface Quote { id: number; who: Who; text: string; date: string }
 interface Capsule { id: number; title: string; letter: string; created: string; openOn: string; opened?: boolean }
-const QUOTE_SEED: Quote[] = [
-  { id: 1, who: 'him', text: 'Я не опаздываю, я даю тебе время соскучиться', date: '2026-10-03' },
-  { id: 2, who: 'me', text: 'Кот — это тоже план на вечер', date: '2026-10-21' },
-  { id: 3, who: 'him', text: 'Давай купим ещё одно растение, это же почти питомец', date: '2026-11-08' },
-]
-const CAPSULE_SEED: Capsule[] = [
-  { id: 1, title: 'На нашу годовщину', letter: 'Привет из осени 2026! Надеюсь, вы всё ещё спорите, кто первый скажет «спокойной ночи».', created: '2026-09-29', openOn: '2027-09-29' },
-  { id: 2, title: 'Первая капсула', letter: 'Мы только начали этим пользоваться. Кот пока маленький, а копилка почти пустая.', created: '2026-08-01', openOn: '2026-11-01' },
-]
+const QUOTE_SEED: Quote[] = []
+const CAPSULE_SEED: Capsule[] = []
 
 function Memory() {
+  const g = useG()
   const s = useStore()
   const name = useName()
   const [quotes, setQuotes] = usePersist<Quote[]>('quotes', QUOTE_SEED)
@@ -196,26 +174,40 @@ function Memory() {
   const [cTitle, setCTitle] = useState('')
   const [cLetter, setCLetter] = useState('')
   const [cIn, setCIn] = useState(180)
-  const days = daysTogether()
-  const meets = 24 + Object.keys(s.meetings).filter(k => k <= TODAY_KEY).length
+  const days = s.daysTogether
+  const meets = s.meetCount
+  // «В этот день»: что было ровно год или месяц назад (встреча или цитата)
+  const memo = (() => {
+    for (const [n, label] of [[12, 'год назад'], [1, 'месяц назад']] as const) {
+      const k = ago(TODAY_KEY, n)
+      if (!k) continue
+      if (s.meetings[k] && k <= TODAY_KEY) return { label, text: `Встреча: ${s.meetings[k]}` }
+      const q = quotes.find(x => x.date === k)
+      if (q) return { label, text: `${name(q.who)}: «${q.text}»` }
+    }
+    return null
+  })()
   return (
     <Screen title="Память" sub="Цифры, цитаты и письма в будущее" icon="memory/days_together">
       <div className="stats3">
-        <div><b>{days}</b><span>{plural(days, 'день', 'дня', 'дней')}</span></div>
-        <div><b>{Math.floor(days / 30.4)}</b><span>месяцев</span></div>
+        <div><b>{days ?? '—'}</b><span>{days == null ? 'дата не указана' : plural(days, 'день', 'дня', 'дней')}</span></div>
+        <div><b>{days == null ? '—' : Math.floor(days / 30.4)}</b><span>месяцев</span></div>
         <div><b>{meets}</b><span>{plural(meets, 'встреча', 'встречи', 'встреч')}</span></div>
       </div>
 
-      <div className="card row">
-        <Img src="memory/on_this_day" size={56} />
-        <div className="grow">
-          <div className="small muted b">В этот день год назад</div>
-          <div className="b">Вторая встреча: каток и глинтвейн</div>
+      {memo && (
+        <div className="card row">
+          <Img src="memory/on_this_day" size={56} />
+          <div className="grow">
+            <div className="small muted b">В этот день · {memo.label}</div>
+            <div className="b">{memo.text}</div>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="row" style={{ margin: '4px 4px -4px' }}><div className="sec-title grow" style={{ margin: 0 }}>Цитатник</div><button className="linkish" onClick={() => setQOpen(true)}>+ цитата</button></div>
       <div className="col" style={{ gap: 10 }}>
+        {!quotes.length && <Empty icon="memory/quotes" text="Записывайте смешные и важные фразы друг друга" />}
         {[...quotes].reverse().map(q => (
           <div key={q.id} className="quote">
             <Img src="memory/quotes" className="qic" />
@@ -229,6 +221,7 @@ function Memory() {
 
       <div className="row" style={{ margin: '4px 4px -4px' }}><div className="sec-title grow" style={{ margin: 0 }}>Капсулы времени</div><button className="linkish" onClick={() => setCOpen(true)}>+ капсула</button></div>
       <div className="col" style={{ gap: 10 }}>
+        {!caps.length && <Empty icon="memory/capsule_closed" text="Напишите письмо себе в будущее: откроется в выбранный день" />}
         {caps.map(c => {
           const left = diffDays(c.openOn, TODAY_KEY)
           const ready = left <= 0
@@ -252,7 +245,7 @@ function Memory() {
       </div>
 
       <Sheet open={qOpen} onClose={() => setQOpen(false)} title="Цитата" icon="memory/quotes">
-        <Seg value={qWho} onChange={setQWho} options={[{ id: 'him', name: 'Сказал он' }, { id: 'me', name: 'Сказала я' }]} />
+        <Seg value={qWho} onChange={setQWho} options={[{ id: 'him', name: `${g.p('Сказал', 'Сказала')} ${g.he}` }, { id: 'me', name: `${g.m('Сказал', 'Сказала')} я` }]} />
         <textarea className="input" placeholder="Что было сказано" value={qText} onChange={e => setQText(e.target.value)} />
         <button className="btn wide" onClick={() => { if (!qText.trim()) return; setQuotes(xs => [...xs, { id: uid(), who: qWho, text: qText.trim(), date: TODAY_KEY }]); setQText(''); setQOpen(false) }}>Сохранить</button>
       </Sheet>
@@ -307,7 +300,7 @@ const CH_ICONS = [
   'common/leaf', 'common/pot', 'common/camera', 'common/envelope', 'common/trophy', 'common/bell',
   'tracker/labels/label_study', 'tracker/labels/label_health', 'tracker/labels/label_work', 'tracker/labels/label_us', 'tracker/labels/label_trip', 'common/check_cookie',
 ]
-const CH_SEED: Challenge[] = [{ id: 1, kind: 'water', days: 7, start: '2026-11-12', me: ['2026-11-12', '2026-11-13', '2026-11-14'], him: ['2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'] }]
+const CH_SEED: Challenge[] = []
 // 7 дней → 30, 14 → 55, 30 → 120
 const REWARD = (days: number) => Math.max(10, Math.round((days * 4) / 5) * 5)
 const DUR = [7, 14, 21, 30]
@@ -327,6 +320,7 @@ function IconPick({ value, onChange }: { value: string; onChange: (v: string) =>
 }
 
 function Challenges() {
+  const g = useG()
   const s = useStore()
   const name = useName()
   const [list, setList] = usePersist<Challenge[]>('challenges', CH_SEED)
@@ -403,10 +397,10 @@ function Challenges() {
               <button className="btn wide soft" onClick={() => setList(xs => xs.filter(x => x.id !== c.id))}>Не вышло, убрать</button>
             ) : (
               <button className={'btn wide ' + (meToday ? 'soft' : 'sage')} onClick={() => setList(xs => xs.map(x => (x.id === c.id ? { ...x, me: meToday ? x.me.filter(k => k !== TODAY_KEY) : [...x.me, TODAY_KEY] } : x)))}>
-                {meToday ? 'Сегодня сделано ✓' : 'Я сегодня сделала'}
+                {meToday ? 'Сегодня сделано ✓' : `Я сегодня ${g.m('сделал', 'сделала')}`}
               </button>
             )}
-            {!finished && !over && <span className="small muted b">{name('him')} сегодня {c.him.includes(TODAY_KEY) ? 'уже отметился' : 'ещё не отметился'}. Награда, когда оба пройдут все дни.</span>}
+            {!finished && !over && <span className="small muted b">{name('him')} сегодня {c.him.includes(TODAY_KEY) ? g.p('уже отметился', 'уже отметилась') : g.p('ещё не отметился', 'ещё не отметилась')}. Награда, когда оба пройдут все дни.</span>}
           </div>
         )
       })}
@@ -434,7 +428,7 @@ function Challenges() {
       {done.length > 0 && <p className="small muted b" style={{ textAlign: 'center' }}>Пройдено вместе: {done.length}</p>}
 
       <Sheet open={!!starting} onClose={() => setStarting(null)} title={starting?.name ?? ''} icon={starting?.icon}>
-        <p className="small muted b">Он получит приглашение. Отмечаете каждый день, монеты достаются обоим.</p>
+        <p className="small muted b">{g.He} получит приглашение. Отмечаете каждый день, монеты достаются обоим.</p>
         <div className="chips">
           {DUR.map(n => (
             <button key={n} className={'chip' + (days === n ? ' on' : '')} onClick={() => setDays(n)}>{n} {plural(n, 'день', 'дня', 'дней')}</button>
@@ -482,16 +476,10 @@ function Challenges() {
 
 // ---------- Споры ----------
 export interface Bet { id: number; text: string; stake: string; by: Who; winner?: Who; paid?: boolean; date: string }
-export const BET_SEED: Bet[] = [
-  { id: 1, text: 'Кто первый уснёт на фильме', stake: 'массаж', by: 'him', winner: 'me', paid: true, date: '2026-09-12' },
-  { id: 2, text: 'Сколько серий осилим за вечер', stake: 'завтрак', by: 'me', winner: 'him', paid: true, date: '2026-09-30' },
-  { id: 3, text: 'Пойдёт ли снег до 1 ноября', stake: 'желание', by: 'me', winner: 'me', paid: true, date: '2026-10-31' },
-  { id: 4, text: 'Кто дольше без сладкого', stake: 'кино за его счёт', by: 'him', winner: 'him', paid: true, date: '2026-10-15' },
-  { id: 5, text: 'Успеет ли он на поезд', stake: 'желание', by: 'me', winner: 'me', date: '2026-11-08' },
-  { id: 6, text: 'Кот вырастет до Нового года', stake: 'ужин', by: 'him', date: '2026-11-10' },
-]
+export const BET_SEED: Bet[] = []
 
 function Bets() {
+  const g = useG()
   const s = useStore()
   const name = useName()
   const [bets, setBets] = usePersist<Bet[]>('bets', BET_SEED)
@@ -515,7 +503,7 @@ function Bets() {
         <div key={b.id} className="li debt">
           <Img src="bets/debt" className="li-ic" />
           <div className="grow">
-            <b>{b.winner === 'me' ? `${name('him')} должен тебе` : 'Ты должна ему'}: {b.stake}</b>
+            <b>{b.winner === 'me' ? `${name('him')} ${g.p('должен', 'должна')} тебе` : `Ты ${g.m('должен', 'должна')} ${g.to}`}: {b.stake}</b>
             <div className="small muted b">спор «{b.text}»</div>
           </div>
           <button className="btn sm sage" onClick={() => { patch(b.id, { paid: true }); s.toast('Долг закрыт', 'bets/debt') }}>Отдан</button>
@@ -525,10 +513,10 @@ function Bets() {
       <div className="sec-title">Идут сейчас</div>
       {open.map(b => (
         <div key={b.id} className="card col" style={{ gap: 8 }}>
-          <div className="row"><Img src="bets/bet" size={40} /><div className="grow"><b>{b.text}</b><div className="small muted b">ставка: {b.stake} · предложил{b.by === 'me' ? 'а я' : ' он'}</div></div></div>
+          <div className="row"><Img src="bets/bet" size={40} /><div className="grow"><b>{b.text}</b><div className="small muted b">ставка: {b.stake} · {b.by === 'me' ? `${g.m('предложил', 'предложила')} я` : `${g.p('предложил', 'предложила')} ${g.he}`}</div></div></div>
           <div className="grid2">
             <button className="btn sm peach" onClick={() => { patch(b.id, { winner: 'me' }); s.toast('Победа твоя!', 'common/trophy') }}>Победа моя</button>
-            <button className="btn sm soft" onClick={() => { patch(b.id, { winner: 'him' }); s.toast('Он выиграл этот спор', 'bets/lose') }}>Победа его</button>
+            <button className="btn sm soft" onClick={() => { patch(b.id, { winner: 'him' }); s.toast(`${g.He} ${g.p('выиграл', 'выиграла')} этот спор`, 'bets/lose') }}>Победа {g.his}</button>
           </div>
         </div>
       ))}
@@ -539,7 +527,7 @@ function Bets() {
         {bets.filter(b => b.winner).reverse().map(b => (
           <div key={b.id} className="li slim">
             <Img src={b.winner === 'me' ? 'common/trophy' : 'bets/lose'} className="li-ic" />
-            <div className="grow"><b>{b.text}</b><div className="small muted b">{b.winner === 'me' ? 'выиграла я' : 'выиграл он'} · {b.stake}</div></div>
+            <div className="grow"><b>{b.text}</b><div className="small muted b">{b.winner === 'me' ? `${g.m('выиграл', 'выиграла')} я` : `${g.p('выиграл', 'выиграла')} ${g.he}`} · {b.stake}</div></div>
           </div>
         ))}
       </div>
@@ -561,11 +549,7 @@ function Bets() {
 
 // ---------- Надо поговорить ----------
 export interface Topic { id: number; text: string; by: Who; important?: boolean; date: string; done?: string }
-export const TALK_SEED: Topic[] = [
-  { id: 1, text: 'Как делим расходы на поездки', by: 'him', important: true, date: '2026-11-13' },
-  { id: 2, text: 'Где встречаем Новый год', by: 'me', date: '2026-11-10' },
-  { id: 3, text: 'Как часто созваниваемся в будни', by: 'me', date: '2026-10-20', done: '2026-10-25' },
-]
+export const TALK_SEED: Topic[] = []
 
 function Talk() {
   const s = useStore()
@@ -615,31 +599,26 @@ function Talk() {
 
 // ---------- Благодарности ----------
 export interface Thanks { id: number; who: Who; text: string; date: string }
-export const THANKS_SEED: Thanks[] = [
-  { id: 1, who: 'him', text: 'Спасибо, что разбудила звонком, без тебя проспал бы', date: '2026-11-14' },
-  { id: 2, who: 'me', text: 'Спасибо за посылку с чаем, очень вовремя', date: '2026-11-12' },
-  { id: 3, who: 'him', text: 'Спасибо, что выслушала вчера', date: '2026-11-10' },
-  { id: 4, who: 'me', text: 'Спасибо, что приехал, хотя было неудобно', date: '2026-11-08' },
-]
-export const THANKS_BEFORE = 34
+export const THANKS_SEED: Thanks[] = []
 
 function Gratitude() {
   const s = useStore()
   const name = useName()
   const [list, setList] = usePersist<Thanks[]>('thanks', THANKS_SEED)
   const [text, setText] = useState('')
-  const total = THANKS_BEFORE + list.length
+  const total = list.length
   return (
     <Screen title="Благодарности" sub={`${total} «спасибо» за всё время`} icon="talk/gratitude">
       <div className="card col" style={{ gap: 8 }}>
         <textarea className="input" placeholder={`Спасибо, что…`} value={text} onChange={e => setText(e.target.value)} />
         <button className="btn wide peach" onClick={() => {
           if (!text.trim()) return
-          setList(xs => [{ id: uid(), who: 'me', text: text.trim(), date: TODAY_KEY }, ...xs]); setText('')
+          setList(xs => [{ id: uid(), who: 'me', text: text.trim(), date: TODAY_KEY }, ...xs]); sendEvent('thanks', { text: text.trim() }); setText('')
           s.earn(1, 'Спасибо отправлено · +1', 'talk/gratitude')
         }}><Img src="talk/gratitude" />Сказать спасибо</button>
       </div>
       <div className="col" style={{ gap: 10 }}>
+        {!list.length && <Empty icon="talk/gratitude" text="Скажите друг другу спасибо за мелочи: так приятнее" />}
         {list.map(t => (
           <div key={t.id} className={'thanks ' + t.who}>
             <Ava who={t.who} size={30} />
@@ -656,16 +635,10 @@ function Gratitude() {
 
 // ---------- Договорённости ----------
 export interface Rule { id: number; text: string; by: Who; ok: Record<Who, boolean> }
-export const RULE_SEED: Rule[] = [
-  { id: 1, text: 'Не ложимся спать в ссоре, хотя бы созваниваемся', by: 'me', ok: { me: true, him: true } },
-  { id: 2, text: 'Если кто-то занят, пишет «занят, позже», а не пропадает', by: 'him', ok: { me: true, him: true } },
-  { id: 3, text: 'Раз в неделю видеосвидание без телефонов рядом', by: 'me', ok: { me: true, him: true } },
-  { id: 4, text: 'Подарки до 1 500 грн, если не договорились иначе', by: 'him', ok: { me: true, him: true } },
-  { id: 5, text: 'Билеты на встречи покупаем по очереди', by: 'me', ok: { me: true, him: true } },
-  { id: 6, text: 'Обсуждаем серьёзное голосом, не в чате', by: 'him', ok: { me: false, him: true } },
-]
+export const RULE_SEED: Rule[] = []
 
 function Agreements() {
+  const g = useG()
   const s = useStore()
   const name = useName()
   const [rules, setRules] = usePersist<Rule[]>('rules', RULE_SEED)
@@ -690,13 +663,14 @@ function Agreements() {
       ))}
       <div className="sec-title">Договорились · {agreed.length}</div>
       <div className="col" style={{ gap: 8 }}>
+        {!agreed.length && <Empty icon="talk/agreements" text="Правила пары: о чём договорились и что важно обоим" />}
         {agreed.map((r, i) => (
           <div key={r.id} className="li slim"><span className="num">{i + 1}</span><b className="grow">{r.text}</b></div>
         ))}
       </div>
       <Sheet open={adding} onClose={() => setAdding(false)} title="Новое правило" icon="talk/agreements">
         <textarea className="input" placeholder="Например: не обсуждаем бывших" value={text} onChange={e => setText(e.target.value)} />
-        <p className="small muted b">Правило заработает, когда он его примет.</p>
+        <p className="small muted b">Правило заработает, когда {g.he} его примет.</p>
         <button className="btn wide" onClick={() => { if (!text.trim()) return; setRules(xs => [...xs, { id: uid(), text: text.trim(), by: 'me', ok: { me: true, him: false } }]); setText(''); setAdding(false) }}>Предложить</button>
       </Sheet>
     </Screen>

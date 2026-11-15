@@ -5,10 +5,32 @@ export const dkey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).
 export const fromKey = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d) }
 export const addDays = (k: string, n: number) => { const d = fromKey(k); d.setDate(d.getDate() + n); return dkey(d) }
 export const diffDays = (a: string, b: string) => Math.round((fromKey(a).getTime() - fromKey(b).getTime()) / 864e5)
-export const TODAY_KEY = '2026-11-15'
+// Сегодня по часам телефона. После полуночи приложение перезагрузится само (см. main.tsx).
+export const TODAY_KEY = dkey(new Date())
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 export const human = (k?: string) => { if (!k) return ''; const d = fromKey(k); return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}` }
+const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+export const short = (k: string) => { const d = fromKey(k); return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}` }
+// С годом, если не текущий
+export const humanY = (k: string) => (k.slice(0, 4) === TODAY_KEY.slice(0, 4) ? human(k) : `${human(k)} ${k.slice(0, 4)}`)
+
+// ---------- Недели (спринт с понедельника по воскресенье) ----------
+export const weekStart = (k: string) => addDays(k, -((fromKey(k).getDay() + 6) % 7))
+export const weekEnd = (k: string) => addDays(weekStart(k), 6)
+export function isoWeek(k: string) {
+  const d = fromKey(k)
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
+  const y = new Date(d.getFullYear(), 0, 4)
+  return 1 + Math.round(((d.getTime() - y.getTime()) / 864e5 - 3 + ((y.getDay() + 6) % 7)) / 7)
+}
+export const isSunday = (k: string) => fromKey(k).getDay() === 0
+// Тот же день месяц/год назад (если такого числа нет — null)
+export function ago(k: string, months: number) {
+  const d = fromKey(k)
+  const t = new Date(d.getFullYear(), d.getMonth() - months, d.getDate())
+  return t.getDate() === d.getDate() ? dkey(t) : null
+}
 
 // ---------- Цикл ----------
 // Отмечаются только дни месячных (и по желанию симптомы). Всё остальное считается от них.

@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@fontsource-variable/nunito'
 import App from './App'
+import { TODAY_KEY, dkey } from './dates'
 import './styles.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -29,3 +30,8 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   // Просим браузер не чистить данные приложения
   navigator.storage?.persist?.().catch(() => {})
 }
+
+// «Сегодня» считается при запуске. Если приложение пролежало свёрнутым через полночь — открываем заново.
+const newDay = () => dkey(new Date()) !== TODAY_KEY
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && newDay()) location.reload() })
+setInterval(() => { if (document.visibilityState === 'visible' && newDay()) location.reload() }, 60_000)

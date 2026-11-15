@@ -1,12 +1,37 @@
-import { useState } from 'react'
-import { useStore } from '../store'
-import { Ava, PhotoPick, shrinkImage } from '../ui'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useStore, type Gender } from '../store'
+import { Ava, PhotoPick, shrinkImage, useG } from '../ui'
+import { cloud, getLink, getStatus, onStatus, partnerJoined } from '../sync'
+import { TODAY_KEY } from '../dates'
 import type { Who } from '../data'
 
-// Аватарки и имена. Имя нужно только для подписей, по умолчанию «Я» и «Он».
+const STATUS: Record<string, [string, string]> = {
+  online: ['Всё сохранено в облаке', 'var(--leaf)'],
+  syncing: ['Сохраняем…', 'var(--honey, #E8B04A)'],
+  offline: ['Нет связи — сохранится, когда появится интернет', 'var(--coral, #E98A86)'],
+  local: ['Только на этом телефоне', 'var(--muted)'],
+}
+
+function GenderPick({ value, onChange }: { value: Gender; onChange: (g: Gender) => void }) {
+  return (
+    <div className="seg mini">
+      <button className={value === 'f' ? 'on' : ''} onClick={() => onChange('f')}>она</button>
+      <button className={value === 'm' ? 'on' : ''} onClick={() => onChange('m')}>он</button>
+    </div>
+  )
+}
+
+// Профиль пары: имена, аватарки, даты, аккаунт и код пары
 export function ProfileSheet() {
   const s = useStore()
+  const g = useG()
+  const link = getLink()
+  const status = useSyncExternalStore(onStatus, getStatus)
+  const [joined, setJoined] = useState<boolean | null>(null)
   const [sure, setSure] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => { if (link) partnerJoined().then(setJoined) }, [link])
 
   async function pick(who: Who, f: File) {
     try {
@@ -17,6 +42,12 @@ export function ProfileSheet() {
       s.toast('Не получилось открыть фото', 'states/st_error')
     }
   }
+  const setG = (who: Who, v: Gender) => s.setProfile(p => ({ ...p, [who]: { ...p[who], g: v } }))
+  const share = () => {
+    const text = `Присоединяйся ко мне в «Мы»: ${location.origin + location.pathname}\nКод пары: ${link!.code}`
+    if (navigator.share) navigator.share({ text }).catch(() => {})
+    else { navigator.clipboard?.writeText(text); setCopied(true) }
+  }
 
   return (
     <>
@@ -26,31 +57,79 @@ export function ProfileSheet() {
           <div className="grow col" style={{ gap: 8 }}>
             <input
               className="input"
-              placeholder={who === 'me' ? 'Твоё имя, можно пусто' : 'Его имя, можно пусто'}
+              placeholder={who === 'me' ? 'Твоё имя' : `Как подписывать ${g.his}`}
               value={s.profile[who].name}
               maxLength={20}
               onChange={e => s.setProfile(p => ({ ...p, [who]: { ...p[who], name: e.target.value } }))}
             />
-            <div className="row" style={{ gap: 8 }}>
-              <PhotoPick onPick={f => pick(who, f)} className="btn sm">{s.profile[who].photo ? 'Другое фото' : 'Выбрать фото'}</PhotoPick>
-              {s.profile[who].photo && (
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              {(who === 'me' || !joined) && (
+                <PhotoPick onPick={f => pick(who, f)} className="btn sm">{s.profile[who].photo ? 'Другое фото' : 'Фото'}</PhotoPick>
+              )}
+              {s.profile[who].photo && (who === 'me' || !joined) && (
                 <button className="btn sm soft" onClick={() => s.setProfile(p => ({ ...p, [who]: { ...p[who], photo: null } }))}>Убрать</button>
               )}
+              <GenderPick value={s.profile[who].g ?? (who === 'me' ? 'f' : 'm')} onChange={v => setG(who, v)} />
             </div>
           </div>
         </div>
       ))}
-      <p className="small muted b">Его аватарку он потом поставит у себя сам. Пока всё хранится только в этом браузере.</p>
-      {!sure ? (
-        <button className="btn wide soft" onClick={() => setSure(true)}>Начать заново с примером</button>
-      ) : (
-        <div className="col" style={{ gap: 8 }}>
-          <b className="small">Сотрутся все отметки, покупки, расстановка комнаты и аватарки.</b>
-          <div className="grid2">
-            <button className="btn soft" onClick={() => setSure(false)}>Отмена</button>
-            <button className="btn coral" onClick={s.resetAll}>Стереть</button>
+
+      <div className="sec-title">Вы вместе</div>
+      <div className="card flat col" style={{ gap: 10 }}>
+        <label className="field"><span>С какого дня</span>
+          <input className="input date-in" type="date" max={TODAY_KEY} value={s.settings.since} onChange={e => s.setSettings(x => ({ ...x, since: e.target.value }))} />
+        </label>
+        <label className="field"><span>Встреч до приложения</span>
+          <input className="input" inputMode="numeric" value={s.settings.meetBase || ''} placeholder="0"
+            onChange={e => s.setSettings(x => ({ ...x, meetBase: Number(e.target.value.replace(/\D/g, '')) || 0 }))} />
+        </label>
+        <label className="row" style={{ gap: 10 }}>
+          <input type="checkbox" checked={s.settings.cycle} onChange={e => s.setSettings(x => ({ ...x, cycle: e.target.checked }))} />
+          <span className="b grow">Календарь цикла</span>
+        </label>
+      </div>
+
+      {cloud && link ? (
+        <>
+          <div className="sec-title">Аккаунт</div>
+          <div className="card flat col" style={{ gap: 10 }}>
+            <div className="row"><span className="grow small muted b">Почта</span><b className="small">{link.email}</b></div>
+            <div className="row"><span className="grow small muted b">Синхронизация</span>
+              <b className="small" style={{ color: STATUS[status][1] }}>{STATUS[status][0]}</b></div>
+            <div className="row">
+              <span className="grow small muted b">{joined ? `${g.He} в паре` : joined === false ? `${g.He} ещё не ${g.p('присоединился', 'присоединилась')}` : 'Пара'}</span>
+              <b className="pair-code sm">{link.code}</b>
+            </div>
+            {!joined && <button className="btn wide peach" onClick={share}>{copied ? 'Скопировано' : 'Отправить код'}</button>}
           </div>
-        </div>
+          {!sure ? (
+            <button className="btn wide soft" onClick={() => setSure(true)}>Выйти из аккаунта</button>
+          ) : (
+            <div className="col" style={{ gap: 8 }}>
+              <b className="small">Данные останутся в облаке: войдёшь снова — всё вернётся.</b>
+              <div className="grid2">
+                <button className="btn soft" onClick={() => setSure(false)}>Отмена</button>
+                <button className="btn coral" onClick={s.resetAll}>Выйти</button>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="small muted b">Сейчас всё хранится только на этом телефоне.</p>
+          {!sure ? (
+            <button className="btn wide soft" onClick={() => setSure(true)}>Стереть всё и начать заново</button>
+          ) : (
+            <div className="col" style={{ gap: 8 }}>
+              <b className="small">Сотрутся задачи, фото, календарь, кот и покупки. Вернуть не получится.</b>
+              <div className="grid2">
+                <button className="btn soft" onClick={() => setSure(false)}>Отмена</button>
+                <button className="btn coral" onClick={s.resetAll}>Стереть</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </>
   )
