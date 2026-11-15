@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Task, Who } from './data'
 import { TODAY_KEY, diffDays, human, type CycleDay } from './dates'
 import { moveImagesToFiles } from './photos'
-import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, type PairEvent } from './sync'
+import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, setPushText, type PairEvent } from './sync'
+import { refreshPush } from './push'
 
 // Общее состояние приложения. Пока хранится на телефоне (localStorage), потом переедет в Supabase.
 // Новый пользователь начинает с пустыми данными: всё заполняется в процессе.
@@ -159,6 +160,13 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
   }
 }
 
+// Куда открыть приложение по нажатию на уведомление
+const PUSH_URL: Record<string, string> = {
+  touch: '#home', joined: '#home', coupon: '#home', coupon_buy: '#home',
+  photo: '#together/photos', place: '#together/places', wish: '#together/wishlist', thanks: '#together/gratitude',
+  task: '#board', task_part: '#board', meet: '#calendar', mood: '#calendar', cheat_ask: '#cheatsheet',
+}
+
 function readHash(): { tab: Tab; sub: string; shop: ShopTab | null } {
   const [a = 'home', b = ''] = location.hash.slice(1).split('/')
   if (a === 'shop') return { tab: 'home', sub: '', shop: (b as ShopTab) || 'food' }
@@ -233,6 +241,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [toastState])
 
   const toast = useCallback((text: string, icon = 'common/sparkle') => setToast({ text, icon, key: Date.now() }), [])
+
+  // Уведомление партнёру на телефон: тот же текст, что он увидел бы в приложении, — от моего имени
+  const myName = profile.me.name.trim() || (profile.me.g === 'f' ? 'Она' : 'Он')
+  const myG = profile.me.g ?? 'm'
+  useEffect(() => {
+    setPushText((kind, payload) => {
+      const d = describe({ id: 0, kind, payload, created_at: '', mine: false }, myName, myG)
+      if (!d) return null
+      const rest = d.text.startsWith(myName) ? d.text.slice(myName.length).replace(/^[\s:]+/, '') : d.text
+      return { title: myName, body: rest.charAt(0).toUpperCase() + rest.slice(1), url: PUSH_URL[kind] ?? '' }
+    })
+    return () => setPushText(null)
+  }, [myName, myG])
+  // Подписка на уведомления могла устареть — обновляем при запуске
+  useEffect(() => { const t = setTimeout(() => { refreshPush() }, 4000); return () => clearTimeout(t) }, [])
 
   // Что делает партнёр — прилетает сразу. Касания ещё и складываются во «входящие» на главной.
   const [, setInbox] = usePersist<PairEvent[]>('inbox', [])

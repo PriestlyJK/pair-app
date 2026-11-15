@@ -369,9 +369,17 @@ export async function partnerJoined() {
 }
 
 // ---------- События для партнёра ----------
+// Текст уведомления партнёру о событии (задаёт store.tsx: там имена и пол)
+export type PushMsg = { title: string; body: string; url: string }
+let pushText: ((kind: string, payload: Record<string, unknown>) => PushMsg | null) | null = null
+export const setPushText = (f: typeof pushText) => { pushText = f }
+
 export function sendEvent(kind: string, payload: Record<string, unknown> = {}) {
   if (!cloud || !link) return
   cloud.from('events').insert({ couple_id: link.couple, kind, payload }).then(() => {}, () => {})
+  // Партнёр сейчас не в приложении — уведомление на телефон (в приложении он и так увидит сразу)
+  const m = partnerHere ? null : pushText?.(kind, payload)
+  if (m) cloud.functions.invoke('push', { body: { action: 'send', ...m } }).then(() => {}, () => {})
 }
 export function onEvent(f: (e: PairEvent) => void) { eventSubs.add(f); return () => { eventSubs.delete(f) } }
 

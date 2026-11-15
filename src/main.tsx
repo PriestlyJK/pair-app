@@ -21,6 +21,8 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       reg.active?.postMessage('warm')
     }).catch(() => {})
     // Новая версия встала: перезагружаемся незаметно, когда приложение свернут
+    // Открыли уведомление, а приложение уже было запущено — переходим на нужный экран
+    navigator.serviceWorker.addEventListener('message', e => { if (typeof e.data?.go === 'string') location.hash = e.data.go })
     let had = !!navigator.serviceWorker.controller
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!had) { had = true; return }

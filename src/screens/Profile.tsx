@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useStore, type Gender } from '../store'
 import { Ava, PhotoPick, shrinkImage, useG, useName, usePartnerHere } from '../ui'
 import { cloud, getLink, getStatus, onStatus, partnerJoined, unlinkPartner } from '../sync'
+import { PushSection } from '../push'
 import { TODAY_KEY } from '../dates'
 import type { Who } from '../data'
 
@@ -92,6 +93,8 @@ export function ProfileSheet() {
           <span className="b grow">Календарь цикла</span>
         </label>
       </div>
+
+      {cloud && link && <PushSection />}
 
       {cloud && link ? (
         <>

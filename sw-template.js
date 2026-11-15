@@ -65,3 +65,31 @@ self.addEventListener('fetch', e => {
     }),
   )
 })
+
+// ---------- Уведомления от партнёра (Web Push) ----------
+// Каждое пришедшее уведомление обязательно показываем: так требует iPhone
+self.addEventListener('push', e => {
+  let d = {}
+  try { d = e.data ? e.data.json() : {} } catch { d = { body: e.data ? e.data.text() : '' } }
+  e.waitUntil(self.registration.showNotification(d.title || 'Мы', {
+    body: d.body || '',
+    icon: 'assets/brand/icon-192.png',
+    badge: 'assets/brand/icon-192.png',
+    data: { url: d.url || '' },
+  }))
+})
+
+// Нажали на уведомление — открываем приложение на нужном экране
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  const hash = (e.notification.data && e.notification.data.url) || ''
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    if (wins[0]) {
+      await wins[0].focus().catch(() => {})
+      if (hash) wins[0].postMessage({ go: hash })
+      return
+    }
+    await self.clients.openWindow(new URL(hash, self.registration.scope).href)
+  })())
+})

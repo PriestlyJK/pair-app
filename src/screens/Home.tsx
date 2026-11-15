@@ -8,6 +8,7 @@ import { BBOX } from '../bbox'
 import { TOUCHES, SHOP, type Who } from '../data'
 import { TODAY_KEY, diffDays, human, isSunday, weekEnd, weekRange, weekStart } from '../dates'
 import { ProfileSheet } from './Profile'
+import { PushNudge } from '../push'
 
 // «только что», «5 мин назад», «вчера в 21:40»
 function agoText(iso: string) {
@@ -549,6 +550,8 @@ export default function Home() {
           <button className="x" aria-label="Скрыть" onClick={() => setInbox([])}>×</button>
         </div>
       )}
+
+      <PushNudge />
 
       <button className="think" onClick={() => setTouchOpen(true)}>
         <Img src="touches/touch_button" />
