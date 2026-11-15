@@ -382,7 +382,7 @@ textarea.input { resize: none; min-height: 70px; }
 .secrow .chev { color: #D4B59A; font-size: 24px; font-weight: 900; }
 .fieldrow { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 18px; background: var(--card); border: 1.5px solid var(--line); }
 .fieldrow > img { width: 40px; height: 40px; flex: none; }
-.fieldrow .lbl { font-size: 12px; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.fieldrow .lbl { font-size: 13px; font-weight: 900; color: var(--muted); line-height: 1.25; margin-bottom: 2px; }
 .fieldrow .val { font-weight: 800; font-size: 15px; }
 .fieldrow .val.empty { color: #C4A994; font-style: italic; font-weight: 700; }
 .sit { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 18px; background: var(--card); border: 1.5px solid var(--line); font-size: 12px; font-weight: 800; text-align: center; line-height: 1.1; position: relative; }

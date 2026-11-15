@@ -199,87 +199,124 @@ export const SHOP: Record<string, ShopItem[]> = {
 
 // ---------- Шпаргалка ----------
 export const CHEAT_SECTIONS = [
-  { id: 'sizes', name: 'Размеры', icon: 'cheatsheet/sec_sizes' },
-  { id: 'food', name: 'Еда', icon: 'cheatsheet/sec_food' },
-  { id: 'gifts', name: 'Подарки', icon: 'common/gift' },
+  { id: 'us', name: 'Про нас', icon: 'touches/hug' },
   { id: 'emotions', name: 'Эмоции', icon: 'cheatsheet/sec_emotions' },
-  { id: 'people', name: 'Люди', icon: 'cheatsheet/sec_people' },
+  { id: 'gifts', name: 'Подарки', icon: 'common/gift' },
+  { id: 'food', name: 'Еда', icon: 'cheatsheet/sec_food' },
+  { id: 'sizes', name: 'Размеры', icon: 'cheatsheet/sec_sizes' },
+  { id: 'people', name: 'Близкие люди', icon: 'cheatsheet/sec_people' },
   { id: 'tastes', name: 'Вкусы', icon: 'cheatsheet/sec_tastes' },
   { id: 'dreams', name: 'Мечты', icon: 'cheatsheet/sec_dreams' },
   { id: 'custom', name: 'Своё', icon: 'cheatsheet/sec_custom' },
 ]
 
-export interface CheatField { label: string; icon: string; hint?: string }
+/* Поле шпаргалки. Ответы хранятся по ключу «раздел.key» — key не меняем никогда, иначе старые ответы потеряются.
+   Если у поля нет key, ключ — это label (так было раньше). Поэтому, переписывая вопрос, старый текст переезжает в key.
+   hint — пример ответа, показывается как «например: …», когда поле пустое. */
+export interface CheatField { key?: string; label: string; icon: string; hint?: string }
+export const fieldKey = (f: CheatField) => f.key ?? f.label
+
 export const SECTION_FIELDS: Record<string, CheatField[]> = {
-  sizes: [
-    { label: 'Одежда: верх', icon: 'cheatsheet/sizes/size_top', hint: 'например, M, худи — L' },
-    { label: 'Одежда: низ', icon: 'cheatsheet/sizes/size_bottom' },
-    { label: 'Обувь', icon: 'cheatsheet/sizes/size_shoes', hint: 'размер и длина стопы' },
-    { label: 'Кольцо', icon: 'cheatsheet/sizes/size_ring' },
-    { label: 'Бельё', icon: 'cheatsheet/sizes/size_underwear' },
-    { label: 'Носки', icon: 'cheatsheet/sizes/size_socks' },
-    { label: 'Перчатки', icon: 'cheatsheet/sizes/size_gloves' },
-  ],
-  food: [
-    { label: 'Любимое', icon: 'cheatsheet/food/food_love' },
-    { label: 'Нелюбимое', icon: 'cheatsheet/food/food_hate' },
-    { label: 'Заказ в кофейне', icon: 'cheatsheet/food/food_coffee' },
-    { label: 'Суши', icon: 'cheatsheet/food/food_sushi' },
-    { label: 'Фастфуд', icon: 'cheatsheet/food/food_fastfood' },
-    { label: 'Сладкое', icon: 'cheatsheet/food/food_sweets' },
-    { label: 'Алкоголь', icon: 'cheatsheet/food/food_drinks' },
-    { label: 'Когда грустно', icon: 'common/pot' },
-    { label: 'Перекусы', icon: 'cheatsheet/food/food_snacks' },
-  ],
-  gifts: [
-    { label: 'Любимые цвета', icon: 'cheatsheet/gifts/gift_colors' },
-    { label: 'Цветы', icon: 'cheatsheet/gifts/gift_flowers' },
-    { label: 'Ароматы', icon: 'cheatsheet/gifts/gift_scents' },
-    { label: 'Бренды', icon: 'cheatsheet/gifts/gift_brands' },
-    { label: 'Украшения', icon: 'cheatsheet/gifts/gift_jewelry' },
-    { label: 'Уже есть', icon: 'cheatsheet/gifts/gift_has' },
-    { label: 'Не дарить', icon: 'cheatsheet/gifts/gift_no' },
+  us: [
+    { label: 'От чего тепло на расстоянии', icon: 'common/heart', hint: 'голосовые перед сном, фото из твоего дня, когда помнишь мелочи' },
+    { label: 'Сколько хочется созваниваться', icon: 'touches/call_me', hint: 'каждый вечер хотя бы минут десять, в выходные подольше' },
+    { label: 'Ритуалы, которые важны', icon: 'touches/good_morning', hint: '«доброе утро» первым делом, «спокойной ночи» голосом' },
+    { label: 'Что царапает в переписке', icon: 'common/speech_heart', hint: 'сухое «ок», ответ через пять часов без объяснений' },
+    { label: 'Если пропадаю — что это значит', icon: 'touches/miss_you', hint: 'обычно просто устаю от людей: одно тёплое сообщение и не дёргать' },
+    { label: 'Что тревожит на расстоянии', icon: 'calendar/mood/mood_anxious', hint: 'когда не знаю, где ты вечером; помогает просто сказать заранее' },
+    { label: 'Как мириться после ссоры', icon: 'talk/agreements', hint: 'дать час остыть, потом позвонить, а не писать простыню' },
+    { label: 'Запрещённые приёмы в ссоре', icon: 'common/cross_badge', hint: '«ты всегда…», сравнения с бывшими, уходить в игнор' },
+    { label: 'Как говорить о сложном', icon: 'talk/talk_queue', hint: 'голосом, а не текстом; не перед сном; сначала спросить, есть ли силы' },
+    { label: 'Как называть: да и нет', icon: 'touches/kiss', hint: '«зай» — да, «малыш» — нет, по фамилии — только в шутку' },
+    { label: 'Любимое воспоминание о нас', icon: 'memory/days_together', hint: 'как гуляли до утра после первого свидания' },
+    { label: 'Первое, что сделать при встрече', icon: 'meetings/meet_place', hint: 'долго обниматься на вокзале, потом поесть и отсыпаться' },
   ],
   emotions: [
-    { label: 'Что бесит', icon: 'cheatsheet/situations/sit_anger' },
-    { label: 'Как успокоить', icon: 'cheatsheet/emotions/emo_calm' },
-    { label: 'Как поддержать', icon: 'cheatsheet/emotions/emo_support' },
-    { label: 'Язык любви', icon: 'common/two_hearts' },
-    { label: 'О чём не шутить', icon: 'cheatsheet/emotions/emo_no_jokes' },
-    { label: 'Что радует', icon: 'cheatsheet/emotions/emo_joys' },
+    { key: 'Что бесит', label: 'Что выводит из себя', icon: 'cheatsheet/situations/sit_anger', hint: 'когда перебивают, опоздания без предупреждения' },
+    { key: 'Как успокоить', label: 'Как успокоить, когда кипит', icon: 'cheatsheet/emotions/emo_calm', hint: 'не спорить, дать выговориться, потом обнять или позвонить' },
+    { key: 'Как поддержать', label: 'Как поддержать, когда плохо', icon: 'cheatsheet/emotions/emo_support', hint: 'не давать советов, просто слушать и быть на связи' },
+    { label: 'Как понять, что что-то не так', icon: 'calendar/mood/mood_meh', hint: 'отвечаю односложно и пропадаю — значит, накрыло' },
+    { label: 'Когда нужна тишина', icon: 'common/moon', hint: 'пишу «я в норме, просто тихо» — это не обида, просто подожди' },
+    { label: 'Что задевает, хотя молчу', icon: 'common/raincloud', hint: 'когда забываешь то, что я рассказываю' },
+    { key: 'Язык любви', label: 'Как лучше показывать любовь', icon: 'common/two_hearts', hint: 'словами и голосовыми, а не подарками; внимание к мелочам' },
+    { key: 'Что радует', label: 'Что поднимает настроение', icon: 'cheatsheet/emotions/emo_joys', hint: 'видео с котами, твоё голосовое, мем про нас' },
+    { key: 'О чём не шутить', label: 'О чём лучше не шутить', icon: 'cheatsheet/emotions/emo_no_jokes', hint: 'вес, родители, моя работа' },
+  ],
+  gifts: [
+    { label: 'Хочу, но себе не куплю', icon: 'wishlist/wishlist', hint: 'хорошую сковородку, массаж, кашемировые носки' },
+    { label: 'Мелочь, которая всегда радует', icon: 'common/envelope', hint: 'открытка по почте, записка, шоколадка с доставкой' },
+    { label: 'Сюрприз или лучше спросить', icon: 'common/gift', hint: 'мелочи — сюрпризом, что-то большое — лучше посоветоваться' },
+    { key: 'Цветы', label: 'Цветы: какие радуют', icon: 'cheatsheet/gifts/gift_flowers', hint: 'пионы, тюльпаны; розы — не очень' },
+    { key: 'Любимые цвета', label: 'Цвета: нравятся и нет', icon: 'cheatsheet/gifts/gift_colors', hint: 'пыльно-розовый, оливковый; ярко-оранжевый — нет' },
+    { key: 'Ароматы', label: 'Запахи: духи, свечи', icon: 'cheatsheet/gifts/gift_scents', hint: 'ваниль, древесные; слишком сладкие — нет' },
+    { key: 'Украшения', label: 'Украшения: что ношу', icon: 'cheatsheet/gifts/gift_jewelry', hint: 'серебро, тонкие цепочки; уши не проколоты' },
+    { key: 'Бренды', label: 'Где люблю покупать', icon: 'cheatsheet/gifts/gift_brands', hint: 'магазины и бренды, откуда точно понравится' },
+    { key: 'Уже есть', label: 'Уже есть — не надо', icon: 'cheatsheet/gifts/gift_has', hint: 'наушники, кофемашина, кружек хватит' },
+    { key: 'Не дарить', label: 'Точно не дарить', icon: 'cheatsheet/gifts/gift_no', hint: 'косметику наугад, мягкие игрушки, сертификаты' },
+  ],
+  food: [
+    { key: 'Любимое', label: 'Могу есть хоть каждый день', icon: 'cheatsheet/food/food_love', hint: 'паста с грибами, борщ, сырники' },
+    { label: 'Что заказать, чтобы порадовать', icon: 'cheatsheet/health/field_delivery', hint: 'пиццу из той самой пиццерии, кофе с круассаном утром' },
+    { key: 'Заказ в кофейне', label: 'Заказ в кофейне', icon: 'cheatsheet/food/food_coffee', hint: 'раф на овсяном, большой, без сиропа' },
+    { key: 'Сладкое', label: 'Сладкое, которое точно зайдёт', icon: 'cheatsheet/food/food_sweets', hint: 'чизкейк, киндер, мармеладные мишки' },
+    { key: 'Когда грустно', label: 'Еда для утешения', icon: 'common/pot', hint: 'лапша, мандарины, горячий шоколад' },
+    { key: 'Перекусы', label: 'Перекусы под сериал', icon: 'cheatsheet/food/food_snacks', hint: 'чипсы с крабом, орешки, сухарики' },
+    { key: 'Суши', label: 'Роллы: что брать', icon: 'cheatsheet/food/food_sushi', hint: 'филадельфия, без угря, побольше имбиря' },
+    { key: 'Фастфуд', label: 'Фастфуд: обычный заказ', icon: 'cheatsheet/food/food_fastfood', hint: 'бургер без лука, картошка, сырный соус' },
+    { key: 'Алкоголь', label: 'Что пью, а что нет', icon: 'cheatsheet/food/food_drinks', hint: 'сухое белое — да, крепкое — нет; или не пью совсем' },
+    { key: 'Нелюбимое', label: 'Не ем ни за что', icon: 'cheatsheet/food/food_hate', hint: 'кинза, печень, изюм в выпечке' },
+    { label: 'Что приготовить вместе', icon: 'common/two_hearts', hint: 'домашнюю пиццу, сырники на завтрак' },
+  ],
+  sizes: [
+    { label: 'Одежда: верх', icon: 'cheatsheet/sizes/size_top', hint: 'S–M, худи беру L, чтобы свободно' },
+    { label: 'Одежда: низ', icon: 'cheatsheet/sizes/size_bottom', hint: 'джинсы 27/32, высокая посадка' },
+    { label: 'Обувь', icon: 'cheatsheet/sizes/size_shoes', hint: '38, стопа 24,5 см; кроссовки на полразмера больше' },
+    { label: 'Кольцо', icon: 'cheatsheet/sizes/size_ring', hint: '16,5 — безымянный, 17 — указательный' },
+    { label: 'Бельё', icon: 'cheatsheet/sizes/size_underwear', hint: 'размер и что нравится: хлопок, без поролона' },
+    { label: 'Носки', icon: 'cheatsheet/sizes/size_socks', hint: '36–38, высокие' },
+    { label: 'Перчатки', icon: 'cheatsheet/sizes/size_gloves', hint: 'S или обхват ладони в сантиметрах' },
+    { label: 'Что сидит хорошо, а что нет', icon: 'cheatsheet/sizes/size_top', hint: 'свободный крой; обтягивающее и колючую шерсть — нет' },
   ],
   people: [
-    { label: 'Родители', icon: 'cheatsheet/people/ppl_parents', hint: 'имена, дни рождения' },
-    { label: 'Друзья', icon: 'cheatsheet/people/ppl_friends' },
-    { label: 'Коллеги', icon: 'cheatsheet/people/ppl_colleagues' },
-    { label: 'Другие', icon: 'cheatsheet/sec_people' },
+    { key: 'Родители', label: 'Родители: имена, дни рождения', icon: 'cheatsheet/people/ppl_parents', hint: 'мама Ира — 12 марта, любит пионы' },
+    { key: 'Друзья', label: 'Близкие друзья: кто есть кто', icon: 'cheatsheet/people/ppl_friends', hint: 'Аня — со школы, Макс — тот, что с собакой' },
+    { key: 'Коллеги', label: 'О ком рассказываю с работы', icon: 'cheatsheet/people/ppl_colleagues', hint: 'Лена — начальница, Дима вечно опаздывает' },
+    { key: 'Другие', label: 'Кого ещё важно знать', icon: 'cheatsheet/sec_people', hint: 'бабушка, крестница, соседка, которая кормит кота' },
+    { label: 'Чей день рождения не забыть', icon: 'cheatsheet/people/ppl_birthday', hint: 'брат — 3 июня, бабушка — 20 ноября' },
+    { label: 'Знакомство с моими: что важно', icon: 'common/two_hearts', hint: 'маме — цветы, с папой про рыбалку, про политику — нет' },
+    { label: 'О ком лучше не спрашивать', icon: 'common/cross_badge', hint: 'с братом сейчас не общаемся' },
   ],
   tastes: [
-    { label: 'Фильмы', icon: 'watchlist/movie' },
-    { label: 'Сериалы', icon: 'watchlist/series' },
-    { label: 'Музыка', icon: 'cheatsheet/tastes/taste_music' },
-    { label: 'Книги', icon: 'cheatsheet/tastes/taste_books' },
-    { label: 'Игры', icon: 'cheatsheet/tastes/taste_games' },
-    { label: 'Хобби', icon: 'cheatsheet/tastes/taste_hobby' },
+    { label: 'Что посмотреть вместе по видео', icon: 'watchlist/status_watching', hint: 'ужастики под одеялом, серию ситкома перед сном' },
+    { label: 'Во что поиграть вдвоём онлайн', icon: 'cheatsheet/tastes/taste_games', hint: 'шахматы, кооператив на двоих, слова' },
+    { label: 'Песня, которая про нас', icon: 'cheatsheet/tastes/taste_music', hint: 'та, что играла в машине в первую встречу' },
+    { key: 'Фильмы', label: 'Фильмы, которые пересматриваю', icon: 'watchlist/movie', hint: 'комедии из нулевых, всё про космос' },
+    { key: 'Сериалы', label: 'Сериалы: любимые и что сейчас', icon: 'watchlist/series', hint: 'любимый навсегда и что смотрю сейчас' },
+    { key: 'Музыка', label: 'Что сейчас в наушниках', icon: 'cheatsheet/tastes/taste_music', hint: 'исполнители, плейлист, под что засыпаю' },
+    { key: 'Книги', label: 'Книги, которые важны', icon: 'cheatsheet/tastes/taste_books', hint: 'что перечитываю и что читаю сейчас' },
+    { key: 'Игры', label: 'Во что играю', icon: 'cheatsheet/tastes/taste_games', hint: 'на телефоне, на компьютере, настолки' },
+    { key: 'Хобби', label: 'Чем люблю заниматься', icon: 'cheatsheet/tastes/taste_hobby', hint: 'рисую, хожу на скалодром, вяжу под подкасты' },
   ],
   dreams: [
-    { label: 'Куда поехать', icon: 'cheatsheet/dreams/dream_travel' },
-    { label: 'Чему научиться', icon: 'cheatsheet/dreams/dream_learn' },
-    { label: 'Большие мечты', icon: 'cheatsheet/dreams/dream_big' },
+    { key: 'Куда поехать', label: 'Куда поехать вдвоём', icon: 'cheatsheet/dreams/dream_travel', hint: 'Грузия весной, море хоть раз в год, когда-нибудь Исландия' },
+    { label: 'Где хочется жить вместе', icon: 'shop/furniture/house', hint: 'город у моря, квартира с балконом и котом' },
+    { label: 'Какими вижу нас через пять лет', icon: 'common/sparkle', hint: 'живём вместе, своя собака, путешествуем раз в сезон' },
+    { key: 'Большие мечты', label: 'О чём мечтаю, но редко говорю', icon: 'cheatsheet/dreams/dream_big', hint: 'свой дом с садом, своё дело' },
+    { key: 'Чему научиться', label: 'Чему хочу научиться', icon: 'cheatsheet/dreams/dream_learn', hint: 'водить машину, итальянский, гитара' },
   ],
-  custom: [{ label: 'Заметки', icon: 'cheatsheet/sec_custom' }],
+  custom: [{ label: 'Заметки', icon: 'cheatsheet/sec_custom', hint: 'всё, что не влезло в другие разделы' }],
 }
 
 export const MEDCARD: CheatField[] = [
-  { label: 'Аллергии', icon: 'cheatsheet/health/med_allergy' },
-  { label: 'Нельзя есть', icon: 'cheatsheet/health/med_intolerance' },
-  { label: 'Плохая реакция', icon: 'cheatsheet/health/med_bad_reaction', hint: 'на какие лекарства' },
-  { label: 'Постоянные', icon: 'cheatsheet/health/med_regular', hint: 'что принимает постоянно' },
-  { label: 'Хроническое', icon: 'cheatsheet/health/med_chronic' },
-  { label: 'Группа крови', icon: 'cheatsheet/health/med_blood' },
-  { label: 'Врачи', icon: 'cheatsheet/health/med_doctors' },
-  { label: 'Экстренный контакт', icon: 'cheatsheet/health/med_emergency' },
-  { label: 'Аптечка дома', icon: 'cheatsheet/health/home_kit' },
+  { label: 'Аллергии', icon: 'cheatsheet/health/med_allergy', hint: 'пыльца, кошки, пенициллин' },
+  { label: 'Нельзя есть', icon: 'cheatsheet/health/med_intolerance', hint: 'лактоза, орехи' },
+  { label: 'Плохая реакция', icon: 'cheatsheet/health/med_bad_reaction', hint: 'на какие лекарства и что бывает' },
+  { key: 'Постоянные', label: 'Принимаю постоянно', icon: 'cheatsheet/health/med_regular', hint: 'витамины, таблетки, которые пью каждый день' },
+  { label: 'Хроническое', icon: 'cheatsheet/health/med_chronic', hint: 'гастрит, мигрени' },
+  { label: 'Группа крови', icon: 'cheatsheet/health/med_blood', hint: 'II+' },
+  { label: 'Врачи', icon: 'cheatsheet/health/med_doctors', hint: 'стоматолог: имя, клиника, телефон' },
+  { label: 'Экстренный контакт', icon: 'cheatsheet/health/med_emergency', hint: 'кому звонить, если что: имя и телефон' },
+  { label: 'Аптечка дома', icon: 'cheatsheet/health/home_kit', hint: 'что есть и где лежит' },
 ]
 
 export const SITUATIONS = [
@@ -303,16 +340,35 @@ export const SITUATIONS = [
   { id: 'overwhelmed', name: 'Накрыло', icon: 'cheatsheet/situations/sit_overwhelmed' },
 ]
 
-// Одинаковые поля у каждой ситуации
+// Когда болит что-то телесное
 export const SITUATION_FIELDS: CheatField[] = [
-  { label: 'Что принимает', icon: 'cheatsheet/health/field_meds', hint: 'лекарство и дозировку пишет сам человек' },
-  { label: 'Что принести', icon: 'cheatsheet/health/field_bring' },
-  { label: 'Заказать доставкой', icon: 'cheatsheet/health/field_delivery' },
-  { label: 'Что помогает', icon: 'cheatsheet/health/field_helps' },
-  { label: 'Чего не делать', icon: 'common/cross_badge' },
-  { label: 'Как быть рядом', icon: 'cheatsheet/health/near_alone' },
-  { label: 'Когда к врачу', icon: 'cheatsheet/health/field_doctor' },
+  { key: 'Что помогает', label: 'Что помогает', icon: 'cheatsheet/health/field_helps', hint: 'тёмная комната, тишина, крепкий чай' },
+  { key: 'Что принимает', label: 'Что принимаю', icon: 'cheatsheet/health/field_meds', hint: 'название и как обычно пью — как советовал врач' },
+  { key: 'Что принести', label: 'Что принести', icon: 'cheatsheet/health/field_bring', hint: 'грелку, плед, воду с лимоном' },
+  { key: 'Заказать доставкой', label: 'Что заказать доставкой', icon: 'cheatsheet/health/field_delivery', hint: 'куриный бульон, имбирный чай, леденцы' },
+  { key: 'Как быть рядом', label: 'Как быть рядом, даже издалека', icon: 'cheatsheet/health/near_alone', hint: 'созвониться и просто побыть вместе, писать раз в пару часов' },
+  { key: 'Чего не делать', label: 'Чего не делать', icon: 'common/cross_badge', hint: 'не спрашивать каждые пять минут, как я' },
+  { key: 'Когда к врачу', label: 'Когда пора к врачу', icon: 'cheatsheet/health/field_doctor', hint: 'если не проходит пару дней или становится хуже' },
 ]
+
+// Когда плохо на душе — тут лекарства и «что принести» не к месту, нужны другие вопросы
+export const FEEL_SITUATIONS = ['anxiety', 'burnout', 'sad', 'anger', 'overwhelmed']
+export const FEEL_FIELDS: CheatField[] = [
+  { label: 'Как это заметить', icon: 'calendar/mood/mood_meh', hint: 'отвечаю коротко, пропадаю, не сплю до ночи' },
+  { key: 'Что помогает', label: 'Что помогает', icon: 'cheatsheet/health/field_helps', hint: 'прогулка, душ, поплакать под сериал' },
+  { label: 'Что сказать', icon: 'common/speech_heart', hint: '«я рядом», «это пройдёт», «хочешь, просто послушаю»' },
+  { key: 'Чего не делать', label: 'Чего не говорить и не делать', icon: 'common/cross_badge', hint: 'не говорить «успокойся», не давать советов сразу' },
+  { key: 'Как быть рядом', label: 'Как быть рядом, даже издалека', icon: 'cheatsheet/health/near_alone', hint: 'созвон без слов, писать, даже если не отвечаю' },
+  { key: 'Заказать доставкой', label: 'Что прислать или заказать', icon: 'cheatsheet/health/field_delivery', hint: 'вкусняшку из любимой кофейни, цветы без повода' },
+  { key: 'Когда к врачу', label: 'Когда пора волноваться', icon: 'cheatsheet/health/field_doctor', hint: 'если так дольше пары недель — вместе найти психолога' },
+]
+// Вопросы для ситуации. Старые поля, где уже что-то написано, тоже показываем — чтобы ответ не пропал.
+export const situationFields = (id: string, has: (key: string) => boolean): CheatField[] => {
+  const base = FEEL_SITUATIONS.includes(id) ? FEEL_FIELDS : SITUATION_FIELDS
+  const extra = [...SITUATION_FIELDS, ...FEEL_FIELDS].filter(f => !base.some(b => fieldKey(b) === fieldKey(f)) && has(`sit.${id}.${fieldKey(f)}`))
+  return [...base, ...extra.filter((f, i) => extra.findIndex(x => fieldKey(x) === fieldKey(f)) === i)]
+}
+export const ALL_SITUATION_FIELDS = [...SITUATION_FIELDS, ...FEEL_FIELDS.filter(f => !SITUATION_FIELDS.some(s => fieldKey(s) === fieldKey(f)))]
 
 // ---------- Вместе ----------
 export const TOGETHER_TILES = [

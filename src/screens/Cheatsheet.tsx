@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useStore, usePersist } from '../store'
 import { Img, Header, Seg, Bar, Sheet, useName, useG } from '../ui'
 import { sendEvent, getLink } from '../sync'
-import { CHEAT_SECTIONS, MEDCARD, SECTION_FIELDS, SITUATIONS, SITUATION_FIELDS, type CheatField, type Who } from '../data'
+import { CHEAT_SECTIONS, MEDCARD, SECTION_FIELDS, SITUATIONS, ALL_SITUATION_FIELDS, situationFields, fieldKey, type CheatField, type Who } from '../data'
 
 /* Шпаргалка. Каждый заполняет только «Обо мне» — это его ответы, второй их видит, но не меняет.
    Во вкладке партнёра к любому полю можно дописать свою заметку («что я заметила сама»): она отдельно от его ответа.
-   Ответы — 'cheat' { me, him } по ключу «раздел.поле», заметки о партнёре — 'cheat_notes' { me: мои, him: его }.
+   Ответы — 'cheat' { me, him } по ключу «раздел.key поля» (fieldKey: текст вопроса можно менять, ключ — нет), заметки о партнёре — 'cheat_notes' { me: мои, him: его }.
    Свои поля — дополнительные подписи в разделе, их может добавить любой из двоих. */
 type Values = Record<Who, Record<string, string>>
 type Custom = Record<Who, Record<string, string[]>>
@@ -15,10 +15,12 @@ function useCheat() {
   const [vals, setVals] = usePersist<Values>('cheat', { me: {}, him: {} })
   const [notes, setNotes] = usePersist<Values>('cheat_notes', { me: {}, him: {} })
   const [custom, setCustom] = usePersist<Custom>('cheat_custom', { me: {}, him: {} })
-  const fieldsOf = (about: Who, sec: string): CheatField[] => [
-    ...(SECTION_FIELDS[sec] ?? []),
-    ...(custom[about]?.[sec] ?? []).map(label => ({ label, icon: 'cheatsheet/sec_custom' })),
-  ]
+  const fieldsOf = (about: Who, sec: string): CheatField[] => {
+    const base = SECTION_FIELDS[sec] ?? []
+    const taken = new Set(base.flatMap(f => [fieldKey(f), f.label]))
+    const own = (custom[about]?.[sec] ?? []).filter(l => !taken.has(l)).map(label => ({ label, icon: 'cheatsheet/sec_custom' }))
+    return [...base, ...own]
+  }
   const put = (x: Values, who: Who, key: string, v: string) => {
     const m = { ...(x[who] ?? {}) }
     if (v.trim()) m[key] = v.trim()
@@ -55,10 +57,10 @@ export default function Cheatsheet() {
   const has = (k: string) => !!c.answer(about, k)
   const count = (id: string) => {
     const fs = c.fieldsOf(about, id)
-    return { filled: fs.filter(f => has(`${id}.${f.label}`)).length, total: fs.length }
+    return { filled: fs.filter(f => has(`${id}.${fieldKey(f)}`)).length, total: fs.length }
   }
-  const health = MEDCARD.filter(f => has(`health.${f.label}`)).length
-  const sits = SITUATIONS.filter(x => SITUATION_FIELDS.some(f => has(`sit.${x.id}.${f.label}`))).length
+  const health = MEDCARD.filter(f => has(`health.${fieldKey(f)}`)).length
+  const sits = SITUATIONS.filter(x => ALL_SITUATION_FIELDS.some(f => has(`sit.${x.id}.${fieldKey(f)}`))).length
   const all = CHEAT_SECTIONS.map(x => count(x.id)).reduce((a, x) => ({ filled: a.filled + x.filled, total: a.total + x.total }), { filled: health, total: MEDCARD.length })
   const him = name('him')
   const partner = about === 'him'
@@ -72,7 +74,7 @@ export default function Cheatsheet() {
           <div className="row"><b className="grow">{partner ? `${g.He} ${g.p('заполнил', 'заполнила')}` : `Ты ${g.m('заполнил', 'заполнила')}`} {all.filled} из {all.total}</b></div>
           <Bar value={all.filled} max={all.total} color="linear-gradient(90deg,#F7C4A0,#E5876A)" />
           <span className="small muted b">
-            {partner ? `Это ${g.his} ответы, менять их может только ${g.he}. К любому полю можно дописать свою заметку.` : `Размеры, вкусы, что помогает, когда плохо — чтобы ${g.to} было проще`}
+            {partner ? `Это ${g.his} ответы, менять их может только ${g.he}. К любому полю можно дописать свою заметку.` : `Как с тобой мириться, что дарить, что помогает, когда плохо — чтобы ${g.to} не гадать`}
           </span>
           {partner && getLink() && all.filled < all.total && (
             <button className="btn sm peach" style={{ alignSelf: 'flex-start' }} disabled={asked} onClick={() => {
@@ -113,7 +115,7 @@ function FieldRow({ f, about, k, c, onEdit, onDelete }: { f: CheatField; about: 
   const g = useG()
   const value = c.answer(about, k)
   const note = about === 'him' ? c.note(k) : undefined
-  const empty = about === 'him' ? `${g.He} ещё не ${g.p('заполнил', 'заполнила')}` : 'нажми, чтобы заполнить'
+  const empty = about === 'him' ? `${g.He} ещё не ${g.p('заполнил', 'заполнила')}` : f.hint ? `например: ${f.hint}` : 'нажми, чтобы заполнить'
   return (
     <button className="fieldrow" style={{ textAlign: 'left', width: '100%' }} onClick={onEdit}>
       <Img src={f.icon} />
@@ -157,15 +159,15 @@ function Section({ id, name, icon, about, c }: { id: string; name: string; icon:
   const [edit, setEdit] = useState<CheatField | null>(null)
   const [adding, setAdding] = useState(false)
   const [label, setLabel] = useState('')
-  const isCustom = (l: string) => !(SECTION_FIELDS[id] ?? []).some(f => f.label === l)
-  const key = (f: CheatField) => `${id}.${f.label}`
+  const isCustom = (l: string) => !(SECTION_FIELDS[id] ?? []).some(f => f.label === l || fieldKey(f) === l)
+  const key = (f: CheatField) => `${id}.${fieldKey(f)}`
   const partner = about === 'him'
   return (
     <div className="screen">
       <Header title={name} sub={partner ? g.about : 'обо мне'} icon={icon} onBack={() => s.go('cheatsheet')} />
       <div className="col" style={{ gap: 10 }}>
         {c.fieldsOf(about, id).map(f => (
-          <FieldRow key={f.label} f={f} about={about} k={key(f)} c={c} onEdit={() => setEdit(f)}
+          <FieldRow key={fieldKey(f)} f={f} about={about} k={key(f)} c={c} onEdit={() => setEdit(f)}
             onDelete={!partner && isCustom(f.label) ? () => c.delField(id, f.label) : undefined} />
         ))}
       </div>
@@ -177,7 +179,7 @@ function Section({ id, name, icon, about, c }: { id: string; name: string; icon:
         {partner && <p className="small muted b">Поле появится у {g.p('него', 'неё')} в «Обо мне» — {g.he} {g.p('заполнит', 'заполнит')} сам{g.p('', 'а')}.</p>}
         <button className="btn wide" onClick={() => {
           const l = label.trim()
-          if (!l || c.fieldsOf(about, id).some(f => f.label === l)) return
+          if (!l || c.fieldsOf(about, id).some(f => f.label === l || fieldKey(f) === l)) return
           c.addField(about, id, l); setLabel(''); setAdding(false)
         }}>Добавить</button>
       </Sheet>
@@ -192,7 +194,7 @@ function Health({ about, c }: { about: Who; c: C }) {
   const [edit, setEdit] = useState<{ f: CheatField; key: string } | null>(null)
   const partner = about === 'him'
   const val = (k: string) => c.answer(about, k)
-  const sitFilled = (id: string) => SITUATION_FIELDS.some(f => val(`sit.${id}.${f.label}`))
+  const sitFilled = (id: string) => ALL_SITUATION_FIELDS.some(f => val(`sit.${id}.${fieldKey(f)}`))
   // Карточки про месячные и ПМС — только у того, кто ведёт цикл
   const cycleOwner = (s.settings.cycleBy ?? 'me') === about && s.settings.cycle
   return (
@@ -200,16 +202,19 @@ function Health({ about, c }: { about: Who; c: C }) {
       <Header title="Здоровье" sub={partner ? g.about : 'обо мне'} icon="cheatsheet/sec_health" onBack={() => s.go('cheatsheet')} />
       <div className="sec-title">Медкарта</div>
       <div className="medgrid">
-        {MEDCARD.map(m => (
-          <button key={m.label} className="med" style={{ textAlign: 'left' }} onClick={() => setEdit({ f: m, key: `health.${m.label}` })}>
-            <Img src={m.icon} />
-            <div className="grow">
-              <div className="lbl">{m.label}</div>
-              <div className={'val' + (val(`health.${m.label}`) ? '' : ' empty')}>{val(`health.${m.label}`) ?? 'пусто'}</div>
-              {partner && c.note(`health.${m.label}`) && <div className="note-line">заметка: {c.note(`health.${m.label}`)}</div>}
-            </div>
-          </button>
-        ))}
+        {MEDCARD.map(m => {
+          const k = `health.${fieldKey(m)}`
+          return (
+            <button key={k} className="med" style={{ textAlign: 'left' }} onClick={() => setEdit({ f: m, key: k })}>
+              <Img src={m.icon} />
+              <div className="grow">
+                <div className="lbl">{m.label}</div>
+                <div className={'val' + (val(k) ? '' : ' empty')}>{val(k) ?? 'пусто'}</div>
+                {partner && c.note(k) && <div className="note-line">заметка: {c.note(k)}</div>}
+              </div>
+            </button>
+          )
+        })}
       </div>
       <div className="sec-title">{partner ? `Если ${g.to}…` : 'Если мне…'}</div>
       <div className="grid3">
@@ -225,9 +230,10 @@ function Health({ about, c }: { about: Who; c: C }) {
       <Sheet open={!!sit && !edit} onClose={() => setSit(null)} title={sit?.name} icon={sit?.icon} tall>
         {sit && (
           <>
-            {SITUATION_FIELDS.map(f => (
-              <FieldRow key={f.label} f={f} about={about} k={`sit.${sit.id}.${f.label}`} c={c} onEdit={() => setEdit({ f, key: `sit.${sit.id}.${f.label}` })} />
-            ))}
+            {situationFields(sit.id, k => !!val(k)).map(f => {
+              const k = `sit.${sit.id}.${fieldKey(f)}`
+              return <FieldRow key={k} f={f} about={about} k={k} c={c} onEdit={() => setEdit({ f, key: k })} />
+            })}
             <p className="small muted b">Лекарства и дозировки пишет сам человек или врач, приложение их не советует.</p>
           </>
         )}
