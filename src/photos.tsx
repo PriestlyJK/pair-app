@@ -171,6 +171,7 @@ export function usePhotos() {
   async function post(f: File, k = TODAY_KEY) {
     const late = k < TODAY_KEY
     const day = photos[k] ?? {}
+    s.toast('Отправляю фото…', 'common/camera')
     try {
       const data = await shrinkImage(f, 1080, false, 0.75)
       const l = getLink()

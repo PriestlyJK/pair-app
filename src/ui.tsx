@@ -91,12 +91,20 @@ export async function shrinkImage(file: File, max: number, square = false, quali
   } finally { URL.revokeObjectURL(url) }
 }
 
+/* Пока открыта камера или галерея, айфон считает приложение свёрнутым. В это время нельзя
+   перезагружаться под новую версию — иначе снимок с камеры теряется. После выбора даём ещё
+   полминуты, чтобы фото успело уйти в облако. */
+let pickingUntil = 0
+export const isPicking = () => Date.now() < pickingUntil
+
 // Кнопка выбора фото: на iPhone открывает галерею или камеру
 export function PhotoPick({ onPick, children, className = 'btn sm soft' }: { onPick: (f: File) => void; children: ReactNode; className?: string }) {
   return (
-    <label className={className} style={{ cursor: 'pointer' }}>
+    <label className={className} style={{ cursor: 'pointer' }} onClick={() => { pickingUntil = Date.now() + 10 * 60_000 }}>
       {children}
-      <input type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) onPick(f); e.target.value = '' }} />
+      <input type="file" accept="image/*" hidden
+        onChange={e => { pickingUntil = Date.now() + 30_000; const f = e.target.files?.[0]; if (f) onPick(f); e.target.value = '' }}
+        ref={el => { if (el) el.oncancel = () => { pickingUntil = 0 } }} />
     </label>
   )
 }
