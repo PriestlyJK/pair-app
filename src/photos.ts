@@ -10,7 +10,8 @@ import type { Who } from './data'
 // у localStorage на айфоне всего около 5 МБ, а фото копятся каждый день.
 // Без облака ссылка 'idb:…' — только на этом телефоне.
 
-export interface DayPhoto { ref: string; at: string; caption?: string; liked?: boolean }
+// late — добавлено позже, за прошедший день: без монет и не в счёт серии
+export interface DayPhoto { ref: string; at: string; caption?: string; liked?: boolean; late?: boolean }
 export type PhotoDay = Partial<Record<Who, DayPhoto>>
 export type Photos = Record<string, PhotoDay>
 
@@ -86,7 +87,7 @@ const dropImg = (ref?: string) => {
   if (ref!.startsWith('sb:')) delBlob(id).catch(() => {})
 }
 
-const both = (d?: PhotoDay) => !!d?.me && !!d?.him
+const both = (d?: PhotoDay) => !!d?.me && !!d?.him && !d.me.late && !d.him.late
 const nowHM = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
 
 export function usePhotos() {
@@ -113,21 +114,24 @@ export function usePhotos() {
       return { ...ps, [k]: day }
     })
 
-  async function post(f: File) {
+  async function post(f: File, k = TODAY_KEY) {
+    const late = k < TODAY_KEY
+    const day = photos[k] ?? {}
     try {
       const data = await shrinkImage(f, 1080)
       const l = getLink()
-      const id = `${TODAY_KEY}:${l ? l.user.slice(0, 8) : 'me'}:${Date.now()}`
+      const id = `${k}:${l ? l.user.slice(0, 8) : 'me'}:${Date.now()}`
       await putImg(id, data)
       // Сначала в облако, потом ссылка в общий документ — чтобы у партнёра картинка уже была
       const inCloud = l ? await putBlob(id, data) : false
       if (l && !inCloud) { s.toast('Нет связи — фото не отправилось, попробуй ещё раз', 'states/st_offline'); return }
-      const old = today.me?.ref
-      const first = !today.me
-      patchMe({ ref: (inCloud ? 'sb:' : 'idb:') + id, at: nowHM(), caption: today.me?.caption })
+      const old = day.me?.ref
+      const first = !day.me
+      patchMe({ ref: (inCloud ? 'sb:' : 'idb:') + id, at: late ? '' : nowHM(), caption: day.me?.caption, late: late || undefined }, k)
       dropImg(old)
-      if (inCloud) sendEvent('photo', { day: TODAY_KEY })
-      if (first) {
+      if (inCloud) sendEvent('photo', { day: k })
+      if (late) s.toast(first ? 'Фото добавлено в тот день' : 'Фото заменено', 'common/camera')
+      else if (first) {
         if (today.him) s.earn(3, 'Фото дня · +1 и +2 за то, что вы оба', 'common/camera')
         else s.earn(1, 'Фото дня · +1', 'common/camera')
       } else s.toast('Фото заменено', 'common/camera')
@@ -135,13 +139,13 @@ export function usePhotos() {
       s.toast('Не получилось сохранить фото', 'states/st_error')
     }
   }
-  function remove() {
-    const old = today.me?.ref
-    patchMe(null)
+  function remove(k = TODAY_KEY) {
+    const old = photos[k]?.me?.ref
+    patchMe(null, k)
     dropImg(old)
     s.toast('Фото убрано', 'common/cross_badge')
   }
-  const caption = (c: string) => patchMe({ caption: c || undefined })
+  const caption = (c: string, k = TODAY_KEY) => patchMe({ caption: c || undefined }, k)
   const like = (k: string) =>
     setPhotos(ps => {
       const h = ps[k]?.him

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import type { Task, Who } from './data'
-import { TODAY_KEY, diffDays, type CycleDay } from './dates'
+import { TODAY_KEY, diffDays, human, type CycleDay } from './dates'
 import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, type PairEvent } from './sync'
 
 // Общее состояние приложения. Пока хранится на телефоне (localStorage), потом переедет в Supabase.
@@ -104,7 +104,7 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
   const v = (m: string, f: string) => (g === 'f' ? f : m)
   switch (e.kind) {
     case 'touch': { const t = TOUCH_NAME[p.id]; return t ? { text: `${who} ${t[0]}`, icon: t[1] } : null }
-    case 'photo': return { text: `${who} ${v('выложил', 'выложила')} фото дня`, icon: 'common/camera' }
+    case 'photo': return { text: p.day && p.day < TODAY_KEY ? `${who} ${v('добавил', 'добавила')} фото за ${human(p.day)}` : `${who} ${v('выложил', 'выложила')} фото дня`, icon: 'common/camera' }
     case 'task': return { text: `${who} ${v('закрыл', 'закрыла')} задачу «${p.title}»`, icon: 'common/check_cookie' }
     case 'meet': return { text: `${who} ${v('отметил', 'отметила')} встречу`, icon: 'meetings/meet_button' }
     case 'thanks': return { text: `${who}: спасибо — ${p.text}`, icon: 'talk/gratitude' }

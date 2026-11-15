@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import { Img, Header, Sheet, Ava, PhotoPick, useName, plural, useG } from '../ui'
-import { TODAY_KEY, human } from '../dates'
+import { TODAY_KEY, addDays, human } from '../dates'
 import { GRADS, themeOf, useImg, usePhotos, type DayPhoto, type PhotoDay } from '../photos'
 import type { Who } from '../data'
 
@@ -56,10 +56,13 @@ export function PhotoCard() {
 // Отдельный экран: тема дня, оба фото, подпись, реакция, серия и архив
 export function PhotosScreen() {
   const s = useStore()
+  const g = useG()
   const name = useName()
   const { photos, today, streak, theme, post, remove, caption, like } = usePhotos()
   const [open, setOpen] = useState<string | null>(null)
   const [draft, setDraft] = useState<string | null>(null)
+  const [pastOpen, setPastOpen] = useState(false)
+  const [pastDay, setPastDay] = useState(addDays(TODAY_KEY, -1))
   const days = Object.keys(photos).filter(k => k < TODAY_KEY && (photos[k].me || photos[k].him)).sort().reverse()
   const total = Object.values(photos).filter(d => d.me && d.him).length
   const hisLocked = !!today.him && !today.me
@@ -109,13 +112,13 @@ export function PhotosScreen() {
         </div>
       </div>
 
-      {hisLocked && <p className="small b center muted">{him} уже выложил своё. Увидишь, когда выложишь своё фото.</p>}
-      {!today.him && <p className="small b center muted">{him} ещё не выложил. Придёт уведомление, когда появится.</p>}
+      {hisLocked && <p className="small b center muted">{him} уже {g.p('выложил', 'выложила')} своё. Увидишь, когда выложишь своё фото.</p>}
+      {!today.him && <p className="small b center muted">{him} ещё не {g.p('выложил', 'выложила')}. Придёт уведомление, когда появится.</p>}
 
       {today.me && (
         <div className="grid2">
           <PhotoPick onPick={post} className="btn soft">Переснять</PhotoPick>
-          <button className="btn soft" onClick={remove}>Убрать своё</button>
+          <button className="btn soft" onClick={() => remove()}>Убрать своё</button>
         </div>
       )}
 
@@ -126,7 +129,10 @@ export function PhotosScreen() {
       </div>
       <p className="small muted b center" style={{ marginTop: -4 }}>Серия идёт, пока вы оба выкладываете фото каждый день.</p>
 
-      <div className="sec-title">Архив</div>
+      <div className="row" style={{ alignItems: 'center' }}>
+        <div className="sec-title grow">Архив</div>
+        <button className="btn sm soft" onClick={() => setPastOpen(true)}>+ За прошлый день</button>
+      </div>
       <div className="archive">
         {days.map(k => (
           <button key={k} className="arch" onClick={() => setOpen(k)}>
@@ -141,34 +147,68 @@ export function PhotosScreen() {
       {!days.length && <p className="small muted b center">Здесь будут ваши прошлые дни.</p>}
 
       <Sheet open={!!open} onClose={() => setOpen(null)} title={open ? human(open) : ''} icon="common/camera">
-        {open && <DayView k={open} d={photos[open]} onLike={() => like(open)} />}
+        {open && <DayView k={open} />}
+      </Sheet>
+
+      <Sheet open={pastOpen} onClose={() => setPastOpen(false)} title="Фото за прошлый день" icon="common/camera">
+        <p className="small muted b">Забыли выложить или хочется добавить снимок из того дня — выбери дату. Монеты за прошлые дни не начисляются, в серию они не идут.</p>
+        <input className="input date-in" type="date" max={addDays(TODAY_KEY, -1)} value={pastDay} onChange={e => setPastDay(e.target.value)} />
+        {pastDay && pastDay < TODAY_KEY && (
+          photos[pastDay]?.me
+            ? <button className="btn wide soft" onClick={() => { setPastOpen(false); setOpen(pastDay) }}>За {human(pastDay)} уже есть фото — открыть</button>
+            : <PhotoPick onPick={async f => { await post(f, pastDay); setPastOpen(false); setOpen(pastDay) }} className="btn wide">Выбрать фото за {human(pastDay)}</PhotoPick>
+        )}
       </Sheet>
     </div>
   )
 }
 
-function DayView({ k, d, onLike }: { k: string; d: PhotoDay; onLike: () => void }) {
+// Один день: оба фото. Своё за прошлый день можно добавить, заменить, подписать или убрать.
+export function DayView({ k }: { k: string }) {
   const name = useName()
+  const { photos, post, remove, caption, like } = usePhotos()
+  const d = photos[k] ?? {}
+  const [draft, setDraft] = useState<string | null>(null)
   return (
     <>
       <span className="small muted b">Тема: «{themeOf(k)}»</span>
       <div className="pair">
         {(['me', 'him'] as Who[]).map(w => (
           <div key={w} className="col" style={{ gap: 6 }}>
-            <div className="row" style={{ gap: 6 }}><Ava who={w} size={22} /><b className="small">{name(w)}</b>{d[w] && <span className="small muted b">· {d[w]!.at}</span>}</div>
-            <div className="rel">
-              <Shot p={d[w]} className="big" />
-              {w === 'him' && d.him && (
-                <button className={'like' + (d.him.liked ? ' on' : '')} onClick={onLike} aria-label="Нравится">
-                  <Img src={d.him.liked ? 'common/heart' : 'common/heart_pale'} size={26} />
-                </button>
-              )}
-            </div>
-            {d[w]?.caption && <span className="small b">«{d[w]!.caption}»</span>}
-            {!d[w] && <span className="small muted b">без фото</span>}
+            <div className="row" style={{ gap: 6 }}><Ava who={w} size={22} /><b className="small">{name(w)}</b>{d[w]?.at && <span className="small muted b">· {d[w]!.at}</span>}</div>
+            {w === 'me' && !d.me ? (
+              <PhotoPick onPick={f => post(f, k)} className="shot-pick">
+                <Img src="photo/photo_empty" size={48} />
+                <b>Добавить фото</b>
+                <span className="small muted b">за {human(k)}</span>
+              </PhotoPick>
+            ) : (
+              <div className="rel">
+                <Shot p={d[w]} className="big" />
+                {w === 'him' && d.him && (
+                  <button className={'like' + (d.him.liked ? ' on' : '')} onClick={() => like(k)} aria-label="Нравится">
+                    <Img src={d.him.liked ? 'common/heart' : 'common/heart_pale'} size={26} />
+                  </button>
+                )}
+              </div>
+            )}
+            {w === 'me' && d.me && (draft === null ? (
+              <button className="cap me" onClick={() => setDraft(d.me?.caption ?? '')}>{d.me.caption ? `«${d.me.caption}»` : '+ подпись'}</button>
+            ) : (
+              <input className="input cap-input" autoFocus maxLength={60} placeholder="Пара слов" value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => { caption(draft.trim(), k); setDraft(null) }} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }} />
+            ))}
+            {w === 'him' && d.him?.caption && <span className="small b">«{d.him.caption}»</span>}
+            {w === 'him' && !d.him && <span className="small muted b">без фото</span>}
+            {d[w]?.late && <span className="small muted b">добавлено позже</span>}
           </div>
         ))}
       </div>
+      {d.me && k < TODAY_KEY && (
+        <div className="grid2">
+          <PhotoPick onPick={f => post(f, k)} className="btn soft">Заменить</PhotoPick>
+          <button className="btn soft" onClick={() => remove(k)}>Убрать своё</button>
+        </div>
+      )}
     </>
   )
 }

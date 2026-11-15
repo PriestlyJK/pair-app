@@ -4,6 +4,7 @@ import { Img, Sheet, Ava, useName, useG, plural } from '../ui'
 import { sendEvent } from '../sync'
 import { MOODS, NEEDS, PHASES, TYPE_ICON, type MoodId, type Who } from '../data'
 import { usePhotos } from '../photos'
+import { DayView } from './Photos'
 import { TODAY_KEY, cycleStats, dayInfo, diffDays, dkey, fromKey, human, nextPeriod, type CycleDay } from '../dates'
 
 type Layer = 'tasks' | 'meet' | 'mood' | 'cycle' | 'dates' | 'photo'
@@ -62,6 +63,7 @@ export default function Calendar() {
   const [layers, setLayers] = useState<Layer[]>(cycleOn ? ['cycle', 'mood', 'meet', 'tasks', 'dates', 'photo'] : ['mood', 'meet', 'tasks', 'dates', 'photo'])
   const { photos } = usePhotos()
   const [sel, setSel] = useState(TODAY_KEY)
+  const [photoOpen, setPhotoOpen] = useState(false)
   const [moodOpen, setMoodOpen] = useState(false)
   const [cycleOpen, setCycleOpen] = useState(false)
   const [meetOpen, setMeetOpen] = useState(false)
@@ -256,7 +258,8 @@ export default function Calendar() {
         {on('tasks') && tasksOn(sel).map(t => (
           <button key={t.id} className="ev" onClick={() => s.go('board')}><Img src={TYPE_ICON[t.type]} />{t.title}</button>
         ))}
-        {on('photo') && photoN(sel) > 0 && <button className="ev" onClick={() => s.go('together', 'photos')}><Img src="common/camera" />{photoN(sel) === 2 ? 'Фото дня от вас обоих' : 'Фото дня'}</button>}
+        {on('photo') && photoN(sel) > 0 && <button className="ev" onClick={() => sel === TODAY_KEY ? s.go('together', 'photos') : setPhotoOpen(true)}><Img src="common/camera" />{photoN(sel) === 2 ? 'Фото дня от вас обоих' : 'Фото дня'}</button>}
+        {on('photo') && sel < TODAY_KEY && !photos[sel]?.me && <button className="ev add" onClick={() => setPhotoOpen(true)}><Img src="common/camera" />+ Добавить своё фото за этот день</button>}
       </div>
 
       {sel === TODAY_KEY && (
@@ -271,6 +274,10 @@ export default function Calendar() {
           if (first) s.earn(1, 'Настроение отмечено · +1', 'calendar/mood/mood_' + v.mood)
           else s.toast('Настроение обновлено', 'calendar/mood/mood_' + v.mood)
         }} />
+      </Sheet>
+
+      <Sheet open={photoOpen} onClose={() => setPhotoOpen(false)} title={`Фото · ${human(sel)}`} icon="common/camera">
+        {photoOpen && <DayView k={sel} />}
       </Sheet>
 
       <Sheet open={cycleOpen} onClose={() => setCycleOpen(false)} title={`Цикл · ${human(sel)}`} icon="cycle/phase_menstrual">
