@@ -341,6 +341,7 @@ export default function Home() {
   const [fx, setFx] = useState<string | null>(null)
   const [toy, setToy] = useState<string | null>(null)
   const [touchOpen, setTouchOpen] = useState(false)
+  const [inboxOpen, setInboxOpen] = useState(false)
   const [petOpen, setPetOpen] = useState(false)
   const [profOpen, setProfOpen] = useState(false)
   const here = usePartnerHere()
@@ -544,7 +545,10 @@ export default function Home() {
           <Img src={lastMsg.icon} />
           <div className="grow">
             <b>{lastMsg.text}</b>
-            <small>{inbox.length > 1 ? `и ещё ${inbox.length - 1} · ` : ''}{agoText(last!.created_at)}</small>
+            <small>
+              {inbox.length > 1 && <><button className="more" onClick={() => setInboxOpen(true)}>и ещё {inbox.length - 1}</button> · </>}
+              {agoText(last!.created_at)}
+            </small>
           </div>
           <button className="btn sm peach" onClick={() => setTouchOpen(true)}>Ответить</button>
           <button className="x" aria-label="Скрыть" onClick={() => setInbox([])}>×</button>
@@ -594,6 +598,28 @@ export default function Home() {
               {t.name}
             </button>
           ))}
+        </div>
+      </Sheet>
+
+      {/* Все непрочитанные касания: на главной видно только последнее и «и ещё N» */}
+      <Sheet open={inboxOpen && inbox.length > 0} onClose={() => setInboxOpen(false)} title="Непрочитанное" icon="touches/touch_button">
+        <div className="inbox-list">
+          {[...inbox].reverse().map(e => {
+            const m = describe(e, name('him'), s.profile.him.g)
+            return m && (
+              <div key={e.id} className="row">
+                <Img src={m.icon} size={40} />
+                <div className="grow col">
+                  <b>{m.text}</b>
+                  <small>{agoText(e.created_at)}</small>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="grid2">
+          <button className="btn soft" onClick={() => { setInbox([]); setInboxOpen(false) }}>Прочитано</button>
+          <button className="btn peach" onClick={() => { setInboxOpen(false); setTouchOpen(true) }}>Ответить</button>
         </div>
       </Sheet>
 

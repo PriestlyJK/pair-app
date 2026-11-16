@@ -606,6 +606,13 @@ textarea.input { resize: none; min-height: 70px; }
 .inbox .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; }
 .inbox small { font-size: 12px; font-weight: 800; color: var(--muted); }
 .inbox .x { background: none; font-size: 20px; color: var(--muted); padding: 4px 6px; }
+.inbox .more { background: none; padding: 0; font: inherit; color: var(--coral); text-decoration: underline; text-underline-offset: 2px; }
+.inbox-list { display: flex; flex-direction: column; gap: 4px; }
+.inbox-list > .row { gap: 12px; padding: 8px 4px; border-bottom: 1px solid rgba(0, 0, 0, .06); }
+.inbox-list > .row:last-child { border-bottom: none; }
+.inbox-list .col { gap: 1px; min-width: 0; }
+.inbox-list b { font-size: 15px; line-height: 1.25; }
+.inbox-list small { font-size: 12px; font-weight: 800; color: var(--muted); }
 @keyframes inboxIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
 .start .seg.mini { width: auto; flex: none; }
 
