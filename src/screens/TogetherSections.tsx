@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useStore, usePersist } from '../store'
 import { Img, Header, Sheet, Bar, Ava, Seg, PhotoPick, shrinkImage, useName, plural, useG } from '../ui'
-import type { Who } from '../data'
+import { meetText, type MeetNotes, type Who } from '../data'
 import { TODAY_KEY, addDays, ago, diffDays, human, humanY } from '../dates'
 import { PhotosScreen } from './Photos'
 import { sendEvent } from '../sync'
@@ -174,6 +174,7 @@ function Memory() {
   const name = useName()
   const [quotes, setQuotes] = usePersist<Quote[]>('quotes', QUOTE_SEED)
   const [caps, setCaps] = usePersist<Capsule[]>('capsules', CAPSULE_SEED)
+  const [meetNotes] = usePersist<MeetNotes>('meet_notes', {})
   const [qOpen, setQOpen] = useState(false)
   const [cOpen, setCOpen] = useState(false)
   const [reading, setReading] = useState<Capsule | null>(null)
@@ -189,7 +190,7 @@ function Memory() {
     for (const [n, label] of [[12, 'год назад'], [1, 'месяц назад']] as const) {
       const k = ago(TODAY_KEY, n)
       if (!k) continue
-      if (s.meetings[k] && k <= TODAY_KEY) return { label, text: `Встреча: ${s.meetings[k]}` }
+      if (s.meetings[k] && k <= TODAY_KEY) return { label, text: meetText(s.meetings[k], meetNotes[k]) ? `Встреча: ${meetText(s.meetings[k], meetNotes[k])}` : 'Встреча' }
       const q = quotes.find(x => x.date === k)
       if (q) return { label, text: `${name(q.who)}: «${q.text}»` }
     }

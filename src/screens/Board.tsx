@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
-import { Img, Coin, Bar, Ava, Sheet, Header, Seg, useName, plural, useG } from '../ui'
-import { COLUMNS, LABELS, PRIO_NAME, TYPE_ICON, TYPE_NAME, type Assignee, type Prio, type Task, type TaskType, type Who } from '../data'
+import { Img, Coin, Bar, Ava, Sheet, Header, Seg, PhotoPick, shrinkImage, useName, plural, useG } from '../ui'
+import { COLUMNS, LABELS, PRIO_NAME, TYPE_ICON, TYPE_NAME, type Assignee, type Prio, type Task, type TaskReport, type TaskType, type Who } from '../data'
+import { RefImg, dropImg, saveImage } from '../photos'
 import { sendEvent } from '../sync'
 import { TODAY_KEY, addDays, diffDays, human, isSunday, short, weekEnd, weekRange, weekStart } from '../dates'
 
@@ -63,7 +64,7 @@ function TaskCard({ t, onOpen }: { t: Task; onOpen: () => void }) {
         )}
         {carriedOf(t) > 0 && <span className="tag"><Img src="tracker/carried_over" />×{carriedOf(t) + 1}</span>}
         {cl && <span className="tag plain">☑ {cl.filter(c => c.done).length}/{cl.length}</span>}
-        {t.photo && <span className="tag"><Img src="common/camera" />фото</span>}
+        {t.photo && <span className="tag"><Img src="common/camera" />{(t.reports?.length ?? 0) > 1 ? `${t.reports!.length} фото` : 'фото'}</span>}
         <Coin n={t.price} size={20} />
       </div>
     </button>
@@ -78,6 +79,9 @@ export default function Board() {
   const [creating, setCreating] = useState(false)
   const [done, setDone] = useState<Task | null>(null)
   const [summary, setSummary] = useState(false)
+  const [archive, setArchive] = useState(false)
+  const [big, setBig] = useState<{ id: number; r: TaskReport } | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const name = useName()
   const visible = s.tasks.filter(t => t.status === 'backlog' || inSprint(t))
@@ -86,6 +90,8 @@ export default function Board() {
   const left = diffDays(weekEnd(TODAY_KEY), TODAY_KEY)
   const doneCount = sprint.filter(t => t.status === 'done').length
   const task = s.tasks.find(t => t.id === open)
+  const closed = s.tasks.filter(t => t.status === 'done')
+  const bigTask = big ? s.tasks.find(t => t.id === big.id) : undefined
   const colsRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = colsRef.current?.children[1] as HTMLElement | undefined
@@ -114,6 +120,35 @@ export default function Board() {
     const r = rewardAt(t, t.doneAt ?? TODAY_KEY)
     setOpen(null)
     s.earn(r, `+${r} за «${t.title}»`)
+  }
+
+  /* Фото-отчёт: картинка — в хранилище (как фото дня), в задаче — ссылка, кто и когда.
+     +2 монеты за первое своё фото к задаче (у старых задач «фото-отчёт» был только отметкой — за него уже давали). */
+  async function addReport(t: Task, f: File) {
+    setBusy(true)
+    try {
+      const ref = await saveImage(`task-${t.id}-${Date.now()}`, await shrinkImage(f, 1080, false, 0.75))
+      if (!ref) { s.toast('Нет связи — фото не отправилось, попробуй ещё раз', 'states/st_offline'); return false }
+      const cur = s.tasks.find(x => x.id === t.id) ?? t
+      const paid = cur.reports?.some(r => r.by === 'me') || (cur.photo && !cur.reports?.length)
+      s.setTasks(ts => ts.map(x => (x.id === t.id ? { ...x, photo: true, reports: [...(x.reports ?? []), { ref, by: 'me', at: TODAY_KEY }] } : x)))
+      if (!ref.startsWith('idb:')) sendEvent('task_photo', { title: t.title })
+      if (paid) s.toast('Фото добавлено в отчёт', 'common/camera')
+      else s.earn(2, '+2 за фото-отчёт', 'common/camera')
+      return true
+    } catch {
+      s.toast('Не получилось сохранить фото', 'states/st_error')
+      return false
+    } finally { setBusy(false) }
+  }
+  function removeReport(id: number, r: TaskReport) {
+    s.setTasks(ts => ts.map(x => {
+      if (x.id !== id) return x
+      const reports = (x.reports ?? []).filter(y => y.ref !== r.ref)
+      return { ...x, reports: reports.length ? reports : undefined, photo: reports.length > 0 || undefined }
+    }))
+    dropImg(r.ref)
+    s.toast('Фото убрано', 'common/cross_badge')
   }
 
   function move(t: Task, status: Task['status']) {
@@ -188,10 +223,34 @@ export default function Board() {
         })}
       </div>
 
+      {closed.length > 0 && (
+        <button className="btn soft wide" onClick={() => setArchive(true)}>
+          <Img src="tracker/all_done" />Закрытые задачи и фото-отчёты · {closed.length}
+        </button>
+      )}
+
       <button className="fab" onClick={() => setCreating(true)} aria-label="Новая задача">+</button>
 
+      {/* Архив выше в разметке, чтобы задача и фото открывались поверх него */}
+      <Sheet open={archive} onClose={() => setArchive(false)} title="Закрытые задачи" icon="tracker/all_done" tall>
+        {archive && <Archive tasks={closed} onOpen={setOpen} onView={(id, r) => setBig({ id, r })} />}
+      </Sheet>
+
       <Sheet open={!!task} onClose={() => setOpen(null)} title={task?.title} icon={task ? TYPE_ICON[task.type] : undefined}>
-        {task && <TaskDetail t={task} onMove={st => move(task, st)} onClaim={() => claimLegacy(task)} />}
+        {task && <TaskDetail t={task} busy={busy} onMove={st => move(task, st)} onClaim={() => claimLegacy(task)}
+          onPhoto={f => { addReport(task, f) }} onView={r => setBig({ id: task.id, r })} />}
+      </Sheet>
+
+      <Sheet open={!!big} onClose={() => setBig(null)} title="Фото-отчёт" icon="common/camera">
+        {big && (
+          <>
+            <RefImg src={big.r.ref} className="big-photo" />
+            <p className="small muted b" style={{ textAlign: 'center', margin: 0 }}>
+              {name(big.r.by)} · {human(big.r.at)}{bigTask ? ` · «${bigTask.title}»` : ''}
+            </p>
+            {big.r.by === 'me' && <button className="btn wide soft" onClick={() => { removeReport(big.id, big.r); setBig(null) }}>Удалить это фото</button>}
+          </>
+        )}
       </Sheet>
 
       <Sheet open={!!done} onClose={() => setDone(null)}>
@@ -206,12 +265,13 @@ export default function Board() {
                   : `Твоя часть «${done.title}» готова. Задача закроется, когда ${name('him')} тоже отметит свою — ${g.to} придут свои монеты.`}
               </p>
             </div>
-            {!done.photo && (
-              <button className="btn wide peach" onClick={() => { s.setTasks(ts => ts.map(x => (x.id === done.id ? { ...x, photo: true } : x))); setDone(null); s.earn(2, '+2 за фото-отчёт', 'common/camera') }}>
-                <Img src="common/camera" /> Добавить фото-отчёт · +2
-              </button>
+            {!done.reports?.some(r => r.by === 'me') && (
+              <PhotoPick className="btn wide peach" onPick={async f => { if (await addReport(done, f)) setDone(null) }}>
+                <Img src="common/camera" /> {busy ? 'Загружаю фото…' : 'Добавить фото-отчёт · +2'}
+              </PhotoPick>
             )}
             <button className="btn wide soft" onClick={() => setDone(null)}>Без фото</button>
+            <p className="small muted b" style={{ textAlign: 'center', margin: 0 }}>Фото можно добавить и потом: открой задачу в «Готово» или в закрытых.</p>
           </>
         )}
       </Sheet>
@@ -227,7 +287,9 @@ export default function Board() {
   )
 }
 
-function TaskDetail({ t, onMove, onClaim }: { t: Task; onMove: (s: Task['status']) => void; onClaim: () => void }) {
+function TaskDetail({ t, busy, onMove, onClaim, onPhoto, onView }: {
+  t: Task; busy: boolean; onMove: (s: Task['status']) => void; onClaim: () => void; onPhoto: (f: File) => void; onView: (r: TaskReport) => void
+}) {
   const s = useStore()
   const g = useG()
   const name = useName()
@@ -259,6 +321,19 @@ function TaskDetail({ t, onMove, onClaim }: { t: Task; onMove: (s: Task['status'
           ))}
         </div>
       )}
+      {(t.reports?.length ?? 0) > 0 && (
+        <div className="field"><span>Фото-отчёт</span>
+          <div className="place-photos">
+            {t.reports!.map(r => <button key={r.ref} onClick={() => onView(r)} aria-label="Открыть фото"><RefImg src={r.ref} /></button>)}
+          </div>
+        </div>
+      )}
+      {t.photo && !t.reports?.length && <p className="small muted b" style={{ margin: 0 }}>Раньше фото-отчёт только отмечался, сама картинка не сохранялась. Можно добавить её сейчас.</p>}
+      {(t.status === 'done' || mineDone) && (
+        <PhotoPick className="btn wide peach" onPick={onPhoto}>
+          <Img src="common/camera" />{busy ? 'Загружаю фото…' : t.reports?.some(r => r.by === 'me') ? 'Добавить ещё фото' : t.photo && !t.reports?.length ? 'Добавить фото-отчёт' : 'Добавить фото-отчёт · +2'}
+        </PhotoPick>
+      )}
       {t.epic && <p className="muted b small">Эпик: внутри {t.epic.total} задач, закрыто {t.epic.done}. За закрытие всего эпика: ачивка «Покорили вершину».</p>}
       {t.status === 'backlog' && <button className="btn wide" onClick={() => onMove('todo')}>В спринт этой недели</button>}
       {t.status === 'todo' && <button className="btn wide" onClick={() => onMove('doing')}><Img src="common/hourglass" />Взять в работу</button>}
@@ -276,8 +351,51 @@ function TaskDetail({ t, onMove, onClaim }: { t: Task; onMove: (s: Task['status'
           <button className="btn wide sage" onClick={onClaim}><Img src="coins/coin" />Забрать +{rewardAt(t, t.doneAt ?? TODAY_KEY)}</button>
         </div>
       )}
-      {t.status === 'done' && <p className="b muted" style={{ textAlign: 'center' }}>Задача закрыта{t.doneAt ? ' ' + human(t.doneAt) : ''}{t.photo ? ' · есть фото-отчёт' : ''}</p>}
-      <button className="btn wide soft" onClick={() => { s.setTasks(ts => ts.filter(x => x.id !== t.id)); s.toast('Задача удалена', 'common/cross_badge') }}>Удалить задачу</button>
+      {t.status === 'done' && <p className="b muted" style={{ textAlign: 'center' }}>Задача закрыта{t.doneAt ? ' ' + human(t.doneAt) : ''}</p>}
+      <button className="btn wide soft" onClick={() => { t.reports?.forEach(r => dropImg(r.ref)); s.setTasks(ts => ts.filter(x => x.id !== t.id)); s.toast('Задача удалена', 'common/cross_badge') }}>Удалить задачу</button>
+    </>
+  )
+}
+
+// Все закрытые задачи по неделям — с фото-отчётами
+function Archive({ tasks, onOpen, onView }: { tasks: Task[]; onOpen: (id: number) => void; onView: (id: number, r: TaskReport) => void }) {
+  const name = useName()
+  const withPhoto = tasks.filter(t => t.reports?.length).length
+  const [only, setOnly] = useState<'all' | 'photo'>('all')
+  const list = tasks.filter(t => only === 'all' || t.reports?.length).sort((a, b) => (b.doneAt ?? '').localeCompare(a.doneAt ?? '') || b.id - a.id)
+  const groups: { key: string; label: string; items: Task[] }[] = []
+  for (const t of list) {
+    const key = t.doneAt ? weekStart(t.doneAt) : 'old'
+    let g = groups.find(x => x.key === key)
+    if (!g) groups.push((g = { key, label: key === 'old' ? 'Раньше' : key === WEEK0 ? `Эта неделя · ${weekRange(key)}` : weekRange(key), items: [] }))
+    g.items.push(t)
+  }
+  return (
+    <>
+      <Seg value={only} onChange={setOnly} options={[{ id: 'all', name: `Все · ${tasks.length}` }, { id: 'photo', name: `С фото · ${withPhoto}` }]} />
+      {groups.map(g => (
+        <Fragment key={g.key}>
+          <div className="sec-title">{g.label}</div>
+          {g.items.map(t => (
+            <div key={t.id} className="arch-row">
+              <button className="arch-main" onClick={() => onOpen(t.id)}>
+                <Img src={TYPE_ICON[t.type]} size={34} />
+                <span className="grow">
+                  <b>{t.title}</b>
+                  <small>{t.doneAt ? human(t.doneAt) : 'закрыта'} · {t.assignee === 'both' ? 'вместе' : name(t.assignee)}{t.photo && !t.reports?.length ? ' · фото без картинки' : ''}</small>
+                </span>
+                <span className="chev">›</span>
+              </button>
+              {!!t.reports?.length && (
+                <div className="arch-ph">
+                  {t.reports.map(r => <button key={r.ref} onClick={() => onView(t.id, r)} aria-label="Открыть фото"><RefImg src={r.ref} /></button>)}
+                </div>
+              )}
+            </div>
+          ))}
+        </Fragment>
+      ))}
+      {!list.length && <p className="muted b" style={{ textAlign: 'center' }}>{only === 'photo' ? 'Пока ни одного фото-отчёта. Открой закрытую задачу и добавь фото.' : 'Закрытых задач пока нет.'}</p>}
     </>
   )
 }

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore, usePersist } from '../store'
 import { Img, Sheet, Ava, useName, useG, plural } from '../ui'
 import { sendEvent } from '../sync'
-import { MOODS, NEEDS, PHASES, TYPE_ICON, type MoodId, type Who } from '../data'
+import { MOODS, NEEDS, PHASES, TYPE_ICON, meetLegacy, type MeetNotes, type MoodId, type Who } from '../data'
 import { usePhotos } from '../photos'
 import { DayView } from './Photos'
 import { TODAY_KEY, cycleStats, dayInfo, diffDays, dkey, fromKey, human, nextPeriod, type CycleDay } from '../dates'
@@ -67,6 +67,20 @@ export default function Calendar() {
   const [moodOpen, setMoodOpen] = useState(false)
   const [cycleOpen, setCycleOpen] = useState(false)
   const [meetOpen, setMeetOpen] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
+  // «Убрать» встречу — со второго нажатия, чтобы не стереть случайно
+  const [rmAsk, setRmAsk] = useState('')
+  useEffect(() => { if (!rmAsk) return; const t = setTimeout(() => setRmAsk(''), 3500); return () => clearTimeout(t) }, [rmAsk])
+  const [meetNotes, setMeetNotes] = usePersist<MeetNotes>('meet_notes', {})
+  const setMyNote = (k: string, text: string) => setMeetNotes(m => {
+    const day = { ...(m[k] ?? {}) }
+    if (text) day.me = text
+    else delete day.me
+    const n = { ...m }
+    if (Object.keys(day).length) n[k] = day
+    else delete n[k]
+    return n
+  })
   const [howOpen, setHowOpen] = useState(false)
   // Настроение у каждого своё: { me: {день: …}, him: {день: …} }
   const [moodsAll, setMoodsAll] = usePersist<Record<Who, Record<string, MyMood>>>('moods', { me: {}, him: {} })
@@ -108,6 +122,13 @@ export default function Calendar() {
   const cd = s.cycle[sel] ?? {}
   const future = sel > TODAY_KEY
   const meet = s.meetings[sel]
+  const notes = meetNotes[sel] ?? {}
+  function removeMeet() {
+    if (rmAsk !== sel) { setRmAsk(sel); return }
+    setRmAsk('')
+    s.setMeetings(m => { const n = { ...m }; delete n[sel]; return n })
+    s.toast('Встреча убрана', 'meetings/meet_empty')
+  }
 
   return (
     <div className="screen">
@@ -182,13 +203,17 @@ export default function Calendar() {
 
       {on('meet') && (
         meet ? (
-          <div className="ev meet-ev">
-            <Img src="meetings/meet_place" />
-            <div className="grow">
-              <div className="small muted b">{future ? 'Запланирована встреча' : 'Мы встретились'}</div>
-              {meet}
+          <div className="ev meet-ev meet-card">
+            <div className="row">
+              <Img src="meetings/meet_place" />
+              <b className="grow">{future ? 'Запланирована встреча' : 'Мы встретились'}</b>
+              <button className={'btn sm ' + (rmAsk === sel ? 'peach' : 'soft')} onClick={removeMeet}>{rmAsk === sel ? 'Точно убрать?' : 'Убрать'}</button>
             </div>
-            <button className="btn sm soft" onClick={() => { s.setMeetings(m => { const n = { ...m }; delete n[sel]; return n }); s.toast('Встреча убрана', 'meetings/meet_empty') }}>Убрать</button>
+            {meetLegacy(meet) && <div className="meet-note"><span className="grow">{meetLegacy(meet)}</span></div>}
+            {(['me', 'him'] as Who[]).filter(w => notes[w]).map(w => (
+              <div key={w} className="meet-note"><Ava who={w} size={26} /><span className="grow">{notes[w]}</span></div>
+            ))}
+            <button className="linkish" onClick={() => setNoteOpen(true)}>{notes.me ? 'Изменить мою заметку' : '+ Моя заметка'}</button>
           </div>
         ) : (
           <button className="btn wide sage" onClick={() => setMeetOpen(true)}>
@@ -288,11 +313,20 @@ export default function Calendar() {
 
       <Sheet open={meetOpen} onClose={() => setMeetOpen(false)} title={future ? 'Планируем встречу' : 'Мы встретились'} icon="meetings/meet_place">
         <MeetForm future={future} date={human(sel)} onSave={note => {
-          s.setMeetings(m => ({ ...m, [sel]: note }))
+          s.setMeetings(m => ({ ...m, [sel]: future ? 'Планируем встретиться' : 'Встреча' }))
+          if (note) setMyNote(sel, note)
           if (!future) sendEvent('meet', { day: sel })
           setMeetOpen(false)
           s.toast(future ? `Встреча ${human(sel)} в календаре` : 'Встреча отмечена', 'meetings/meet_button')
         }} />
+      </Sheet>
+
+      <Sheet open={noteOpen} onClose={() => setNoteOpen(false)} title="Моя заметка" icon="meetings/meet_place">
+        {noteOpen && <NoteForm init={notes.me ?? ''} partner={name('him')} onSave={t => {
+          setMyNote(sel, t)
+          setNoteOpen(false)
+          s.toast(t ? 'Заметка сохранена' : 'Заметка убрана', 'meetings/meet_place')
+        }} />}
       </Sheet>
 
       <Sheet open={howOpen} onClose={() => setHowOpen(false)} title="Как считается цикл" icon="cycle/phase_follicular">
@@ -401,7 +435,20 @@ function MeetForm({ future, date, onSave }: { future: boolean; date: string; onS
     <>
       <p className="small muted b">{date}. {future ? 'Встреча появится в календаре у обоих, на главной будет обратный отсчёт.' : 'Встреча добавится в счётчик на главной.'}</p>
       <input className="input" placeholder={future ? 'Например: приезд на выходные, город' : 'Где были, что делали (можно пусто)'} value={note} onChange={e => setNote(e.target.value)} />
-      <button className="btn wide sage" onClick={() => onSave(note.trim() || (future ? 'Планируем встретиться' : 'Встреча'))}>{future ? 'Запланировать' : 'Отметить встречу'}</button>
+      <button className="btn wide sage" onClick={() => onSave(note.trim())}>{future ? 'Запланировать' : 'Отметить встречу'}</button>
+    </>
+  )
+}
+
+// Своя заметка к встрече: у каждого своя, заметку партнёра не трогает
+function NoteForm({ init, partner, onSave }: { init: string; partner: string; onSave: (t: string) => void }) {
+  const [t, setT] = useState(init)
+  return (
+    <>
+      <p className="small muted b">Это только твоя заметка. {partner} пишет свою отдельно — вы не перепишете друг друга.</p>
+      <textarea className="input" rows={3} placeholder="Где были, что делали, что запомнилось" value={t} onChange={e => setT(e.target.value)} autoFocus />
+      <button className="btn wide sage" onClick={() => onSave(t.trim())}>Сохранить</button>
+      {init && <button className="btn wide soft" onClick={() => onSave('')}>Убрать мою заметку</button>}
     </>
   )
 }

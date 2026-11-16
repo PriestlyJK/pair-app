@@ -147,6 +147,7 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
     case 'photo': return { text: p.day && p.day < TODAY_KEY ? `${who} ${v('добавил', 'добавила')} фото за ${human(p.day)}` : `${who} ${v('выложил', 'выложила')} фото дня`, icon: 'common/camera' }
     case 'task_part': return { text: `${who} ${v('сделал', 'сделала')} свою часть «${p.title}» — отметь свою`, icon: 'common/check_cookie' }
     case 'task': return { text: `${who} ${v('закрыл', 'закрыла')} задачу «${p.title}»`, icon: 'common/check_cookie' }
+    case 'task_photo': return { text: `${who} ${v('добавил', 'добавила')} фото-отчёт к «${p.title}»`, icon: 'common/camera' }
     case 'meet': return { text: `${who} ${v('отметил', 'отметила')} встречу`, icon: 'meetings/meet_button' }
     case 'thanks': return { text: `${who}: спасибо — ${p.text}`, icon: 'talk/gratitude' }
     case 'coupon': return { text: `${who} ${v('предъявил', 'предъявила')} купон «${p.name}»`, icon: 'shop/coupons/coupon_used_stamp' }
@@ -164,7 +165,7 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
 const PUSH_URL: Record<string, string> = {
   touch: '#home', joined: '#home', coupon: '#home', coupon_buy: '#home',
   photo: '#together/photos', place: '#together/places', wish: '#together/wishlist', thanks: '#together/gratitude',
-  task: '#board', task_part: '#board', meet: '#calendar', mood: '#calendar', cheat_ask: '#cheatsheet',
+  task: '#board', task_part: '#board', task_photo: '#board', meet: '#calendar', mood: '#calendar', cheat_ask: '#cheatsheet',
 }
 
 function readHash(): { tab: Tab; sub: string; shop: ShopTab | null } {

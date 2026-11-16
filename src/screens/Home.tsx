@@ -63,6 +63,8 @@ const PREFER: Record<string, string[]> = {
 }
 const FURN = Object.fromEntries(SHOP.furniture.map(f => [f.id, f]))
 const BOWL: Spot = { x: 0.7, y: 0.915, w: 0.1 }
+// Миска только на полу, куда кот может подойти (раньше её можно было поставить на подоконник — там кот ел «из другой миски»)
+const bowlPos = (p?: RoomPos): RoomPos => (p ? { ...p, y: Math.max(p.y, 0.62) } : BOWL)
 const SIT = ['bed', 'pillow', 'blanket', 'armchair']
 
 // Где что может стоять: на стене, на полу, плоско на полу, мелочь (и на подоконнике тоже)
@@ -148,7 +150,8 @@ export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = 
   const shown = furn.filter(id => defs[id] && !room.hidden.includes(id))
   const posOf = (id: string): RoomPos => {
     if (live?.id === id) return { ...room.pos[id], x: live.x, y: live.y }
-    return room.pos[id] ?? (id === 'bowl' ? BOWL : id === 'pet' ? petDefault(owned) : defs[id])
+    if (id === 'bowl') return bowlPos(room.pos.bowl)
+    return room.pos[id] ?? (id === 'pet' ? petDefault(owned) : defs[id])
   }
   const widthOf = (id: string, y: number) => {
     const d = id === 'bowl' ? BOWL : defs[id]
@@ -191,7 +194,7 @@ export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = 
     if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 6) return
     if (!d.moved) { d.moved = true; if (d.id === 'pet') onPetDrag?.(true) }
     const r = layer.current!.getBoundingClientRect()
-    const [y0, y1] = BOUNDS[d.id === 'pet' ? 'pet' : kindOf(d.id)]
+    const [y0, y1] = BOUNDS[d.id === 'pet' || d.id === 'bowl' ? 'pet' : kindOf(d.id)]
     const v = { id: d.id, x: clamp(d.ox + (e.clientX - d.sx) / r.width, 0.07, 0.93), y: clamp(d.oy + (e.clientY - d.sy) / r.height, y0, y1) }
     liveRef.current = v
     setLive(v)
@@ -357,6 +360,7 @@ export default function Home() {
   const [flyer, setFlyer] = useState<{ icon: string; k: number } | null>(null)
   const timer = useRef<number | undefined>(undefined)
   const walkTimer = useRef<number | undefined>(undefined)
+  const walkUntil = useRef(0) // когда кот дойдёт, куда идёт сейчас
   const afterEat = useRef<number | undefined>(undefined)
 
   useEffect(() => () => { clearTimeout(timer.current); clearTimeout(walkTimer.current); clearTimeout(afterEat.current) }, [])
@@ -386,10 +390,12 @@ export default function Home() {
     const dist = Math.hypot(x - cur.x, (y - cur.y) * 1.5)
     if (dist < 0.02) {
       if (face !== undefined && face !== cur.flip) s.setRoom(r => ({ ...r, pos: { ...r.pos, pet: { ...cur, flip: face } } }))
-      return 0
+      // Уже идёт сюда (например, «Покормить» нажали дважды) — ждём, пока дойдёт
+      return Math.max(0, walkUntil.current - Date.now())
     }
     const ms = Math.round(clamp(dist * 2600, 400, 1800))
     clearTimeout(walkTimer.current)
+    walkUntil.current = Date.now() + ms
     setWalkMs(ms)
     s.setRoom(r => ({ ...r, pos: { ...r.pos, pet: { x, y, flip: face ?? (Math.abs(x - cur.x) > 0.01 ? x > cur.x : cur.flip) } } }))
     walkTimer.current = window.setTimeout(() => setWalkMs(0), ms)
@@ -397,8 +403,13 @@ export default function Home() {
   }
   function onFloor(x: number, y: number) {
     if (tod === 'night') { s.toast(`${pet.name} спит`, 'common/moon'); return }
-    setAction(null); setFx(null); setToy(null)
+    stopEating()
     walkTo(x, y)
+  }
+  // Кота увели в другое место (нажали на пол или перенесли), пока он шёл к миске или ел, — там он есть не будет
+  function stopEating() {
+    clearTimeout(timer.current); clearTimeout(afterEat.current)
+    setAtBowl(false); setAction(null); setFx(null); setToy(null)
   }
   function tapPet() {
     if (tod === 'night' && !action) { s.toast(`${pet.name} спит`, 'common/moon'); return }
@@ -412,14 +423,12 @@ export default function Home() {
     s.toast('Покормили · −5', 'shop/food/bowl_basic')
     if (tod === 'night') return
     /* Подходит к нашей миске и ест из неё. В картинке «ест» миска уже нарисована — левее центра кота
-       на 0.135 ширины холста. Ставим кота так, чтобы эта миска встала ровно на место миски в комнате,
-       а комнатную на время еды прячем: выглядит, будто он ест из неё. */
-    const bowl = s.room.pos.bowl ?? BOWL
-    const reachable = bowl.y >= BOUNDS.pet[0] // миска на полу, а не на подоконнике
+       (у котёнка на 0.137 ширины холста, у взрослого на 0.153). Ставим кота так, чтобы эта миска встала
+       ровно на место миски в комнате, а комнатную на время еды прячем: выглядит, будто он ест из неё. */
+    const bowl = bowlPos(s.room.pos.bowl)
     clearTimeout(timer.current)
-    if (!reachable) { setAtBowl(false); act('eat', 2600); return }
     const cur = s.room.pos.pet ?? petDefault(s.owned)
-    const off = 0.135 * PET_CANVAS * depth(bowl.y) / depth(0.915)
+    const off = (pet.stage === 'adult' ? 0.153 : 0.137) * PET_CANVAS * depth(bowl.y) / depth(0.915)
     let right = cur.x < bowl.x // подходит слева — смотрит вправо, миска у него справа
     if (right && bowl.x - off < 0.06) right = false
     if (!right && bowl.x + off > 0.94) right = true
@@ -490,7 +499,7 @@ export default function Home() {
       <div>
         <div className="room-wrap">
           <Room tod={tod} pose={pose} fx={fx} onPet={tapPet} bowlFull={pet.satiety >= HUNGRY} toy={toy} bowlHidden={pose === 'eat' && atBowl}
-            edit={edit} onEditDone={() => setEdit(false)} walkMs={walkMs} onFloor={onFloor} onPetDrag={setLifted} />
+            edit={edit} onEditDone={() => setEdit(false)} walkMs={walkMs} onFloor={onFloor} onPetDrag={d => { if (d) stopEating(); setLifted(d) }} />
           <div className="room-ui">
             <button className="name-tag" onClick={() => setPetOpen(true)}>
               <span className="lvl"><Img src="pet/ui/level_badge" /><b>{pet.level}</b></span>

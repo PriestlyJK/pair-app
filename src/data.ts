@@ -17,6 +17,9 @@ export type TaskType = 'task' | 'wish' | 'date' | 'epic'
 export type Status = 'backlog' | 'todo' | 'doing' | 'done'
 export type Prio = 'low' | 'normal' | 'urgent'
 
+// Фото-отчёт к задаче: картинка в хранилище (как фото дня), кто и когда добавил
+export interface TaskReport { ref: string; by: Who; at: string }
+
 export interface Task {
   id: number
   title: string
@@ -34,7 +37,8 @@ export interface Task {
   labels: string[]
   checklist?: { text: string; done: boolean }[]
   carried?: number
-  photo?: boolean
+  photo?: boolean // есть фото-отчёт (у старых задач — только отметка, без картинки)
+  reports?: TaskReport[]
   epic?: { done: number; total: number }
 }
 
@@ -396,3 +400,13 @@ export const TOGETHER_TILES = [
   { id: 'agreements', name: 'Договорённости', icon: 'talk/agreements' },
   { id: 'achievements', name: 'Ачивки', icon: 'achievements/frame_gold' },
 ]
+
+/* Встречи: в документе 'meetings' — {день: текст} (так было с самого начала, старые версии приложения
+   читают только его). Заметки к встрече у каждого свои — в 'meet_notes' {день: {me, him}}, чтобы
+   они не перезаписывали друг друга. Текст в 'meetings' теперь — просто отметка; старые заметки,
+   записанные туда раньше, показываем как общие. */
+export type MeetNotes = Record<string, Partial<Record<Who, string>>>
+const MEET_MARK = ['Встреча', 'Планируем встретиться']
+export const meetLegacy = (m?: string) => (m && !MEET_MARK.includes(m) ? m : '')
+export const meetText = (m: string | undefined, n?: Partial<Record<Who, string>>) =>
+  [meetLegacy(m), n?.me, n?.him].filter(Boolean).join(' · ')
