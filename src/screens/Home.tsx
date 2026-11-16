@@ -66,6 +66,10 @@ const BOWL: Spot = { x: 0.7, y: 0.915, w: 0.1 }
 // Миска только на полу, куда кот может подойти (раньше её можно было поставить на подоконник — там кот ел «из другой миски»)
 const bowlPos = (p?: RoomPos): RoomPos => (p ? { ...p, y: Math.max(p.y, 0.62) } : BOWL)
 const SIT = ['bed', 'pillow', 'blanket', 'armchair']
+// Лежанка (доли её картинки 1024×1024): куда кладём низ спящего кота — на подушку чуть за передним бортом,
+// и контур переднего борта: его рисуем второй раз поверх кота, чтобы тот лежал внутри, а не висел снаружи
+const BED_SEAT = { u: 0.44, v: 0.61 }
+const BED_RIM = 'polygon(0% 100%, 0% 50%, 12% 50%, 20% 53%, 25% 56.5%, 58% 56.5%, 62% 52%, 68% 47%, 78% 43.5%, 100% 42%, 100% 100%)'
 
 // Где что может стоять: на стене, на полу, плоско на полу, мелочь (и на подоконнике тоже)
 type Kind = 'wall' | 'floor' | 'flat' | 'small'
@@ -160,9 +164,18 @@ export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = 
 
   const hasBed = shown.includes('bed')
   const onBed = pose === 'sleep' && hasBed && live?.id !== 'pet'
-  const bed = posOf('bed')
-  const pp = onBed ? { x: bed.x, y: bed.y - 0.025 * depth(bed.y), flip: room.pos.pet?.flip } : posOf('pet')
-  const petScale = depth(pp.y) / depth(0.915)
+  const bed: RoomPos = hasBed ? posOf('bed') : { x: 0.5, y: 0.835 }
+  // Лежанка нарисована в три четверти: подушка левее центра картинки, а передний борт стоит перед тем, кто внутри.
+  // bedAt — точка картинки лежанки (u, v — доли холста) в координатах комнаты, bedUV — обратно.
+  const bedBox = BBOX[FURN.bed.icon] ?? [0, 0, 1, 1]
+  const bedCw = hasBed ? widthOf('bed', bed.y) / (bedBox[2] - bedBox[0]) : 1
+  const bedCx = (bedBox[0] + bedBox[2]) / 2
+  const bedDir = bed.flip ? -1 : 1
+  const bedAt = (u: number, v: number) => ({ x: bed.x + bedDir * (u - bedCx) * bedCw, y: bed.y + (v - bedBox[3]) * bedCw / 1.5 })
+  const bedUV = (p: { x: number; y: number }) => ({ u: bedCx + bedDir * (p.x - bed.x) / bedCw, v: bedBox[3] + (p.y - bed.y) * 1.5 / bedCw })
+  // Спит внутри, на подушке; раньше низ кота ставился почти у ножек и он висел на переднем борту
+  const pp = onBed ? { ...bedAt(BED_SEAT.u, BED_SEAT.v), flip: room.pos.pet?.flip } : posOf('pet')
+  const petScale = depth(onBed ? bed.y : pp.y) / depth(0.915)
   // Если лапы кота внутри лежанки, подушки, пледа или кресла — он сидит на вещи, а не прячется за ней
   const sitOn = onBed ? undefined : SIT.filter(id => shown.includes(id)).map(id => {
     const p = posOf(id)
@@ -170,7 +183,12 @@ export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = 
     const b = BBOX[FURN[id].icon] ?? [0, 0, 1, 1]
     return { id, p, w, h: (w * (b[3] - b[1])) / (b[2] - b[0]) / 1.5 }
   }).filter(o => Math.abs(pp.x - o.p.x) < o.w * 0.45 && pp.y <= o.p.y + 0.01 && pp.y >= o.p.y - o.h * 0.75).sort((a, b) => b.p.y - a.p.y)[0]
-  const petZ = live?.id === 'pet' ? 141 : onBed ? Math.round(bed.y * 100) + 1 : sitOn ? Math.round(sitOn.p.y * 100) + 1 : Math.round(pp.y * 100) + 1
+  // Кот внутри лежанки (спит или днём посажен на подушку) — поверх него ещё раз рисуем передний борт
+  const inBed = hasBed && live?.id !== 'pet' && (onBed || (!walkMs && sitOn?.id === 'bed' && (() => {
+    const t = bedUV(pp)
+    return t.v > 0.45 && t.v < 0.7 && t.u > 0.18 && t.u < 0.72
+  })()))
+  const petZ = live?.id === 'pet' || (inBed && live?.id === 'bed') ? 141 : onBed ? Math.round(bed.y * 100) + 1 : sitOn ? Math.round(sitOn.p.y * 100) + 1 : Math.round(pp.y * 100) + 1
   const key = `pet/${pet.breed}/${pet.stage}_${pose}`
   const bb = BBOX[key] ?? [0, 0, 1, 1]
   const hungry = pet.satiety < HUNGRY && pose !== 'eat' && tod !== 'night'
@@ -283,6 +301,12 @@ export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = 
           {fx && <img className="fx" style={{ top: `${bb[1] * 100}%` }} src={`assets/pet/effects/${fx}.webp`} alt="" key={fx + pose} />}
           {hungry && <img className="fx loop" style={{ top: `${bb[1] * 100 - 14}%` }} src="assets/pet/effects/fx_hunger_bubble.webp" alt="" />}
         </Placed>
+        {inBed && (
+          <Placed src={FURN.bed.icon} x={bed.x} y={bed.y} w={widthOf('bed', bed.y)} flip={bed.flip} z={petZ + 1}
+            className={'rim' + (edit ? ' drag' : '') + (sel === 'bed' ? ' sel' : '')}>
+            <img src={`assets/${FURN.bed.icon}.webp`} alt="" draggable={false} style={{ clipPath: BED_RIM }} />
+          </Placed>
+        )}
       </div>
     </div>
 
