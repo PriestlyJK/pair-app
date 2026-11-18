@@ -33,6 +33,16 @@ function serviceWorker(): Plugin {
   }
 }
 
+// Только для разработки: каталог TMDB через сервер разработки. Ключ лежит в файле рядом с проектом (не в git),
+// в сборку не попадает. В приложении на телефоне запросы идут через функцию Supabase «movies».
+const tmdbDevKey = (() => { try { return readFileSync(new URL('../.tmdb_dev_key', import.meta.url), 'utf8').trim() } catch { return '' } })()
+const tmdbProxy = tmdbDevKey ? {
+  '/tmdb': {
+    target: 'https://api.themoviedb.org', changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/tmdb/, '') + (p.includes('?') ? '&' : '?') + 'api_key=' + tmdbDevKey,
+  },
+} : undefined
+
 export default defineConfig({
   // Когда собрана эта версия — видно в профиле (раздел «Уведомления»), чтобы понять, обновился ли телефон
   define: { __BUILD__: JSON.stringify(new Date().toISOString()) },
@@ -41,5 +51,5 @@ export default defineConfig({
   // Код и шрифт кладём в app/, чтобы не смешивать с картинками в assets/
   build: { assetsDir: 'app' },
   plugins: [react(), serviceWorker()],
-  server: { host: true, port: 5173 },
+  server: { host: true, port: 5173, proxy: tmdbProxy },
 })

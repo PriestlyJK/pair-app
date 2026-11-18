@@ -157,6 +157,7 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
     case 'wish': return { text: `${who} ${v('добавил', 'добавила')} желание «${p.title}»`, icon: 'wishlist/wishlist' }
     case 'place': return { text: p.status === 'been' ? `${who} ${v('отметил', 'отметила')} на карте: ${p.name}` : `${who} хочет с тобой сюда: ${p.name}`, icon: 'cheatsheet/dreams/dream_travel' }
     case 'joined': return { text: `${who} теперь с тобой в паре!`, icon: 'common/two_hearts' }
+    case 'movie_match': return { text: `${who} тоже хочет посмотреть «${p.title}» — совпадение!`, icon: 'common/two_hearts' }
     default: return null
   }
 }
@@ -164,7 +165,7 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
 // Куда открыть приложение по нажатию на уведомление
 const PUSH_URL: Record<string, string> = {
   touch: '#home', joined: '#home', coupon: '#home', coupon_buy: '#home',
-  photo: '#together/photos', place: '#together/places', wish: '#together/wishlist', thanks: '#together/gratitude',
+  photo: '#together/photos', movie_match: '#together/watchlist', place: '#together/places', wish: '#together/wishlist', thanks: '#together/gratitude',
   task: '#board', task_part: '#board', task_photo: '#board', meet: '#calendar', mood: '#calendar', cheat_ask: '#cheatsheet',
 }
 

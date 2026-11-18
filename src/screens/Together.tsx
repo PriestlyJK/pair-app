@@ -6,13 +6,18 @@ import { humanY } from '../dates'
 import { usePhotos } from '../photos'
 import { SECTIONS, type Topic, type Wish, type Goal, type Bet, type Thanks, type Rule } from './TogetherSections'
 import type { Place } from './Places'
+import { posterUrl, type Kind } from '../tmdb'
+export type { Kind }
 
 // Карта тянет за собой Leaflet — грузим её, только когда открыли
 const Places = lazy(() => import('./Places'))
+// «Подбор» фильмов карточками — тоже отдельным куском
+const Discover = lazy(() => import('./Movies'))
 
 export default function Together() {
   const s = useStore()
   if (s.sub === 'watchlist') return <Watchlist />
+  if (s.sub === 'discover') return <Suspense fallback={<div className="screen"><Header title="Подбор" icon="watchlist/randomizer" onBack={() => s.go('together', 'watchlist')} /></div>}><Discover /></Suspense>
   if (s.sub === 'achievements') return <Achievements />
   if (s.sub === 'places') return <Suspense fallback={<div className="screen"><Header title="Карта мест" icon="cheatsheet/dreams/dream_travel" onBack={() => s.go('together')} /><div className="map-box" /></div>}><Places /></Suspense>
   const Sec = SECTIONS[s.sub]
@@ -94,18 +99,18 @@ function TogetherHome() {
 type Vote = 'want' | 'maybe' | 'no'
 type WStatus = 'pending' | 'both' | 'watching' | 'watched'
 type WTab = WStatus | 'seen'
-export type Kind = 'movie' | 'series' | 'anime' | 'cartoon'
 // stars — оценка 1–5 звёзд; rating — старые оценки 1–10, показываем их как звёзды
-export interface WItem { id: number; title: string; kind: Kind; by: Who; status: WStatus; votes: Partial<Record<Who, Vote>>; rating?: Partial<Record<Who, number>>; stars?: Partial<Record<Who, number>> }
+// tmdb, poster, year — у того, что пришло из «Подбора» (tmdb — «m:123» или «t:123», poster — путь картинки TMDB)
+export interface WItem { id: number; title: string; kind: Kind; by: Who; status: WStatus; votes: Partial<Record<Who, Vote>>; rating?: Partial<Record<Who, number>>; stars?: Partial<Record<Who, number>>; tmdb?: string; poster?: string; year?: number }
 // Что каждый смотрел раньше, сам по себе: заполняет только своё, другой видит
-export interface Seen { id: number; title: string; kind: Kind; by: Who; stars?: number; note?: string }
-const KINDS: { id: Kind; name: string; one: string; icon: string }[] = [
+export interface Seen { id: number; title: string; kind: Kind; by: Who; stars?: number; note?: string; tmdb?: string; poster?: string; year?: number }
+export const KINDS: { id: Kind; name: string; one: string; icon: string }[] = [
   { id: 'movie', name: 'Фильм', one: 'фильм', icon: 'watchlist/movie' },
   { id: 'series', name: 'Сериал', one: 'сериал', icon: 'watchlist/series' },
   { id: 'anime', name: 'Аниме', one: 'аниме', icon: 'watchlist/anime' },
   { id: 'cartoon', name: 'Мультик', one: 'мультфильм', icon: 'watchlist/cartoon' },
 ]
-const kindOf = (k?: string) => KINDS.find(x => x.id === k) ?? KINDS[0]
+export const kindOf = (k?: string) => KINDS.find(x => x.id === k) ?? KINDS[0]
 const W_TABS: { id: WTab; name: string }[] = [
   { id: 'pending', name: 'Ждёт голоса' },
   { id: 'both', name: 'Оба хотят' },
@@ -114,7 +119,7 @@ const W_TABS: { id: WTab; name: string }[] = [
   { id: 'seen', name: 'Смотрели раньше' },
 ]
 const POSTER_BG = ['#F7C4A0', '#BDB6E3', '#A9D3E8', '#A8C49A', '#F3B8B5', '#F5D58C']
-const norm = (t: string) => t.toLowerCase().replace(/ё/g, 'е').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+export const norm = (t: string) => t.toLowerCase().replace(/ё/g, 'е').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 const starsOf = (it: WItem, w: Who) => it.stars?.[w] ?? (it.rating?.[w] != null ? Math.max(1, Math.round(it.rating[w]! / 2)) : undefined)
 
 // Пять звёзд: просто показ или выбор (повторное нажатие на ту же звезду снимает оценку)
@@ -128,7 +133,9 @@ export function Stars({ n = 0, onPick, size = 18 }: { n?: number; onPick?: (n: n
   )
 }
 
-function Poster({ kind, i }: { kind: Kind; i: number }) {
+// Из «Подбора» показываем настоящий постер, вписанное руками — цветную заглушку
+function Poster({ kind, i, src }: { kind: Kind; i: number; src?: string }) {
+  if (src) return <img className="poster" src={posterUrl(src, 'w185')} alt="" loading="lazy" />
   return (
     <div className="poster" style={{ background: POSTER_BG[i % POSTER_BG.length] }}>
       <Img src={kindOf(kind).icon} />
@@ -136,11 +143,15 @@ function Poster({ kind, i }: { kind: Kind; i: number }) {
   )
 }
 
+// Открыть вотчлист сразу на нужной вкладке (например, «Оба хотят» после совпадения в «Подборе»)
+let nextTab: WTab | null = null
+export function openWatchlist(s: { go: (tab: 'together', sub?: string) => void }, tab: WTab) { nextTab = tab; s.go('together', 'watchlist') }
+
 function Watchlist() {
   const g = useG()
   const s = useStore()
   const name = useName()
-  const [tab, setTab] = useState<WTab>('pending')
+  const [tab, setTab] = useState<WTab>(() => { const t = nextTab ?? 'pending'; nextTab = null; return t })
   const [items, setItems] = usePersist<WItem[]>('watchlist', [])
   const [seen, setSeen] = usePersist<Seen[]>('seen', [])
   const [pick, setPick] = useState<WItem | null>(null)
@@ -203,11 +214,11 @@ function Watchlist() {
   // Карточка из общего списка; в поиске под названием видно, в какой она вкладке
   const itemCard = (it: WItem, i: number, inSearch = false) => (
     <div key={it.id} className="witem">
-      <Poster kind={it.kind} i={it.id + i} />
+      <Poster kind={it.kind} i={it.id + i} src={it.poster} />
       <div className="grow col" style={{ gap: 6 }}>
         <div>
           <b>{it.title}</b>
-          <div className="small muted b">{kindOf(it.kind).one} · {inSearch ? STATUS_NAME[it.status] : `идея: ${name(it.by)}`}</div>
+          <div className="small muted b">{kindOf(it.kind).one}{it.year ? ` · ${it.year}` : ''} · {inSearch ? STATUS_NAME[it.status] : it.tmdb && it.votes.me === 'want' && it.votes.him === 'want' ? 'совпадение в подборе' : `идея: ${name(it.by)}`}</div>
         </div>
         {it.status !== 'watched' && sawIt(it.title).map(x => (
           <span key={x.id} className="seen-tag"><Ava who={x.by} size={16} />{x.by === 'me' ? 'ты' : name('him')} уже {watched(x.by)}{x.stars ? ` · ${x.stars}★` : ''}</span>
@@ -260,11 +271,11 @@ function Watchlist() {
     const other = !inSearch && seen.find(x => x.by !== it.by && norm(x.title) === norm(it.title))
     return (
       <div key={'s' + it.id} className="witem" role={mine ? 'button' : undefined} onClick={mine ? () => setForm(it) : undefined}>
-        <Poster kind={it.kind} i={it.id + i} />
+        <Poster kind={it.kind} i={it.id + i} src={it.poster} />
         <div className="grow col" style={{ gap: 4 }}>
           <div>
             <b>{it.title}</b>
-            <div className="small muted b">{kindOf(it.kind).one}{inSearch ? ` · ${mine ? 'ты' : name('him')} ${watched(it.by)} раньше` : ''}</div>
+            <div className="small muted b">{kindOf(it.kind).one}{it.year ? ` · ${it.year}` : ''}{inSearch ? ` · ${mine ? 'ты' : name('him')} ${watched(it.by)} раньше` : ''}</div>
           </div>
           {it.stars ? <Stars n={it.stars} /> : <span className="small muted b">без оценки</span>}
           {it.note && <span className="small b">«{it.note}»</span>}
@@ -311,6 +322,14 @@ function Watchlist() {
         </div>
       ) : (
         <>
+          <button className="discover-entry" onClick={() => s.go('together', 'discover')}>
+            <span className="de-cards"><i /><i /><i><Img src="common/heart" /></i></span>
+            <span className="grow">
+              <b>Подбор</b>
+              <small>Листай карточки: ♥ — хочу, ✕ — нет. Что захотите оба — само попадёт в «Оба хотят»</small>
+            </span>
+            <span className="chev">›</span>
+          </button>
           <div className="chips">
             {W_TABS.map(t => (
               <button key={t.id} className={'chip' + (t.id === tab ? ' on' : '')} onClick={() => setTab(t.id)}>

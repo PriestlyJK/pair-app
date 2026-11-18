@@ -6,3 +6,6 @@ export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 
 // Функция Supabase, которая шлёт уведомления на телефон (код — supabase/functions/push/index.ts)
 export const PUSH_FUNCTION = 'smart-service'
+
+// Функция Supabase с каталогом фильмов для «Подбора» (код — supabase/functions/movies/index.ts, ключ TMDB лежит в её секретах)
+export const MOVIES_FUNCTION = 'movies'
