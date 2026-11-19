@@ -412,17 +412,17 @@ export const meetText = (m: string | undefined, n?: Partial<Record<Who, string>>
   [meetLegacy(m), n?.me, n?.him].filter(Boolean).join(' · ')
 
 // ---------- Дневник ----------
-// Картинки дневника. Пока своих нет — берём похожие из других разделов; новые лягут в assets/diary/ под этими же ролями
+// Картинки дневника (assets/diary/); конверт запечатанной записи — общий
 export const DI = {
-  book: 'memory/empty_memory',       // тетрадь (плашка на главной, заголовок) → diary/diary
-  bookNew: 'memory/empty_memory',    // тетрадь с закладкой: есть новые страницы → diary/diary_new
-  pen: 'memory/empty_memory',        // «Написать» → diary/pen
-  sealed: 'common/envelope',         // запечатанная страница
-  hard: 'common/heart_pale',         // «было трудно написать» → diary/hard
-  empty: 'memory/empty_memory',      // пустая тетрадь → diary/empty_cat
-  hug: 'touches/hug',
-  understand: 'common/two_hearts',   // → diary/react_understand
-  thanks: 'talk/gratitude',          // → diary/react_thanks
-  talk: 'common/speech_heart',
+  book: 'diary/diary',            // тетрадь: плашка на главной, заголовок
+  bookNew: 'diary/diary_new',     // тетрадь с закладкой и искорками: есть новые записи
+  pen: 'diary/pen',               // окно новой записи
+  sealed: 'common/envelope',      // запечатанная запись
+  hard: 'diary/hard',             // «было трудно написать»
+  empty: 'diary/empty_cat',       // пустая тетрадь
+  hug: 'diary/react_hug',
+  understand: 'diary/react_understand',
+  thanks: 'diary/react_thanks',
+  talk: 'diary/react_talk',
 }
 export type DReactId = 'hug' | 'understand' | 'thanks' | 'talk'
