@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
 import { useStore, usePersist, describe, hoursToHungry, HUNGRY, type Pet, type RoomPos } from '../store'
 import { sendEvent, getLink, type PairEvent } from '../sync'
 import { PhotoCard } from './Photos'
@@ -9,6 +9,10 @@ import { TOUCHES, SHOP, type Who } from '../data'
 import { TODAY_KEY, diffDays, human, isSunday, weekEnd, weekRange, weekStart } from '../dates'
 import { ProfileSheet } from './Profile'
 import { PushNudge } from '../push'
+import { DiaryCard } from './DiaryCard'
+
+// Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
+const Diary = lazy(() => import('./Diary'))
 
 // «только что», «5 мин назад», «вчера в 21:40»
 function agoText(iso: string) {
@@ -348,6 +352,12 @@ export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = 
 
 export default function Home() {
   const s = useStore()
+  if (s.sub === 'diary') return <Suspense fallback={<div className="screen" />}><Diary /></Suspense>
+  return <HomeMain />
+}
+
+function HomeMain() {
+  const s = useStore()
   const { pet } = s
   // Время суток идёт по часам телефона. Кнопками можно подсмотреть другое, но при возвращении
   // в приложение и при смене утра/вечера/ночи комната снова показывает настоящее время.
@@ -597,6 +607,8 @@ export default function Home() {
           <span>Обнять, поцеловать, сказать «скучаю»</span>
         </div>
       </button>
+
+      <DiaryCard />
 
       <div className="grid2">
         <PhotoCard />

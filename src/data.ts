@@ -410,3 +410,19 @@ const MEET_MARK = ['Встреча', 'Планируем встретиться'
 export const meetLegacy = (m?: string) => (m && !MEET_MARK.includes(m) ? m : '')
 export const meetText = (m: string | undefined, n?: Partial<Record<Who, string>>) =>
   [meetLegacy(m), n?.me, n?.him].filter(Boolean).join(' · ')
+
+// ---------- Дневник ----------
+// Картинки дневника. Пока своих нет — берём похожие из других разделов; новые лягут в assets/diary/ под этими же ролями
+export const DI = {
+  book: 'memory/empty_memory',       // тетрадь (плашка на главной, заголовок) → diary/diary
+  bookNew: 'memory/empty_memory',    // тетрадь с закладкой: есть новые страницы → diary/diary_new
+  pen: 'memory/empty_memory',        // «Написать» → diary/pen
+  sealed: 'common/envelope',         // запечатанная страница
+  hard: 'common/heart_pale',         // «было трудно написать» → diary/hard
+  empty: 'memory/empty_memory',      // пустая тетрадь → diary/empty_cat
+  hug: 'touches/hug',
+  understand: 'common/two_hearts',   // → diary/react_understand
+  thanks: 'talk/gratitude',          // → diary/react_thanks
+  talk: 'common/speech_heart',
+}
+export type DReactId = 'hug' | 'understand' | 'thanks' | 'talk'

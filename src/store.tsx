@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from 'react'
-import type { Task, Who } from './data'
+import { DI, type Task, type Who } from './data'
 import { TODAY_KEY, diffDays, human, type CycleDay } from './dates'
 import { moveImagesToFiles } from './photos'
 import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, setPushText, type PairEvent } from './sync'
@@ -157,6 +157,15 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
     case 'wish': return { text: `${who} ${v('добавил', 'добавила')} желание «${p.title}»`, icon: 'wishlist/wishlist' }
     case 'place': return { text: p.status === 'been' ? `${who} ${v('отметил', 'отметила')} на карте: ${p.name}` : `${who} хочет с тобой сюда: ${p.name}`, icon: 'cheatsheet/dreams/dream_travel' }
     case 'joined': return { text: `${who} теперь с тобой в паре!`, icon: 'common/two_hearts' }
+    case 'diary_react': {
+      const r = p.r as keyof typeof DI
+      const t = r === 'hug' ? `обнимает тебя: ${v('прочитал', 'прочитала')} твою запись в дневнике`
+        : r === 'understand' ? `понимает тебя: ${v('прочитал', 'прочитала')} твою запись в дневнике`
+        : r === 'thanks' ? 'говорит спасибо за запись в дневнике'
+        : 'хочет поговорить о записи из дневника'
+      return { text: `${who} ${t}`, icon: DI[r] ?? DI.book }
+    }
+    case 'diary_note': return { text: `${who} ${v('оставил', 'оставила')} заметку на полях твоего дневника`, icon: DI.book }
     case 'movie_match': return { text: `${who} тоже хочет посмотреть «${p.title}» — совпадение!`, icon: 'common/two_hearts' }
     default: return null
   }
@@ -165,7 +174,7 @@ export function describe(e: PairEvent, who: string, g: Gender = 'm'): { text: st
 // Куда открыть приложение по нажатию на уведомление
 const PUSH_URL: Record<string, string> = {
   touch: '#home', joined: '#home', coupon: '#home', coupon_buy: '#home',
-  photo: '#together/photos', movie_match: '#together/watchlist', place: '#together/places', wish: '#together/wishlist', thanks: '#together/gratitude',
+  photo: '#together/photos', diary_react: '#home/diary', diary_note: '#home/diary', movie_match: '#together/watchlist', place: '#together/places', wish: '#together/wishlist', thanks: '#together/gratitude',
   task: '#board', task_part: '#board', task_photo: '#board', meet: '#calendar', mood: '#calendar', cheat_ask: '#cheatsheet',
 }
 
