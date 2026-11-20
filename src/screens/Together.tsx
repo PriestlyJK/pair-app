@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { useStore, usePersist } from '../store'
 import { Img, Header, Sheet, Bar, Ava, Seg, plural, useName, useG } from '../ui'
-import { TOGETHER_TILES, type Who } from '../data'
+import { TOGETHER_GROUPS, TOGETHER_TILES, type Who } from '../data'
 import Achievements, { useAchievements } from './Achievements'
 import { humanY } from '../dates'
 import { usePhotos } from '../photos'
@@ -82,15 +82,20 @@ function TogetherHome() {
           )}
         </div>
       </div>
-      <div className="tiles">
-        {TOGETHER_TILES.map(t => (
-          <button key={t.id} className={'tile' + (t.id === 'achievements' && ach.due ? ' due' : '')} onClick={() => s.go('together', t.id)}>
-            <Img src={t.icon} />
-            <b>{t.name}</b>
-            <small>{notes[t.id] ?? ''}</small>
-          </button>
-        ))}
-      </div>
+      {TOGETHER_GROUPS.map(gr => (
+        <section key={gr.name} className="tile-group">
+          <div className="sec-title">{gr.name}</div>
+          <div className="tiles">
+            {gr.ids.map(id => TOGETHER_TILES.find(t => t.id === id)!).map(t => (
+              <button key={t.id} className={'tile' + (t.id === 'achievements' && ach.due ? ' due' : '')} onClick={() => s.go('together', t.id)}>
+                <Img src={t.icon} />
+                <b>{t.name}</b>
+                <small>{notes[t.id] ?? ''}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   )
 }

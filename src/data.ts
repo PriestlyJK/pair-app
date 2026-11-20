@@ -370,6 +370,12 @@ export const TOGETHER_TILES = [
   { id: 'agreements', name: 'Договорённости', icon: 'talk/agreements' },
   { id: 'achievements', name: 'Ачивки', icon: 'achievements/frame_gold' },
 ]
+// Разделы вкладки «Вместе»: по четыре плитки
+export const TOGETHER_GROUPS = [
+  { name: 'Каждый день', ids: ['photos', 'challenges', 'gratitude', 'bets'] },
+  { name: 'Планы и мечты', ids: ['watchlist', 'wishlist', 'bucket', 'places'] },
+  { name: 'Про нас', ids: ['memory', 'talk', 'agreements', 'achievements'] },
+]
 
 /* Встречи: в документе 'meetings' — {день: текст} (так было с самого начала, старые версии приложения
    читают только его). Заметки к встрече у каждого свои — в 'meet_notes' {день: {me, him}}, чтобы

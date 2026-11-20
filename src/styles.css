@@ -993,3 +993,7 @@ textarea.dwrite { flex: none; min-height: 34dvh; resize: none; font-size: 16px; 
 .auc-past small { display: block; font-size: 12px; font-weight: 800; color: var(--muted); }
 .auc-past.won { background: #FBE9D6; }
 .auc-past.won small { color: #B5713F; }
+
+/* Разделы вкладки «Вместе» */
+.tile-group { display: flex; flex-direction: column; gap: 12px; }
+.tile-group .sec-title { margin: 4px 4px 0; }
