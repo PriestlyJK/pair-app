@@ -24,9 +24,14 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     // Открыли уведомление, а приложение уже было запущено — переходим на нужный экран
     navigator.serviceWorker.addEventListener('message', e => { if (typeof e.data?.go === 'string') location.hash = e.data.go })
     let had = !!navigator.serviceWorker.controller
+    // Когда приложение последний раз открыли: новая версия, пришедшая в первые секунды, ставится сразу
+    let shownAt = Date.now()
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') shownAt = Date.now() })
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!had) { had = true; return }
-      // …но не пока выбирают фото: камера тоже «сворачивает» приложение, и снимок бы пропал
+      // Только что открыли и ещё ничего не начали делать — перезагружаемся сразу, это почти незаметно
+      if (Date.now() - shownAt < 5000 && !isPicking()) { location.reload(); return }
+      // …иначе ждём, пока свернут. Но не пока выбирают фото: камера тоже «сворачивает» приложение, и снимок бы пропал
       const reload = () => { if (document.visibilityState === 'hidden' && !isPicking()) location.reload() }
       document.addEventListener('visibilitychange', reload)
     })

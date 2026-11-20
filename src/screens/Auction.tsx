@@ -61,7 +61,7 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 <div className="grow">
                   <b>{lot.name}</b>
                   <small className="auc-line">
-                    {m ? <><Img src="game/bid" size={18} />твоя ставка: {m}{on && <button className="auc-take" onClick={() => takeBack(lot.id)}>забрать</button>}</> : 'ставки нет'}
+                    {m ? <><Img src="game/bid" size={18} />твоя ставка: {m}{on && <button className="auc-take" onClick={() => takeBack(lot.id)}>забрать</button>}</> : `ставки нет · минимум ${MIN_BID}`}
                   </small>
                   <small className={'auc-line' + (h ? ' his' : '')}>
                     {h ? <><Img src="game/bid" size={18} />{name('him')} {g.p('сделал', 'сделала')} ставку</> : `${name('him')}: пока без ставки`}
@@ -70,11 +70,14 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
               </div>
               {on && (
                 <form className="auc-raise" onSubmit={e => { e.preventDefault(); place(lot.id) }}>
-                  <input
-                    className="input" type="number" inputMode="numeric" min={1} step={1}
-                    placeholder={m ? 'Добавить к ставке' : `Твоя ставка, от ${MIN_BID}`}
-                    value={amt[lot.id] ?? ''} onChange={e => setAmt(v => ({ ...v, [lot.id]: e.target.value.replace(/\D/g, '') }))}
-                  />
+                  <label className="auc-field">
+                    <Img src="coins/coin" size={22} />
+                    <input
+                      className="input" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={5} autoComplete="off"
+                      aria-label={m ? 'Сколько добавить к ставке' : 'Твоя ставка'}
+                      value={amt[lot.id] ?? ''} onChange={e => setAmt(v => ({ ...v, [lot.id]: e.target.value.replace(/\D/g, '') }))}
+                    />
+                  </label>
                   <button className="btn sm" disabled={!amt[lot.id]}>{m ? 'Добавить' : 'Поставить'}</button>
                 </form>
               )}
