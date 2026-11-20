@@ -255,6 +255,8 @@ export async function startSync(l: Link, opts: { uploadLocal?: boolean; joined?:
   channel = ch
     // Кто сейчас в приложении: каждый отмечается в канале пары, пока приложение открыто
     .on('presence', { event: 'sync' }, () => setHere(Object.keys(ch.presenceState()).some(k => k !== l.user)))
+    // Живые сигналы, пока оба в приложении (держаться за руки): ничего не сохраняется
+    .on('broadcast', { event: 'live' }, m => liveSubs.forEach(f => f((m.payload ?? {}) as Record<string, unknown>)))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'docs', filter: `couple_id=eq.${l.couple}` }, p => {
       const row = p.new as { key?: string; value?: unknown; updated_by?: string; updated_at?: string }
       if (row?.key && row.updated_by !== l.user) applyRemote(row.key, row.value, row.updated_at)
@@ -277,7 +279,15 @@ export async function startSync(l: Link, opts: { uploadLocal?: boolean; joined?:
 let partnerHere = false
 const presenceSubs = new Set<() => void>()
 function setHere(v: boolean) { if (v !== partnerHere) { partnerHere = v; presenceSubs.forEach(f => f()) } }
-export const isPartnerHere = () => partnerHere
+// Проверка без второго телефона: ?local&here — «партнёр в приложении» и повторяет то же, что делаешь ты
+const FAKE_HERE = import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).has('here')
+export const isPartnerHere = () => FAKE_HERE || partnerHere
+const liveSubs = new Set<(p: Record<string, unknown>) => void>()
+export const onLive = (f: (p: Record<string, unknown>) => void) => { liveSubs.add(f); return () => { liveSubs.delete(f) } }
+export function sendLive(p: Record<string, unknown>) {
+  if (FAKE_HERE) { setTimeout(() => liveSubs.forEach(f => f(p)), 500); return }
+  channel?.send({ type: 'broadcast', event: 'live', payload: p }).catch(() => {})
+}
 export const onPresence = (f: () => void) => { presenceSubs.add(f); return () => { presenceSubs.delete(f) } }
 // Пока приложение на экране — «в сети», свернули — сразу пропадаем
 function trackMe() {
@@ -318,7 +328,7 @@ function freshSide(user: string) {
   const notMine = (field: string) => (xs: ByWho[]) => (Array.isArray(xs) ? xs.filter(x => x[field] !== 'me') : xs)
   const clearMe = (empty: unknown) => (v: ByWho) => (v && typeof v === 'object' ? { ...v, me: empty } : v)
   upd<ByWho>('profile', p => ({ ...p, me: { ...(p.me as ByWho), photo: null, ready: false } }))
-  upd('coins', clearMe(0)); upd('jar', clearMe(0)); upd('game', clearMe({})); upd('ach', clearMe({}))
+  upd('coins', clearMe(0)); upd('jar', clearMe(0)); upd('game', clearMe({})); upd('ach', clearMe({})); upd('last_seen', clearMe(undefined))
   for (const k of ['moods', 'sent', 'cheat', 'cheat_notes']) upd(k, clearMe({}))
   upd<Record<string, ByWho>>('photos', ph => Object.fromEntries(Object.entries(ph ?? {}).map(([d, v]) => { const { me: _drop, ...rest } = v ?? {}; void _drop; return [d, rest] })))
   upd('seen', notMine('by')); upd('offers', notMine('by')); upd('wishes', notMine('who')); upd('coupons', notMine('owner')); upd('coin_gifts', notMine('by'))

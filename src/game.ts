@@ -27,6 +27,7 @@ export interface GameRec {
   crowns?: number // сколько раз носил корону (для ачивки)
   spins?: number // сколько раз крутил колесо (для ачивки)
   jack?: boolean // выбивал джекпот
+  hands?: string // день, когда последний раз держались за руки (монеты — раз в день)
 }
 export type Game = Partial<Record<Who, GameRec>>
 

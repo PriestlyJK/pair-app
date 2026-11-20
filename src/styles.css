@@ -952,3 +952,25 @@ textarea.dwrite { flex: none; min-height: 34dvh; resize: none; font-size: 16px; 
 .duel-bar i { display: block; height: 100%; background: var(--apricot); border-right: 2px solid #FFFCF8; transition: width .5s ease; }
 .duel-bar.empty { background: var(--card-2); }
 .duel-bar.empty i { background: transparent; }
+
+/* Кот что-то принёс: касание от партнёра или мысль о том, кто давно не заходил */
+.carry { position: absolute; left: 20%; width: 26%; aspect-ratio: 1; padding: 0; border: 0; background: none; transform: translate(-50%, 0); animation: float 2.6s ease-in-out infinite; z-index: 2; cursor: pointer; }
+.carry-in { position: relative; display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; background: rgba(255, 250, 244, .92); box-shadow: 0 3px 10px rgba(70, 38, 22, .22); }
+.flipper .carry-in { transform: scaleX(-1); } /* кот смотрит в другую сторону — картинка внутри всё равно прямо */
+.carry-in > img { width: 74%; height: auto; }
+.carry.ava .carry-in > .ava { width: 78% !important; height: 78% !important; }
+.carry .carry-heart { position: absolute; right: -8%; bottom: -6%; width: 44% !important; }
+
+/* Держаться за руки — когда оба в приложении */
+.hands { position: absolute; z-index: 210; left: 10px; top: 58px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none; }
+.hands-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 99px; background: rgba(255, 250, 244, .9); box-shadow: 0 3px 12px rgba(70, 38, 22, .18); pointer-events: auto; }
+.hands-row .ava { transition: transform .3s; }
+.hands-btn { width: 48px; height: 48px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; background: var(--peach-soft, #FDE3D6); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: transform .2s, background .3s; }
+.hands-btn img { width: 36px; height: 36px; pointer-events: none; }
+.hands.mine .hands-btn { transform: scale(.92); background: #F9CBB8; }
+.hands.his .hands-btn { animation: beat 1s ease-in-out infinite; }
+.hands.both .hands-btn { background: #F5B3A0; animation: beat .7s ease-in-out infinite; }
+.hands.both .hands-row .ava:first-child { transform: translateX(6px); }
+.hands.both .hands-row .ava:last-child { transform: translateX(-6px); }
+.hands > span { font-size: 12px; font-weight: 700; color: #6B4535; padding: 2px 9px; border-radius: 99px; background: rgba(255, 250, 244, .85); white-space: nowrap; }
+@keyframes beat { 50% { transform: scale(1.12); } }

@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useStore, usePersist } from '../store'
-import { Img, Ava, plural, useName, useG } from '../ui'
+import { onLive, sendLive } from '../sync'
+import { Img, Ava, plural, useName, useG, usePartnerHere } from '../ui'
 import type { Who } from '../data'
 import { TODAY_KEY, diffDays } from '../dates'
 import { nextEvent } from '../days'
@@ -70,5 +72,48 @@ export function ChallengeCard() {
         )
       })}
     </>
+  )
+}
+
+/* «Вместе прямо сейчас»: когда оба в приложении, в комнате можно держаться за руки.
+   Каждый зажимает сердечко; держитесь оба полторы секунды — получилось. */
+export function HoldHands({ onJoined }: { onJoined: () => void }) {
+  const here = usePartnerHere()
+  const name = useName()
+  const [mine, setMine] = useState(false)
+  const [his, setHis] = useState(false)
+  useEffect(() => onLive(p => { if (typeof p.hold === 'boolean') setHis(p.hold) }), [])
+  useEffect(() => { if (!here) setHis(false) }, [here])
+  useEffect(() => {
+    if (!mine || !his) return
+    const t = setTimeout(onJoined, 1500)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mine, his])
+  // Свернули приложение, держа палец, — отпускаем
+  useEffect(() => {
+    const off = () => { if (document.visibilityState === 'hidden') { setMine(false); sendLive({ hold: false }) } }
+    document.addEventListener('visibilitychange', off)
+    return () => document.removeEventListener('visibilitychange', off)
+  }, [])
+  if (!here) return null
+  const press = (v: boolean) => { if (v === mine) return; setMine(v); sendLive({ hold: v }) }
+  const both = mine && his
+  return (
+    <div className={'hands' + (both ? ' both' : his ? ' his' : mine ? ' mine' : '')}>
+      <div className="hands-row">
+        <Ava who="me" size={30} />
+        <button
+          className="hands-btn" aria-label="Держаться за руки"
+          onPointerDown={e => { e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* палец уже убрали */ } press(true) }}
+          onPointerUp={() => press(false)} onPointerCancel={() => press(false)}
+          onContextMenu={e => e.preventDefault()}
+        >
+          <Img src="common/two_hearts" />
+        </button>
+        <Ava who="him" size={30} />
+      </div>
+      <span>{both ? 'Держитесь за руки' : his ? `${name('him')} держит тебя за руку` : mine ? `Ждём, когда ${name('him')} возьмёт` : `${name('him')} тоже здесь · зажми сердечко`}</span>
+    </div>
   )
 }

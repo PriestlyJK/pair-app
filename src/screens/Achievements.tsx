@@ -53,6 +53,7 @@ export const SPECIALS: Special[] = [
   { id: 'clean', name: 'Без хвостов', icon: 'tracker/sprint_start', hint: 'Закройте все задачи недели (от 3 штук)' },
   { id: 'jackpot', name: 'Джекпот', icon: 'game/jackpot', hint: 'Выбейте +100 на колесе' },
   { id: 'pet2', name: 'Нас стало больше', icon: 'shop/coupons/second_pet', hint: 'Накопите на второго питомца' },
+  { id: 'hands', name: 'За руку', icon: 'common/two_hearts', hint: 'Подержитесь за руки в комнате, когда оба в приложении' },
 ]
 
 type Paid = Partial<Record<Who, Record<string, number>>>
@@ -105,6 +106,7 @@ export function useAchievements() {
     clean: week.length >= 3 && week.every(t => t.status === 'done'),
     jackpot: !!me.jack,
     pet2: s.jar.me + s.jar.him >= 4000,
+    hands: !!me.hands,
   }
 
   const tracks: TrackState[] = TRACKS.map(t => {

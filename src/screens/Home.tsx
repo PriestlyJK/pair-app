@@ -11,7 +11,7 @@ import { ProfileSheet } from './Profile'
 import { PushNudge } from '../push'
 import { DiaryCard } from './DiaryCard'
 import { CrownCard, WheelButton, WheelSheet } from './Wheel'
-import { SoonCard, ChallengeCard } from './HomeCards'
+import { SoonCard, ChallengeCard, HoldHands } from './HomeCards'
 
 // Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
 const Diary = lazy(() => import('./Diary'))
@@ -138,14 +138,17 @@ function Crop({ src, u0, u1, v0, v1, x, y, w }: { src: string; u0: number; u1: n
 
 const PET_CANVAS = 0.4 // ширина холста питомца в долях комнаты у переднего края
 
+// Что кот «принёс»: касание от партнёра или мысль о том, кто давно не заходил
+interface Carry { icon?: string; ava?: Who; label: string; onTap: () => void }
 interface RoomProps {
   tod: Tod; pose: Pose; fx: string | null; bowlFull: boolean; toy?: string | null; bowlHidden?: boolean
+  carry?: Carry | null
   edit?: boolean; onEditDone?: () => void
   walkMs?: number
   onPet?: () => void; onFloor?: (x: number, y: number) => void; onPetDrag?: (dragging: boolean) => void
 }
 
-export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = false, onEditDone, walkMs = 0, onPet, onFloor, onPetDrag }: RoomProps) {
+export function Room({ tod, pose, fx, bowlFull, toy, carry, bowlHidden = false, edit = false, onEditDone, walkMs = 0, onPet, onFloor, onPetDrag }: RoomProps) {
   const { pet, owned, room, setRoom, toast } = useStore()
   const layer = useRef<HTMLDivElement>(null)
   const drag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null)
@@ -306,6 +309,14 @@ export function Room({ tod, pose, fx, bowlFull, toy, bowlHidden = false, edit = 
           <PetView pose={pose} className={walkMs ? 'hop' : pose === 'idle' || pose === 'sleep' ? 'breathe' : 'bounce'} key={pose + (walkMs ? 'w' : '')} />
           {fx && <img className="fx" style={{ top: `${bb[1] * 100}%` }} src={`assets/pet/effects/${fx}.webp`} alt="" key={fx + pose} />}
           {hungry && <img className="fx loop" style={{ top: `${bb[1] * 100 - 14}%` }} src="assets/pet/effects/fx_hunger_bubble.webp" alt="" />}
+          {carry && !edit && (
+            <button className={'carry' + (carry.ava ? ' ava' : '')} style={{ top: `${bb[1] * 100 - 6}%` }} aria-label={carry.label}
+              onPointerDown={e => e.stopPropagation()} onClick={carry.onTap}>
+              <span className="carry-in">
+                {carry.ava ? <><Ava who={carry.ava} size={30} /><img className="carry-heart" src="assets/common/heart_pale.webp" alt="" /></> : <img src={`assets/${carry.icon}.webp`} alt="" />}
+              </span>
+            </button>
+          )}
         </Placed>
         {inBed && (
           <Placed src={FURN.bed.icon} x={bed.x} y={bed.y} w={widthOf('bed', bed.y)} flip={bed.flip} z={petZ + 1}
@@ -394,6 +405,9 @@ function HomeMain() {
     setTimeout(() => document.querySelector('.room-edit')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.sub])
+  // Когда каждый последний раз открывал приложение: кот скучает по тому, кто давно не заходил
+  const [lastSeen, setLastSeen] = usePersist<Partial<Record<Who, string>>>('last_seen', {})
+  useEffect(() => { if (lastSeen.me !== TODAY_KEY) setLastSeen(v => ({ ...v, me: TODAY_KEY })) }, [lastSeen.me, setLastSeen])
   const [walkMs, setWalkMs] = useState(0)
   const [lifted, setLifted] = useState(false)
   const [sent, setSent] = usePersist<Record<Who, Record<string, number>>>('sent', { me: {}, him: {} })
@@ -402,6 +416,16 @@ function HomeMain() {
   const [inbox, setInbox] = usePersist<PairEvent[]>('inbox', [])
   const last = inbox[inbox.length - 1]
   const lastMsg = last ? describe(last, name('him'), s.profile.him.g) : null
+  // Кот приносит непрочитанное касание, а если партнёр давно не заходил — скучает по нему
+  const away = getLink() && !here && lastSeen.him ? diffDays(TODAY_KEY, lastSeen.him) : 0
+  const carry = lastMsg
+    ? { icon: lastMsg.icon, label: 'Непрочитанное', onTap: () => setInboxOpen(true) }
+    : away >= 2
+      ? {
+          ava: 'him' as Who, label: `${s.pet.name || 'Питомец'} скучает`,
+          onTap: () => { s.toast(`${s.pet.name || 'Питомец'} скучает: ${name('him')} не ${g.p('заходил', 'заходила')} уже ${away} ${plural(away, 'день', 'дня', 'дней')}`, 'common/heart_pale'); setTouchOpen(true) },
+        }
+      : null
   const [flyer, setFlyer] = useState<{ icon: string; k: number } | null>(null)
   const timer = useRef<number | undefined>(undefined)
   const walkTimer = useRef<number | undefined>(undefined)
@@ -455,6 +479,15 @@ function HomeMain() {
   function stopEating() {
     clearTimeout(timer.current); clearTimeout(afterEat.current)
     setAtBowl(false); setAction(null); setFx(null); setToy(null)
+  }
+  // Держались за руки: кот радуется, раз в день — монеты каждому
+  function joined() {
+    act('happy', 2600, 'fx_hearts')
+    s.setPet(p => ({ ...p, happiness: Math.min(100, p.happiness + 10) }))
+    if (s.game.me?.hands !== TODAY_KEY) {
+      s.setGame(gm => ({ ...gm, me: { ...gm.me, hands: TODAY_KEY } }))
+      s.earn(5, `Держитесь за руки · +5`, 'common/two_hearts')
+    } else s.toast('Держитесь за руки', 'common/two_hearts')
   }
   function tapPet() {
     if (tod === 'night' && !action) { s.toast(`${pet.name} спит`, 'common/moon'); return }
@@ -549,7 +582,9 @@ function HomeMain() {
       <div>
         <div className="room-wrap">
           <Room tod={tod} pose={pose} fx={fx} onPet={tapPet} bowlFull={pet.satiety >= HUNGRY} toy={toy} bowlHidden={pose === 'eat' && atBowl}
-            edit={edit} onEditDone={() => setEdit(false)} walkMs={walkMs} onFloor={onFloor} onPetDrag={d => { if (d) stopEating(); setLifted(d) }} />
+            edit={edit} onEditDone={() => setEdit(false)} walkMs={walkMs} onFloor={onFloor} onPetDrag={d => { if (d) stopEating(); setLifted(d) }}
+            carry={lifted || walkMs ? null : carry} />
+          {!edit && <HoldHands onJoined={joined} />}
           <div className="room-ui">
             <button className="name-tag" onClick={() => setPetOpen(true)}>
               <span className="lvl"><Img src="pet/ui/level_badge" /><b>{pet.level}</b></span>
