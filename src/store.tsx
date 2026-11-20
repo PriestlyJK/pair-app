@@ -3,8 +3,8 @@ import { DI, type Task, type Who } from './data'
 import { TODAY_KEY, diffDays, human, type CycleDay } from './dates'
 import { moveImagesToFiles } from './photos'
 import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, setPushText, getStatus, onStatus, type PairEvent } from './sync'
-import { addEarned, crowned, gameOn, lastWeek, prizeOf, CROWN_BONUS, GIFT_COINS, wheel, type CoinGift, type Game } from './game'
-import { resultsOf, unsettled, couponSize, type Auction, type Lot } from './auction'
+import { addEarned, crowned, gameOn, lastWeek, thisWeek, prizeOf, CROWN_BONUS, GIFT_COINS, wheel, type CoinGift, type Game } from './game'
+import { bidsIn, isLotId, lotsOf, resultsOf, unsettled, couponSize, withoutBid, type Auction, type Lot } from './auction'
 import { refreshPush } from './push'
 
 // Общее состояние приложения. Пока хранится на телефоне (localStorage), потом переедет в Supabase.
@@ -382,10 +382,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     aucSettled.add(weeks.join())
     let back = 0
     const won: { wk: string; lot: Lot; n: number }[] = []
-    for (const wk of weeks) for (const r of resultsOf(auction, wk)) {
-      if (!r.me) continue
-      if (r.win === 'me') won.push({ wk, lot: r.lot, n: r.me })
-      else back += r.me
+    for (const wk of weeks) {
+      for (const r of resultsOf(auction, wk)) {
+        if (!r.me) continue
+        if (r.win === 'me') won.push({ wk, lot: r.lot, n: r.me })
+        else back += r.me
+      }
+      // Лот убрали или его уже нет — ставка возвращается
+      const ids = new Set(lotsOf(auction, wk).map(l => l.id))
+      for (const [id, n] of Object.entries(bidsIn(auction.me, wk))) if (!ids.has(id)) back += n
     }
     if (won.length) setCoupons(cs => {
       const fresh = won.filter(w => !cs.some(c => c.id === `auc-${w.wk}-${w.lot.id}`))
@@ -398,6 +403,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       : `Аукцион: ставки вернулись +${back}`
     // После тоста короны, если он тоже сегодня
     setTimeout(() => toast(won.length && back ? `${text} · +${back}` : text, won.length ? 'game/gavel' : 'game/bid', won.length > 0), 4200)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auction, status])
+
+  /* Первая версия аукциона ставила готовые лоты, лоты теперь придумываете вы.
+     Ставки на те старые лоты этой недели возвращаем сразу. */
+  useEffect(() => {
+    if (status !== 'online' && status !== 'local') return
+    const wk = thisWeek()
+    const stale = Object.entries(bidsIn(auction.me, wk)).filter(([id]) => !isLotId(id))
+    if (!stale.length || aucSettled.has('stale:' + wk)) return
+    aucSettled.add('stale:' + wk)
+    const n = stale.reduce((a, [, v]) => a + v, 0)
+    setAuction(a => ({ ...a, me: stale.reduce((r, [id]) => withoutBid(r, id, wk), a.me) }))
+    if (n) setCoins(c => ({ ...c, me: c.me + n }))
+    if (n) setTimeout(() => toast(`Аукцион: ставки вернулись +${n}`, 'game/bid'), 2500)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auction, status])
 
