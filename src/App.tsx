@@ -10,6 +10,7 @@ import Calendar from './screens/Calendar'
 import Together from './screens/Together'
 import Cheatsheet from './screens/Cheatsheet'
 import Shop from './screens/Shop'
+import { HobbyInbox } from './screens/Hobby'
 
 const TABS: { id: Tab; name: string; icon: string }[] = [
   { id: 'home', name: 'Дом', icon: 'nav/home' },
@@ -40,6 +41,7 @@ function Shell() {
         ))}
       </nav>
       {shop && <Shop />}
+      <HobbyInbox />
     </>
   )
 }

@@ -12,6 +12,7 @@ import { PushNudge } from '../push'
 import { DiaryCard } from './DiaryCard'
 import { CrownCard, WheelButton, WheelSheet } from './Wheel'
 import { AuctionCard } from './Auction'
+import HobbyScreen, { HobbyCard } from './Hobby'
 import { SoonCard, ChallengeCard, HoldHands } from './HomeCards'
 
 // Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
@@ -366,6 +367,7 @@ export function Room({ tod, pose, fx, bowlFull, toy, carry, bowlHidden = false, 
 
 export default function Home() {
   const s = useStore()
+  if (s.sub === 'hobby') return <HobbyScreen />
   if (s.sub === 'diary') return <Suspense fallback={<div className="screen" />}><Diary /></Suspense>
   return <HomeMain />
 }
@@ -661,6 +663,7 @@ function HomeMain() {
 
       <ChallengeCard />
 
+      <HobbyCard />
       <CrownCard />
       <AuctionCard />
 

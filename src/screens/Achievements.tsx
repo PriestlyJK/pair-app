@@ -8,6 +8,7 @@ import type { Place } from './Places'
 import type { DEntry } from './DiaryCard'
 import type { WItem } from './Together'
 import type { Auction } from '../auction'
+import { goldCount, type HobbyDoc } from '../hobby'
 
 /* Ачивки по ступеням: бронза → серебро → золото → алмаз. За каждую ступень — монеты.
    Достигнута ли ступень, считается из ваших данных. Забранные награды у каждого свои:
@@ -45,6 +46,7 @@ export const TRACKS: Track[] = [
   { id: 'pet', name: 'Питомец растёт', icon: 'pet/ui/level_badge', steps: [3, 5, 10, 20], what: n => `${n} уровень` },
   { id: 'crown', name: 'Корона недели', icon: 'game/crown', steps: [1, 4, 12, 26], what: p('корона у тебя', 'короны у тебя', 'корон у тебя') },
   { id: 'wheel', name: 'Колесо дня', icon: 'game/wheel_icon', steps: [7, 30, 100, 365], what: p('прокрутка', 'прокрутки', 'прокруток') },
+  { id: 'hobby', name: 'Мастер своего дела', icon: 'game/hobby_box', steps: [10, 50, 200, 600], what: p('вещь сделана', 'вещи сделано', 'вещей сделано') },
   { id: 'auction', name: 'Аукцион', icon: 'game/gavel', steps: [1, 5, 15, 40], what: p('лот выигран', 'лота выиграно', 'лотов выиграно') },
 ]
 
@@ -55,6 +57,7 @@ export const SPECIALS: Special[] = [
   { id: 'clean', name: 'Без хвостов', icon: 'tracker/sprint_start', hint: 'Закройте все задачи недели (от 3 штук)' },
   { id: 'jackpot', name: 'Джекпот', icon: 'game/jackpot', hint: 'Выбейте +100 на колесе' },
   { id: 'pet2', name: 'Нас стало больше', icon: 'shop/coupons/second_pet', hint: 'Накопите на второго питомца' },
+  { id: 'golden', name: 'Золотые руки', icon: 'game/rosette', hint: 'Сделайте в хобби золотую вещь' },
   { id: 'hands', name: 'За руку', icon: 'common/two_hearts', hint: 'Подержитесь за руки в комнате, когда оба в приложении' },
 ]
 
@@ -75,6 +78,7 @@ export function useAchievements() {
   const [challenges] = usePersist<{ claimed?: boolean }[]>('challenges', [])
   const [sent] = usePersist<Record<Who, Record<string, number>>>('sent', { me: {}, him: {} })
   const [auction] = usePersist<Auction>('auction', {})
+  const [hobby] = usePersist<HobbyDoc>('hobby', {})
   const [paidAll, setPaidAll] = usePersist<Paid>('ach', {})
   const ph = usePhotos()
   const paid = paidAll.me ?? {}
@@ -103,6 +107,7 @@ export function useAchievements() {
     crown: me.crowns ?? 0,
     wheel: me.spins ?? 0,
     auction: auction.me?.wins ?? 0,
+    hobby: hobby.me?.made ?? 0,
   }
   const specialDone: Record<string, boolean> = {
     newpet: !!s.pet.name,
@@ -111,6 +116,7 @@ export function useAchievements() {
     jackpot: !!me.jack,
     pet2: s.jar.me + s.jar.him >= 4000,
     hands: !!me.hands,
+    golden: goldCount(hobby.me) > 0,
   }
 
   const tracks: TrackState[] = TRACKS.map(t => {
