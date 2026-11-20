@@ -56,7 +56,7 @@ export function WheelSheet({ open, onClose }: { open: boolean; onClose: () => vo
     const prize = rollPrize(), i = PRIZES.findIndex(p => p.id === prize), id = Date.now()
     // Останавливаемся внутри сектора, но не у самой границы
     const jitter = (Math.random() * 2 - 1) * (sectorHalf(i) - 8)
-    s.setGame(gm => { const r = gm.me ?? {}; return { ...gm, me: { ...r, at: today(), left: spinsLeft(r) - 1, spin: { id, prize } } } })
+    s.setGame(gm => { const r = gm.me ?? {}; return { ...gm, me: { ...r, at: today(), left: spinsLeft(r) - 1, spin: { id, prize }, spins: (r.spins ?? 0) + 1 } } })
     const want = (((-(sectorMid(i) + jitter)) % 360) + 360) % 360
     setRot(r => r - (((r % 360) + 360) % 360) + 360 * 6 + want)
     setRes(null); setBusy(true); wheel.spinning = true

@@ -1,7 +1,8 @@
 import { lazy, Suspense, useState } from 'react'
 import { useStore, usePersist } from '../store'
 import { Img, Header, Sheet, Bar, Ava, Seg, plural, useName, useG } from '../ui'
-import { ACHIEVEMENTS, ACH_HINT, TOGETHER_TILES, type Who } from '../data'
+import { TOGETHER_TILES, type Who } from '../data'
+import Achievements, { useAchievements } from './Achievements'
 import { humanY } from '../dates'
 import { usePhotos } from '../photos'
 import { SECTIONS, type Topic, type Wish, type Goal, type Bet, type Thanks, type Rule } from './TogetherSections'
@@ -59,7 +60,7 @@ function TogetherHome() {
     gratitude: thanks.length ? `${thanks.length} «спасибо»` : 'за мелочи',
     agreements: n(rules.filter(r => r.ok.me && r.ok.him).length, 'правило', 'правила', 'правил') || 'правила пары',
     talk: n(talk.filter(t => !t.done).length, 'тема', 'темы', 'тем') || 'важные темы',
-    achievements: `${ach.filter(a => a.done).length} из ${ach.length}`,
+    achievements: ach.due ? `забрать +${ach.due}` : `${ach.steps} из ${ach.total}`,
   }
   return (
     <div className="screen">
@@ -83,7 +84,7 @@ function TogetherHome() {
       </div>
       <div className="tiles">
         {TOGETHER_TILES.map(t => (
-          <button key={t.id} className="tile" onClick={() => s.go('together', t.id)}>
+          <button key={t.id} className={'tile' + (t.id === 'achievements' && ach.due ? ' due' : '')} onClick={() => s.go('together', t.id)}>
             <Img src={t.icon} />
             <b>{t.name}</b>
             <small>{notes[t.id] ?? ''}</small>
@@ -452,50 +453,6 @@ function Watchlist() {
           </>
         )}
       </Sheet>
-    </div>
-  )
-}
-
-// ---------- Ачивки ----------
-function useAchievements() {
-  const { s, bets, watch, sent, ph } = useCounts()
-  const doneTasks = s.tasks.filter(t => t.status === 'done')
-  const hugs = (sent.me.hug ?? 0) + (sent.him.hug ?? 0)
-  const days = s.daysTogether ?? 0
-  const thisWeek = s.tasks.filter(t => t.status !== 'backlog')
-  const best = ph.best
-  const done: Record<string, boolean> = {
-    meet1: s.meetCount >= 1, meet10: s.meetCount >= 10, meet25: s.meetCount >= 25, meet50: s.meetCount >= 50,
-    task1: doneTasks.length >= 1, task50: doneTasks.length >= 50, epic: doneTasks.some(t => t.type === 'epic'),
-    clean: thisWeek.length >= 3 && thisWeek.every(t => t.status === 'done'),
-    pet: !!s.pet.name, grown: s.pet.stage === 'adult',
-    photo7: best >= 7, photo30: best >= 30, hug100: hugs >= 100,
-    movies: watch.filter(w => w.status === 'watched').length >= 5,
-    days100: days >= 100, year: days >= 365, bet1: bets.length > 0, pet2: s.jar.me + s.jar.him >= 4000,
-  }
-  return ACHIEVEMENTS.map(a => ({ ...a, done: !!done[a.id] }))
-}
-
-function Achievements() {
-  const s = useStore()
-  const list = useAchievements()
-  const got = list.filter(a => a.done).length
-  return (
-    <div className="screen">
-      <Header title="Ачивки" sub={`${got} из ${list.length} · бронза, серебро, золото`} onBack={() => s.go('together')} icon="common/trophy" />
-      <div className="card"><Bar value={got} max={list.length} color="linear-gradient(90deg,#F8DE96,#E8B04A)" /></div>
-      <div className="grid3">
-        {list.map(a => (
-          <button key={a.id} className={'ach' + (a.done ? '' : ' locked')} onClick={() => s.toast(a.done ? `«${a.name}» получена` : ACH_HINT[a.id], a.icon)}>
-            <div className="fr">
-              <img src={`assets/achievements/frame_${a.tier}.webp`} alt="" />
-              <img className="in" src={`assets/${a.icon}.webp`} alt="" />
-              {!a.done && <img className="lock" src="assets/common/lock.webp" alt="" />}
-            </div>
-            <span>{a.name}</span>
-          </button>
-        ))}
-      </div>
     </div>
   )
 }

@@ -24,6 +24,9 @@ export interface GameRec {
   feed?: number // призы в запасе: бесплатная еда,
   coupon?: number // купон даром,
   luck?: number // ×2 на следующую задачу
+  crowns?: number // сколько раз носил корону (для ачивки)
+  spins?: number // сколько раз крутил колесо (для ачивки)
+  jack?: boolean // выбивал джекпот
 }
 export type Game = Partial<Record<Who, GameRec>>
 

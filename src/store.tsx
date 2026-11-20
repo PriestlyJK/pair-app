@@ -330,6 +330,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     handed.add(sp.id)
     const p = prizeOf(sp.prize)
     const done = (k?: 'feed' | 'coupon' | 'luck') => setGame(g => ({ ...g, me: { ...g.me, spin: undefined, ...(k ? { [k]: (g.me?.[k] ?? 0) + 1 } : {}) } }))
+    if (p.id === 'c100') setGame(g => ({ ...g, me: { ...g.me, jack: true } }))
     if (p.coins) { done(); earn(p.coins, p.id === 'c100' ? `Джекпот! +${p.coins}` : `Колесо: +${p.coins}`, p.icon); return }
     if (p.id === 'feed') { done('feed'); toast(`Колесо: бесплатная еда для ${pet.name || 'питомца'}`, p.icon); return }
     if (p.id === 'luck') { done('luck'); toast('Колесо: удача ×2 на следующую задачу', p.icon); return }
@@ -362,7 +363,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const lw = lastWeek()
     if (game.me?.crown === lw || crownPaid.has(lw) || !crowned(game).includes('me')) return
     crownPaid.add(lw)
-    setGame(g => ({ ...g, me: { ...g.me, crown: lw } }))
+    setGame(g => ({ ...g, me: { ...g.me, crown: lw, crowns: (g.me?.crowns ?? 0) + 1 } }))
     setCoins(c => ({ ...c, me: c.me + CROWN_BONUS }))
     // Без отмены по cleanup: setGame выше сразу перезапустит эффект, и тост бы потерялся
     setTimeout(() => toast(`Корона недели твоя! +${CROWN_BONUS}`, 'game/crown', true), 1500)

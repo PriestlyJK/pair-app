@@ -115,36 +115,6 @@ export const PHASES: Record<Phase, { name: string; icon: string; color: string; 
   pms: { name: 'ПМС', icon: 'cheatsheet/situations/sit_pms', color: '#D9D2F0', hint: 'Эстроген и прогестерон падают: возможны раздражительность, отёки, вздутие, чувствительность груди, перепады настроения.' },
 }
 
-// ---------- Ачивки ----------
-// Получены они или нет, считается из ваших данных (screens/Together.tsx)
-export const ACHIEVEMENTS = [
-  { id: 'meet1', name: 'Первая встреча', tier: 'bronze', icon: 'meetings/meet_button' },
-  { id: 'meet10', name: '10 встреч', tier: 'silver', icon: 'common/two_hearts' },
-  { id: 'meet25', name: '25 встреч', tier: 'gold', icon: 'common/two_hearts' },
-  { id: 'meet50', name: '50 встреч', tier: 'gold', icon: 'common/two_hearts' },
-  { id: 'task1', name: 'Первая задача', tier: 'bronze', icon: 'common/check_cookie' },
-  { id: 'task50', name: '50 задач', tier: 'silver', icon: 'tracker/type_task' },
-  { id: 'epic', name: 'Покорили вершину', tier: 'gold', icon: 'tracker/type_epic' },
-  { id: 'clean', name: 'Без хвостов', tier: 'silver', icon: 'tracker/sprint_start' },
-  { id: 'pet', name: 'Новый питомец', tier: 'bronze', icon: 'pet/selection/basket_open' },
-  { id: 'grown', name: 'Питомец вырос', tier: 'gold', icon: 'pet/ui/level_badge' },
-  { id: 'photo7', name: 'Неделя кадров', tier: 'bronze', icon: 'common/camera' },
-  { id: 'photo30', name: 'Месяц кадров', tier: 'silver', icon: 'common/camera' },
-  { id: 'hug100', name: '100 объятий', tier: 'silver', icon: 'touches/hug' },
-  { id: 'movies', name: 'Киноклуб', tier: 'silver', icon: 'watchlist/status_watched' },
-  { id: 'days100', name: '100 дней', tier: 'silver', icon: 'memory/days_together' },
-  { id: 'year', name: 'Год вместе', tier: 'gold', icon: 'memory/days_together' },
-  { id: 'bet1', name: 'Первый спор', tier: 'bronze', icon: 'bets/bet' },
-  { id: 'pet2', name: 'Нас стало больше', tier: 'special', icon: 'shop/coupons/second_pet' },
-] as const
-export const ACH_HINT: Record<string, string> = {
-  meet1: 'Отметьте первую встречу', meet10: '10 встреч вживую', meet25: '25 встреч вживую', meet50: '50 встреч вживую',
-  task1: 'Закройте первую задачу', task50: 'Закройте 50 задач', epic: 'Закройте эпик', clean: 'Закройте все задачи недели (от 3 штук)',
-  pet: 'Заведите питомца', grown: 'Питомец дорастёт до 10 уровня', photo7: '7 дней подряд фото дня вдвоём', photo30: '30 дней подряд фото дня вдвоём',
-  hug100: 'Отправьте 100 объятий', movies: 'Посмотрите вместе 5 фильмов', days100: '100 дней вместе', year: 'Год вместе',
-  bet1: 'Заключите первый спор', pet2: 'Накопите на второго питомца',
-}
-
 // ---------- Магазин ----------
 export interface ShopItem { id: string; name: string; price: number; icon: string; note?: string }
 export const SHOP: Record<string, ShopItem[]> = {
