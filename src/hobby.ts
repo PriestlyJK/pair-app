@@ -16,6 +16,9 @@ import { HOBBIES, type HItem, type Hobby, type Tier } from './hobbies'
    Документ 'hobby' — у каждого своя половина (me / him), пишет в неё только хозяин.
    Ключ вещи: 'хобби.вещь', золотая — 'хобби.вещь*'. */
 
+// Хобби пока сырые: на сайте скрыты, видны только при локальной разработке. Чтобы включить для всех — true.
+export const HOBBY_ON: boolean = import.meta.env.DEV
+
 export const MAX_LEVEL = 5
 export const SLOTS = [0, 2, 3, 4, 5, 6] // ячеек на уровне
 export const UPGRADE = [0, 150, 400, 900, 2000] // сколько стоит перейти с уровня i на i + 1

@@ -11,6 +11,7 @@ import Together from './screens/Together'
 import Cheatsheet from './screens/Cheatsheet'
 import Shop from './screens/Shop'
 import { HobbyInbox } from './screens/Hobby'
+import { HOBBY_ON } from './hobby'
 
 const TABS: { id: Tab; name: string; icon: string }[] = [
   { id: 'home', name: 'Дом', icon: 'nav/home' },
@@ -24,7 +25,7 @@ function Shell() {
   const { tab, sub, go, shop, profile } = useStore()
   if (!profile.me.ready) return <Onboarding />
   // Хобби — отдельный режим на весь экран, без нижнего меню
-  const full = tab === 'home' && sub === 'hobby'
+  const full = HOBBY_ON && tab === 'home' && sub === 'hobby'
   return (
     <>
       <main className={'app' + (full ? ' full' : '')} key={tab}>
@@ -43,7 +44,7 @@ function Shell() {
         ))}
       </nav>}
       {shop && <Shop />}
-      <HobbyInbox />
+      {HOBBY_ON && <HobbyInbox />}
     </>
   )
 }

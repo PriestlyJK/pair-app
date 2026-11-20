@@ -8,7 +8,7 @@ import type { Place } from './Places'
 import type { DEntry } from './DiaryCard'
 import type { WItem } from './Together'
 import type { Auction } from '../auction'
-import { goldCount, type HobbyDoc } from '../hobby'
+import { HOBBY_ON, goldCount, type HobbyDoc } from '../hobby'
 
 /* Ачивки по ступеням: бронза → серебро → золото → алмаз. За каждую ступень — монеты.
    Достигнута ли ступень, считается из ваших данных. Забранные награды у каждого свои:
@@ -28,7 +28,7 @@ type Steps = [number, number, number, number]
 interface Track { id: string; name: string; icon: string; steps: Steps; what: (n: number) => string }
 const p = (a: string, b: string, c: string) => (n: number) => `${n} ${plural(n, a, b, c)}`
 
-export const TRACKS: Track[] = [
+export const TRACKS: Track[] = ([
   { id: 'meet', name: 'Встречи', icon: 'meetings/meet_button', steps: [1, 10, 25, 50], what: p('встреча', 'встречи', 'встреч') },
   { id: 'days', name: 'Дни вместе', icon: 'memory/days_together', steps: [30, 100, 365, 1000], what: p('день', 'дня', 'дней') },
   { id: 'tasks', name: 'Задачи', icon: 'common/check_cookie', steps: [1, 25, 100, 300], what: p('задача закрыта', 'задачи закрыто', 'задач закрыто') },
@@ -48,10 +48,10 @@ export const TRACKS: Track[] = [
   { id: 'wheel', name: 'Колесо дня', icon: 'game/wheel_icon', steps: [7, 30, 100, 365], what: p('прокрутка', 'прокрутки', 'прокруток') },
   { id: 'hobby', name: 'Мастер своего дела', icon: 'game/hobby_box', steps: [10, 50, 200, 600], what: p('вещь сделана', 'вещи сделано', 'вещей сделано') },
   { id: 'auction', name: 'Аукцион', icon: 'game/gavel', steps: [1, 5, 15, 40], what: p('лот выигран', 'лота выиграно', 'лотов выиграно') },
-]
+] satisfies Track[]).filter(t => HOBBY_ON || t.id !== 'hobby') // хобби пока скрыты на сайте
 
 interface Special { id: string; name: string; icon: string; hint: string }
-export const SPECIALS: Special[] = [
+export const SPECIALS: Special[] = ([
   { id: 'newpet', name: 'Новый питомец', icon: 'pet/selection/basket_open', hint: 'Заведите питомца' },
   { id: 'epic', name: 'Покорили вершину', icon: 'tracker/type_epic', hint: 'Закройте эпик' },
   { id: 'clean', name: 'Без хвостов', icon: 'tracker/sprint_start', hint: 'Закройте все задачи недели (от 3 штук)' },
@@ -59,7 +59,7 @@ export const SPECIALS: Special[] = [
   { id: 'pet2', name: 'Нас стало больше', icon: 'shop/coupons/second_pet', hint: 'Накопите на второго питомца' },
   { id: 'golden', name: 'Золотые руки', icon: 'game/rosette', hint: 'Сделайте в хобби золотую вещь' },
   { id: 'hands', name: 'За руку', icon: 'common/two_hearts', hint: 'Подержитесь за руки в комнате, когда оба в приложении' },
-]
+] satisfies Special[]).filter(x => HOBBY_ON || x.id !== 'golden')
 
 type Paid = Partial<Record<Who, Record<string, number>>>
 

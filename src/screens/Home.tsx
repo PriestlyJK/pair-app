@@ -13,6 +13,7 @@ import { DiaryCard } from './DiaryCard'
 import { CrownCard, WheelButton, WheelSheet } from './Wheel'
 import { AuctionCard } from './Auction'
 import HobbyScreen, { HobbyButton } from './Hobby'
+import { HOBBY_ON } from '../hobby'
 import { SoonCard, ChallengeCard, HoldHands } from './HomeCards'
 
 // Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
@@ -367,7 +368,7 @@ export function Room({ tod, pose, fx, bowlFull, toy, carry, bowlHidden = false, 
 
 export default function Home() {
   const s = useStore()
-  if (s.sub === 'hobby') return <HobbyScreen />
+  if (s.sub === 'hobby' && HOBBY_ON) return <HobbyScreen />
   if (s.sub === 'diary') return <Suspense fallback={<div className="screen" />}><Diary /></Suspense>
   return <HomeMain />
 }
@@ -604,7 +605,7 @@ function HomeMain() {
           </div>
           {edit
             ? <button className="arrange on" onClick={() => setEdit(false)}>✓ Готово</button>
-            : <><WheelButton onOpen={() => setWheelOpen(true)} /><HobbyButton /></>}
+            : <><WheelButton onOpen={() => setWheelOpen(true)} />{HOBBY_ON && <HobbyButton />}</>}
         </div>
       </div>
 
