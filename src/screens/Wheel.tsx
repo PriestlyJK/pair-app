@@ -175,6 +175,8 @@ export function GameTiles() {
   const left = spinsLeft(s.game.me)
   const wk = thisWeek()
   const a = earnedIn(s.game.me, wk), b = earnedIn(s.game.him, wk)
+  const days = diffDays(addDays(wk, 6), today())
+  const tie = a ? 'ничья' : days > 0 ? `итоги через ${days} ${plural(days, 'день', 'дня', 'дней')}` : 'итоги сегодня в полночь'
 
   return (
     <>
@@ -185,14 +187,16 @@ export function GameTiles() {
           {gameOn() ? (
             <>
               <span className="gt-score"><Ava who="me" size={22} />{a}<i>:</i>{b}<Ava who="him" size={22} /></span>
-              <small>{a === b ? (a ? 'ничья' : 'неделя только началась') : a > b ? 'ты впереди' : `${name('him')} впереди`}</small>
+              <small>{a === b ? tie : a > b ? 'ты впереди' : `${name('him')} впереди`}</small>
             </>
           ) : <small>заработает, когда вы будете в паре</small>}
         </button>
         <button className={'card game-tile' + (left ? ' ready' : '')} onClick={() => setWheelOpen(true)}>
           <span className="gt-wheel"><Img src="game/wheel_icon" />{left > 0 && <i className="dc-badge">{left}</i>}</span>
-          <b>Колесо дня</b>
-          <small>{left ? (left > 1 ? `${left} ${plural(left, 'прокрутка', 'прокрутки', 'прокруток')}` : 'можно крутить') : 'завтра снова'}</small>
+          <span className="gt-cap">
+            <b>Колесо дня</b>
+            <small>{left ? (left > 1 ? `${left} ${plural(left, 'прокрутка', 'прокрутки', 'прокруток')}` : 'можно крутить') : 'завтра снова'}</small>
+          </span>
         </button>
       </div>
       <WheelSheet open={wheelOpen} onClose={() => setWheelOpen(false)} />
