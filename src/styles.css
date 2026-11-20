@@ -900,7 +900,7 @@ textarea.dwrite { flex: none; min-height: 34dvh; resize: none; font-size: 16px; 
 .ch-prog { display: flex; align-items: center; gap: 8px; }
 .ch-prog > i { flex: 1; height: 9px; border-radius: 99px; background: var(--card-2); overflow: hidden; }
 .ch-prog > i > b { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #C8DDB9, #7FA66E); transition: width .4s ease; }
-.ch-prog span { min-width: 42px; text-align: right; font-size: 12.5px; font-weight: 900; }
+.ch-prog > span:last-child { min-width: 42px; text-align: right; font-size: 12.5px; font-weight: 900; }
 .ch-note { font-size: 12px; font-weight: 800; color: var(--muted); text-align: center; }
 .crown-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px 10px 10px; text-align: left; }
 .crown-card .cc-crown { width: 58px; flex: none; }
@@ -961,16 +961,13 @@ textarea.dwrite { flex: none; min-height: 34dvh; resize: none; font-size: 16px; 
 .carry.ava .carry-in > .ava { width: 78% !important; height: 78% !important; }
 .carry .carry-heart { position: absolute; right: -8%; bottom: -6%; width: 44% !important; }
 
-/* Держаться за руки — когда оба в приложении */
-.hands { position: absolute; z-index: 210; left: 10px; top: 58px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none; }
-.hands-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 99px; background: rgba(255, 250, 244, .9); box-shadow: 0 3px 12px rgba(70, 38, 22, .18); pointer-events: auto; }
-.hands-row .ava { transition: transform .3s; }
-.hands-btn { width: 48px; height: 48px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; background: var(--peach-soft, #FDE3D6); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: transform .2s, background .3s; }
-.hands-btn img { width: 36px; height: 36px; pointer-events: none; }
-.hands.mine .hands-btn { transform: scale(.92); background: #F9CBB8; }
+/* Держаться за руки — когда оба в приложении: кнопка слева, напротив колеса */
+.hands { position: absolute; z-index: 200; left: 10px; top: 56px; display: flex; align-items: center; gap: 6px; pointer-events: none; }
+.hands-btn { width: 52px; height: 52px; flex: none; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; background: rgba(255, 248, 238, .88); backdrop-filter: blur(6px); box-shadow: 0 6px 14px -8px rgba(90, 59, 46, .6); pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: transform .2s, background .3s; }
+.hands-btn img { width: 38px; height: 38px; pointer-events: none; }
+.hands.mine .hands-btn { transform: scale(.9); background: #FBD9CB; }
 .hands.his .hands-btn { animation: beat 1s ease-in-out infinite; }
-.hands.both .hands-btn { background: #F5B3A0; animation: beat .7s ease-in-out infinite; }
-.hands.both .hands-row .ava:first-child { transform: translateX(6px); }
-.hands.both .hands-row .ava:last-child { transform: translateX(-6px); }
-.hands > span { font-size: 12px; font-weight: 700; color: #6B4535; padding: 2px 9px; border-radius: 99px; background: rgba(255, 250, 244, .85); white-space: nowrap; }
-@keyframes beat { 50% { transform: scale(1.12); } }
+.hands.both .hands-btn { background: #F7C2B0; animation: beat .7s ease-in-out infinite; }
+.hands > span { font-size: 12px; font-weight: 800; color: #6B4535; padding: 3px 9px; border-radius: 99px; background: rgba(255, 248, 238, .88); backdrop-filter: blur(6px); white-space: nowrap; animation: fade-in .25s ease-out; }
+@keyframes beat { 50% { transform: scale(1.1); } }
+@keyframes fade-in { from { opacity: 0; transform: translateX(-4px); } }

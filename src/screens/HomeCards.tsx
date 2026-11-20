@@ -96,24 +96,29 @@ export function HoldHands({ onJoined }: { onJoined: () => void }) {
     document.addEventListener('visibilitychange', off)
     return () => document.removeEventListener('visibilitychange', off)
   }, [])
+  // Подсказка — только первые секунды после того, как партнёр зашёл, и пока кто-то держит
+  const [hint, setHint] = useState(false)
+  useEffect(() => {
+    if (!here) return
+    setHint(true)
+    const t = setTimeout(() => setHint(false), 6000)
+    return () => clearTimeout(t)
+  }, [here])
   if (!here) return null
   const press = (v: boolean) => { if (v === mine) return; setMine(v); sendLive({ hold: v }) }
   const both = mine && his
+  const text = both ? 'Держитесь за руки' : his ? `${name('him')} держит тебя за руку` : mine ? `Ждём, когда ${name('him')} возьмёт` : hint ? `${name('him')} здесь — зажми` : ''
   return (
     <div className={'hands' + (both ? ' both' : his ? ' his' : mine ? ' mine' : '')}>
-      <div className="hands-row">
-        <Ava who="me" size={30} />
-        <button
-          className="hands-btn" aria-label="Держаться за руки"
-          onPointerDown={e => { e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* палец уже убрали */ } press(true) }}
-          onPointerUp={() => press(false)} onPointerCancel={() => press(false)}
-          onContextMenu={e => e.preventDefault()}
-        >
-          <Img src="common/two_hearts" />
-        </button>
-        <Ava who="him" size={30} />
-      </div>
-      <span>{both ? 'Держитесь за руки' : his ? `${name('him')} держит тебя за руку` : mine ? `Ждём, когда ${name('him')} возьмёт` : `${name('him')} тоже здесь · зажми сердечко`}</span>
+      <button
+        className="hands-btn" aria-label="Держаться за руки"
+        onPointerDown={e => { e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* палец уже убрали */ } press(true) }}
+        onPointerUp={() => press(false)} onPointerCancel={() => press(false)}
+        onContextMenu={e => e.preventDefault()}
+      >
+        <Img src="common/two_hearts" />
+      </button>
+      {text && <span key={text}>{text}</span>}
     </div>
   )
 }
