@@ -3,7 +3,7 @@ import { useStore, usePersist } from '../store'
 import { addDays, diffDays } from '../dates'
 import { Img, Sheet, plural, useG, useName } from '../ui'
 import { gameOn, lastWeek, thisWeek, today } from '../game'
-import { bidsIn, lotsOf, resultsOf, withBid, MIN_BID, type Auction, type LotResult } from '../auction'
+import { bidsIn, lotsOf, resultsOf, withBid, withoutBid, MIN_BID, type Auction, type LotResult } from '../auction'
 
 const daysLeft = () => diffDays(addDays(thisWeek(), 6), today())
 const untilText = (d: number) => (d > 0 ? `итоги через ${d} ${plural(d, 'день', 'дня', 'дней')}` : 'итоги сегодня в полночь')
@@ -31,6 +31,14 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
     s.toast(first ? `Ставка в конверте: ${total}` : `Ставка поднята: ${total}`, 'game/bid')
   }
 
+  // Передумал(а) — ставку можно забрать до конца недели, монеты возвращаются целиком
+  function takeBack(lot: string) {
+    const n = mine[lot]
+    if (!n) return
+    setAuc(a => ({ ...a, me: withoutBid(a.me, lot) }))
+    s.gift(n, `Ставка вернулась: +${n}`, 'game/bid')
+  }
+
   const outcome = (r: LotResult) =>
     r.win === 'tie' ? 'ничья — монеты вернулись'
       : r.win === 'me' ? `твой · ${r.him ? `${r.me} против ${r.him}` : 'без соперника'}`
@@ -53,7 +61,7 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 <div className="grow">
                   <b>{lot.name}</b>
                   <small className="auc-line">
-                    {m ? <><Img src="game/bid" size={18} />твоя ставка: {m}</> : 'ставки нет'}
+                    {m ? <><Img src="game/bid" size={18} />твоя ставка: {m}{on && <button className="auc-take" onClick={() => takeBack(lot.id)}>забрать</button>}</> : 'ставки нет'}
                   </small>
                   <small className={'auc-line' + (h ? ' his' : '')}>
                     {h ? <><Img src="game/bid" size={18} />{name('him')} {g.p('сделал', 'сделала')} ставку</> : `${name('him')}: пока без ставки`}
@@ -77,7 +85,7 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
 
       <p className="wheel-info">
         {on ? (daysLeft() > 0 ? `Итоги через ${daysLeft()} ${plural(daysLeft(), 'день', 'дня', 'дней')}` : 'Итоги сегодня в полночь') : 'Аукцион заработает, когда вы будете в паре'}
-        <br /><span>У тебя {s.coins.me} {plural(s.coins.me, 'монета', 'монеты', 'монет')}. Ставку можно только поднять. Проиграешь — монеты вернутся</span>
+        <br /><span>У тебя {s.coins.me} {plural(s.coins.me, 'монета', 'монеты', 'монет')}. Ставку можно поднять или забрать до конца недели</span>
       </p>
 
       {past.length > 0 && (
@@ -97,7 +105,7 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
       <div className="card flat col" style={{ gap: 6 }}>
         <b>Как это работает</b>
         <span className="small muted b">
-          Ставка — от {MIN_BID} монет, монеты сразу уходят в конверт. В понедельник ставки открываются: у кого больше,
+          Ставка — от {MIN_BID} монет, монеты сразу уходят в конверт. До конца недели ставку можно поднять или забрать обратно. В понедельник ставки открываются: у кого больше,
           тот получает купон, а исполняет его другой. Проигравшему монеты возвращаются, при ничьей — обоим.
           Если на лот поставил только один — лот его.
         </span>

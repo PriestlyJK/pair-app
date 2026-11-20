@@ -2,7 +2,7 @@ import type { Who } from './data'
 import { thisWeek } from './game'
 
 /* Аукцион недели. Каждую неделю — три лота: приятные дела из жизни.
-   Ставки закрытые: монеты списываются сразу и лежат «в конверте», ставку можно только поднять.
+   Ставки закрытые: монеты списываются сразу и лежат «в конверте», ставку можно поднять или забрать до конца недели.
    Партнёр видит, что ты поставил(а) на лот, но не видит сколько.
    В понедельник итоги за прошлую неделю: у кого ставка больше, тот получает лот купоном
    (его исполняет проигравший), а проигравшему монеты возвращаются. Ничья — монеты возвращаются обоим.
@@ -61,6 +61,13 @@ export function withBid(r: AucRec = {}, lot: string, add: number, wk = thisWeek(
   const cur = bidsIn(r, wk)
   const weeks = (r.weeks ?? []).filter(w => w.wk !== wk).slice(-3)
   return { ...r, weeks: [...weeks, { wk, bids: { ...cur, [lot]: (cur[lot] ?? 0) + add } }] }
+}
+
+// Забрать ставку с лота этой недели (монеты возвращает вызывающий)
+export function withoutBid(r: AucRec = {}, lot: string, wk = thisWeek()): AucRec {
+  const { [lot]: _gone, ...rest } = bidsIn(r, wk)
+  void _gone
+  return { ...r, weeks: (r.weeks ?? []).map(w => (w.wk === wk ? { wk, bids: rest } : w)) }
 }
 
 export interface LotResult { lot: Lot; me: number; him: number; win: Who | 'tie' | null }
