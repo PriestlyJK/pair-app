@@ -29,7 +29,7 @@ function WheelDisc() {
 // Конфетти: вспышка поверх колеса при крупном призе
 const BIG: PrizeId[] = ['c100', 'coupon']
 
-function WheelSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function WheelSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const s = useStore()
   const g = useG()
   const name = useName()
@@ -166,13 +166,11 @@ function WeekSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   )
 }
 
-// Плитки на главной: счёт недели и колесо
-export function GameTiles() {
+// Корона недели — карточка на главной
+export function CrownCard() {
   const s = useStore()
   const name = useName()
-  const [wheelOpen, setWheelOpen] = useState(false)
-  const [weekOpen, setWeekOpen] = useState(false)
-  const left = spinsLeft(s.game.me)
+  const [open, setOpen] = useState(false)
   const wk = thisWeek()
   const a = earnedIn(s.game.me, wk), b = earnedIn(s.game.him, wk)
   const days = diffDays(addDays(wk, 6), today())
@@ -180,27 +178,27 @@ export function GameTiles() {
 
   return (
     <>
-      <div className="grid2">
-        <button className="card game-tile" onClick={() => setWeekOpen(true)}>
-          <Crown className="gt-crown" />
+      <button className="card crown-card" onClick={() => setOpen(true)}>
+        <Crown className="cc-crown" />
+        <span className="grow">
           <b>Корона недели</b>
-          {gameOn() ? (
-            <>
-              <span className="gt-score"><Ava who="me" size={22} />{a}<i>:</i>{b}<Ava who="him" size={22} /></span>
-              <small>{a === b ? tie : a > b ? 'ты впереди' : `${name('him')} впереди`}</small>
-            </>
-          ) : <small>заработает, когда вы будете в паре</small>}
-        </button>
-        <button className={'card game-tile' + (left ? ' ready' : '')} onClick={() => setWheelOpen(true)}>
-          <span className="gt-wheel"><Img src="game/wheel_icon" />{left > 0 && <i className="dc-badge">{left}</i>}</span>
-          <span className="gt-cap">
-            <b>Колесо дня</b>
-            <small>{left ? (left > 1 ? `${left} ${plural(left, 'прокрутка', 'прокрутки', 'прокруток')}` : 'можно крутить') : 'завтра снова'}</small>
-          </span>
-        </button>
-      </div>
-      <WheelSheet open={wheelOpen} onClose={() => setWheelOpen(false)} />
-      <WeekSheet open={weekOpen} onClose={() => setWeekOpen(false)} />
+          <small>{gameOn() ? (a === b ? tie : a > b ? 'ты впереди' : `${name('him')} впереди`) : 'заработает, когда вы будете в паре'}</small>
+        </span>
+        {gameOn() && <span className="gt-score"><Ava who="me" size={22} />{a}<i>:</i>{b}<Ava who="him" size={22} /></span>}
+      </button>
+      <WeekSheet open={open} onClose={() => setOpen(false)} />
     </>
+  )
+}
+
+// Колесо в комнате, под переключателем времени суток. Само окно колеса рисует главная.
+export function WheelButton({ onOpen }: { onOpen: () => void }) {
+  const s = useStore()
+  const left = spinsLeft(s.game.me)
+  return (
+    <button className={'wheel-btn' + (left ? ' ready' : '')} onClick={onOpen} aria-label="Колесо дня">
+      <Img src="game/wheel_icon" />
+      {left > 0 && <i className="dc-badge">{left}</i>}
+    </button>
   )
 }

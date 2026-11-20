@@ -59,7 +59,13 @@ export default function Shop() {
 
           {tab === 'coupons' ? <Coupons /> : tab === 'jar' ? <Jar /> : (
             <>
-              {tab === 'furniture' && <p className="small muted b" style={{ margin: '0 4px' }}>Мебель сразу появляется в комнате питомца.</p>}
+              {tab === 'furniture' && (
+                <div className="card row arrange-card">
+                  <Img src="shop/furniture/armchair" size={44} />
+                  <span className="grow small b">Мебель сразу появляется в комнате питомца. Её можно передвигать.</span>
+                  <button className="btn sm" onClick={() => s.go('home', 'arrange')}>Расставить</button>
+                </div>
+              )}
               {tab === 'acc' && <p className="small muted b" style={{ margin: '0 4px' }}>Нажми на вещь, чтобы примерить. Купленное надевается и снимается бесплатно.</p>}
               <div className="items">
                 {SHOP[tab].map(it => {

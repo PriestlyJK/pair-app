@@ -10,7 +10,7 @@ import { TODAY_KEY, diffDays, human, isSunday, weekEnd, weekRange, weekStart } f
 import { ProfileSheet } from './Profile'
 import { PushNudge } from '../push'
 import { DiaryCard } from './DiaryCard'
-import { GameTiles } from './Wheel'
+import { CrownCard, WheelButton, WheelSheet } from './Wheel'
 
 // Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
 const Diary = lazy(() => import('./Diary'))
@@ -384,6 +384,15 @@ function HomeMain() {
   const [profOpen, setProfOpen] = useState(false)
   const here = usePartnerHere()
   const [edit, setEdit] = useState(false)
+  const [wheelOpen, setWheelOpen] = useState(false)
+  // «Расставить» живёт в магазине: оттуда приходим сюда с #home/arrange
+  useEffect(() => {
+    if (s.sub !== 'arrange') return
+    s.go('home')
+    setEdit(true)
+    setTimeout(() => document.querySelector('.room-edit')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.sub])
   const [walkMs, setWalkMs] = useState(0)
   const [lifted, setLifted] = useState(false)
   const [sent, setSent] = usePersist<Record<Who, Record<string, number>>>('sent', { me: {}, him: {} })
@@ -529,8 +538,10 @@ function HomeMain() {
           <h1>Мы</h1>
           <p>{days != null ? `${days} ${plural(days, 'день', 'дня', 'дней')} вместе` : `${name('me')} и ${name('him')}`}</p>
         </div>
-        <button className="coin-pill" onClick={() => s.openShop()}>
+        <button className="coin-pill shop-pill" onClick={() => s.openShop()} aria-label="Магазин">
           <Img src="coins/coin" /> {s.coins.me}
+          <i className="pill-sep" />
+          <Img src="nav/shop" />
         </button>
       </div>
 
@@ -552,15 +563,10 @@ function HomeMain() {
               ))}
             </div>
           </div>
-          <button className={'arrange' + (edit ? ' on' : '')} onClick={() => {
-            if (edit) { setEdit(false); return }
-            setEdit(true)
-            setTimeout(() => document.querySelector('.room-edit')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60)
-          }}>
-            {edit ? <>✓ Готово</> : <><Img src="shop/furniture/armchair" />Расставить</>}
-          </button>
+          {edit
+            ? <button className="arrange on" onClick={() => setEdit(false)}>✓ Готово</button>
+            : <WheelButton onOpen={() => setWheelOpen(true)} />}
         </div>
-        {!edit && <p className="room-tip">Нажми на пол — {pet.name} пойдёт туда. Кота можно взять и перенести.</p>}
       </div>
 
       <div className="card stats">
@@ -614,7 +620,7 @@ function HomeMain() {
 
       <DiaryCard />
 
-      <GameTiles />
+      <CrownCard />
 
       <div className="grid2">
         <PhotoCard />
@@ -673,6 +679,8 @@ function HomeMain() {
           <button className="btn peach" onClick={() => { setInboxOpen(false); setTouchOpen(true) }}>Ответить</button>
         </div>
       </Sheet>
+
+      <WheelSheet open={wheelOpen} onClose={() => setWheelOpen(false)} />
 
       <Sheet open={petOpen} onClose={() => setPetOpen(false)} title={pet.name} icon="pet/ui/level_badge">
         <PetSheet />

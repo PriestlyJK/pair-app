@@ -463,7 +463,6 @@ textarea.input { resize: none; min-height: 70px; }
 .arrange { position: absolute; right: 10px; top: 58px; z-index: 200; display: flex; align-items: center; gap: 6px; padding: 4px 13px 4px 6px; border-radius: 99px; background: rgba(255, 248, 238, .92); backdrop-filter: blur(6px); font-weight: 900; font-size: 13.5px; box-shadow: 0 4px 10px -6px rgba(90, 59, 46, .5); }
 .arrange img { width: 28px; height: 28px; }
 .arrange.on { background: var(--leaf); color: #fff; padding: 9px 16px; font-size: 15px; box-shadow: 0 6px 14px -6px rgba(60, 90, 50, .8); }
-.room-tip { margin: 8px 6px 0; font-size: 12.5px; font-weight: 800; color: var(--muted); text-align: center; }
 .room-edit { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 18px; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow); }
 .re-bar { display: flex; align-items: center; gap: 8px; }
 .re-bar img { width: 36px; height: 36px; }
@@ -874,21 +873,19 @@ textarea.dwrite { flex: none; min-height: 34dvh; resize: none; font-size: 16px; 
 .ava-crown { position: absolute; left: 50%; top: 0; width: 66%; transform: translate(-62%, -64%) rotate(-16deg); pointer-events: none; z-index: 2; }
 .title-crown { width: 36px; flex: none; }
 
-.game-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; padding: 12px 8px; }
-.game-tile b { font-size: 15px; font-weight: 900; }
-.game-tile small { font-size: 12px; font-weight: 800; color: var(--muted); line-height: 1.25; }
-.game-tile.ready { border-color: rgba(229, 135, 106, .45); background: linear-gradient(160deg, #FFF1E6, #FFFCF8 62%); }
-.game-tile.ready small { color: var(--coral); }
-.gt-crown { width: 52px; }
 .gt-score { display: flex; align-items: center; gap: 5px; font-size: 18px; font-weight: 900; line-height: 1; }
 .gt-score i { font-style: normal; color: var(--muted); }
-.gt-wheel { position: relative; width: 104px; height: 104px; margin: -12px 0 -10px; }
-.gt-wheel .dc-badge { top: 8px; right: 18px; }
-.gt-cap { display: flex; flex-direction: column; gap: 1px; }
-.gt-cap b { font-size: 14px; line-height: 1.2; }
-.gt-cap small { font-size: 11.5px; }
-.gt-wheel img { width: 100%; height: 100%; transform-origin: 50% 90%; }
-.game-tile.ready .gt-wheel img { animation: wheel-nudge 3.2s ease-in-out infinite; }
+.crown-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px 10px 10px; text-align: left; }
+.crown-card .cc-crown { width: 58px; flex: none; }
+.crown-card b { display: block; font-size: 16px; font-weight: 900; }
+.crown-card small { display: block; font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.wheel-btn { position: absolute; right: 10px; top: 56px; z-index: 200; width: 64px; height: 64px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 248, 238, .88); backdrop-filter: blur(6px); box-shadow: 0 6px 14px -8px rgba(90, 59, 46, .6); }
+.wheel-btn img { width: 62px; height: 62px; transform-origin: 50% 90%; }
+.wheel-btn.ready img { animation: wheel-nudge 3.2s ease-in-out infinite; }
+.wheel-btn .dc-badge { top: -3px; right: -3px; }
+.shop-pill { padding-right: 6px; }
+.coin-pill .pill-sep { align-self: stretch; width: 1.5px; margin: 4px 1px 4px 3px; background: rgba(201, 142, 46, .3); }
+.arrange-card { gap: 10px; padding: 8px 10px 8px 8px; }
 @keyframes wheel-nudge { 0%, 76%, 100% { transform: rotate(0); } 82% { transform: rotate(-7deg); } 88% { transform: rotate(5deg); } 94% { transform: rotate(-2deg); } }
 
 .wheel-box { position: relative; width: min(300px, 80vw); aspect-ratio: 1; margin: 14px auto 2px; }
