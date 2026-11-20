@@ -3,7 +3,7 @@ import { useStore, usePersist } from '../store'
 import { addDays, diffDays } from '../dates'
 import { Img, Sheet, plural, useG, useName } from '../ui'
 import { gameOn, lastWeek, thisWeek, today } from '../game'
-import { bidsIn, lotsOf, resultsOf, withBid, MIN_BID, RAISES, type Auction, type LotResult } from '../auction'
+import { bidsIn, lotsOf, resultsOf, withBid, MIN_BID, type Auction, type LotResult } from '../auction'
 
 const daysLeft = () => diffDays(addDays(thisWeek(), 6), today())
 const untilText = (d: number) => (d > 0 ? `итоги через ${d} ${plural(d, 'день', 'дня', 'дней')}` : 'итоги сегодня в полночь')
@@ -17,12 +17,18 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
   const mine = bidsIn(auc.me, wk), his = bidsIn(auc.him, wk)
   const past = resultsOf(auc, lastWeek()).filter(r => r.win)
   const on = gameOn()
+  // Сумму вводишь сам, поле сначала пустое. Монеты уходят только по кнопке «Поставить».
+  const [amt, setAmt] = useState<Record<string, string>>({})
 
-  function raise(lot: string, n: number) {
-    if (!s.spend(n)) { s.toast(`Не хватает монет: нужно ${n}`, 'coins/coin'); return }
+  function place(lot: string) {
+    const n = Math.floor(Number(amt[lot]))
+    const first = !mine[lot]
+    if (!n || n < (first ? MIN_BID : 1)) { s.toast(`Ставка — от ${MIN_BID} монет`, 'game/bid'); return }
+    if (!s.spend(n)) { s.toast(`Не хватает монет: у тебя ${s.coins.me}`, 'coins/coin'); return }
     setAuc(a => ({ ...a, me: withBid(a.me, lot, n) }))
+    setAmt(v => ({ ...v, [lot]: '' }))
     const total = (mine[lot] ?? 0) + n
-    s.toast(mine[lot] ? `Ставка поднята: ${total}` : `Ставка в конверте: ${total}`, 'game/bid')
+    s.toast(first ? `Ставка в конверте: ${total}` : `Ставка поднята: ${total}`, 'game/bid')
   }
 
   const outcome = (r: LotResult) =>
@@ -55,11 +61,14 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 </div>
               </div>
               {on && (
-                <div className="auc-raise">
-                  {RAISES.map(n => (
-                    <button key={n} className="btn sm soft" onClick={() => raise(lot.id, n)}>+{n}</button>
-                  ))}
-                </div>
+                <form className="auc-raise" onSubmit={e => { e.preventDefault(); place(lot.id) }}>
+                  <input
+                    className="input" type="number" inputMode="numeric" min={1} step={1}
+                    placeholder={m ? 'Добавить к ставке' : `Твоя ставка, от ${MIN_BID}`}
+                    value={amt[lot.id] ?? ''} onChange={e => setAmt(v => ({ ...v, [lot.id]: e.target.value.replace(/\D/g, '') }))}
+                  />
+                  <button className="btn sm" disabled={!amt[lot.id]}>{m ? 'Добавить' : 'Поставить'}</button>
+                </form>
               )}
             </div>
           )
@@ -68,7 +77,7 @@ function AuctionSheet({ open, onClose }: { open: boolean; onClose: () => void })
 
       <p className="wheel-info">
         {on ? (daysLeft() > 0 ? `Итоги через ${daysLeft()} ${plural(daysLeft(), 'день', 'дня', 'дней')}` : 'Итоги сегодня в полночь') : 'Аукцион заработает, когда вы будете в паре'}
-        <br /><span>Ставку можно только поднять. Проиграешь — монеты вернутся</span>
+        <br /><span>У тебя {s.coins.me} {plural(s.coins.me, 'монета', 'монеты', 'монет')}. Ставку можно только поднять. Проиграешь — монеты вернутся</span>
       </p>
 
       {past.length > 0 && (

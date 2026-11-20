@@ -29,7 +29,6 @@ export const LOTS: Lot[] = [
 ]
 export const LOTS_PER_WEEK = 3
 export const MIN_BID = 10
-export const RAISES = [10, 25, 50]
 
 export interface AucWeek { wk: string; bids: Record<string, number> }
 export interface AucRec { weeks?: AucWeek[]; done?: string; wins?: number }
