@@ -971,3 +971,25 @@ textarea.dwrite { flex: none; min-height: 34dvh; resize: none; font-size: 16px; 
 .hands > span { font-size: 12px; font-weight: 800; color: #6B4535; padding: 3px 9px; border-radius: 99px; background: rgba(255, 248, 238, .88); backdrop-filter: blur(6px); white-space: nowrap; animation: fade-in .25s ease-out; }
 @keyframes beat { 50% { transform: scale(1.1); } }
 @keyframes fade-in { from { opacity: 0; transform: translateX(-4px); } }
+
+/* Аукцион недели */
+.auc-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+.auc-card .grow { min-width: 0; }
+.auc-card b { display: block; font-size: 16px; font-weight: 900; white-space: nowrap; }
+.auc-card small { display: block; font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.auc-mini { display: flex; gap: 3px; flex: none; }
+.auc-mini > span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); opacity: .75; }
+.auc-mini > span.on { opacity: 1; background: #FBE3D3; box-shadow: inset 0 0 0 2px #F2B79E; }
+.auc-hero { display: flex; align-items: center; gap: 12px; margin: 0 4px; }
+.auc-hero p { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--muted); line-height: 1.35; }
+.auc-lot { display: flex; flex-direction: column; gap: 10px; }
+.auc-lot b { display: block; font-size: 15.5px; font-weight: 900; margin-bottom: 2px; }
+.auc-lot.bid { box-shadow: inset 0 0 0 2px #F2B79E, var(--shadow, 0 6px 16px -10px rgba(90, 59, 46, .45)); }
+.auc-line { display: flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 800; color: var(--muted); min-height: 20px; }
+.auc-line.his { color: #8A5A44; }
+.auc-raise { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.auc-past { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 16px; background: var(--card-2); }
+.auc-past b { display: block; font-size: 14px; font-weight: 900; }
+.auc-past small { display: block; font-size: 12px; font-weight: 800; color: var(--muted); }
+.auc-past.won { background: #FBE9D6; }
+.auc-past.won small { color: #B5713F; }

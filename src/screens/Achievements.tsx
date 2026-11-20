@@ -7,6 +7,7 @@ import type { Wish, Goal, Bet, Thanks } from './TogetherSections'
 import type { Place } from './Places'
 import type { DEntry } from './DiaryCard'
 import type { WItem } from './Together'
+import type { Auction } from '../auction'
 
 /* Ачивки по ступеням: бронза → серебро → золото → алмаз. За каждую ступень — монеты.
    Достигнута ли ступень, считается из ваших данных. Забранные награды у каждого свои:
@@ -44,6 +45,7 @@ export const TRACKS: Track[] = [
   { id: 'pet', name: 'Питомец растёт', icon: 'pet/ui/level_badge', steps: [3, 5, 10, 20], what: n => `${n} уровень` },
   { id: 'crown', name: 'Корона недели', icon: 'game/crown', steps: [1, 4, 12, 26], what: p('корона у тебя', 'короны у тебя', 'корон у тебя') },
   { id: 'wheel', name: 'Колесо дня', icon: 'game/wheel_icon', steps: [7, 30, 100, 365], what: p('прокрутка', 'прокрутки', 'прокруток') },
+  { id: 'auction', name: 'Аукцион', icon: 'game/gavel', steps: [1, 5, 15, 40], what: p('лот выигран', 'лота выиграно', 'лотов выиграно') },
 ]
 
 interface Special { id: string; name: string; icon: string; hint: string }
@@ -72,6 +74,7 @@ export function useAchievements() {
   const [diary] = usePersist<DEntry[]>('diary', [])
   const [challenges] = usePersist<{ claimed?: boolean }[]>('challenges', [])
   const [sent] = usePersist<Record<Who, Record<string, number>>>('sent', { me: {}, him: {} })
+  const [auction] = usePersist<Auction>('auction', {})
   const [paidAll, setPaidAll] = usePersist<Paid>('ach', {})
   const ph = usePhotos()
   const paid = paidAll.me ?? {}
@@ -99,6 +102,7 @@ export function useAchievements() {
     pet: s.pet.name ? s.pet.level : 0,
     crown: me.crowns ?? 0,
     wheel: me.spins ?? 0,
+    auction: auction.me?.wins ?? 0,
   }
   const specialDone: Record<string, boolean> = {
     newpet: !!s.pet.name,

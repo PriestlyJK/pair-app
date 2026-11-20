@@ -11,6 +11,7 @@ import { ProfileSheet } from './Profile'
 import { PushNudge } from '../push'
 import { DiaryCard } from './DiaryCard'
 import { CrownCard, WheelButton, WheelSheet } from './Wheel'
+import { AuctionCard } from './Auction'
 import { SoonCard, ChallengeCard, HoldHands } from './HomeCards'
 
 // Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
@@ -661,6 +662,7 @@ function HomeMain() {
       <ChallengeCard />
 
       <CrownCard />
+      <AuctionCard />
 
       <div className="grid2">
         <PhotoCard />

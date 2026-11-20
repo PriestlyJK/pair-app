@@ -4,6 +4,7 @@ import { TODAY_KEY, diffDays, human, type CycleDay } from './dates'
 import { moveImagesToFiles } from './photos'
 import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, setPushText, getStatus, onStatus, type PairEvent } from './sync'
 import { addEarned, crowned, gameOn, lastWeek, prizeOf, CROWN_BONUS, GIFT_COINS, wheel, type CoinGift, type Game } from './game'
+import { resultsOf, unsettled, couponSize, type Auction, type Lot } from './auction'
 import { refreshPush } from './push'
 
 // Общее состояние приложения. Пока хранится на телефоне (localStorage), потом переедет в Supabase.
@@ -123,6 +124,7 @@ const Ctx = createContext<Store | null>(null)
 const handed = new Set<number>()
 const picked = new Set<number>()
 const crownPaid = new Set<string>()
+const aucSettled = new Set<string>()
 export const useStore = () => {
   const s = useContext(Ctx)
   if (!s) throw new Error('no store')
@@ -369,6 +371,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setTimeout(() => toast(`Корона недели твоя! +${CROWN_BONUS}`, 'game/crown', true), 1500)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game, status])
+
+  /* Итоги аукциона за прошедшие недели: выигранные лоты — купонами, проигранные ставки — обратно в кошелёк.
+     Как и с короной, ждём свежих данных партнёра. Каждый подводит итоги только своих ставок. */
+  const [auction, setAuction] = usePersist<Auction>('auction', {})
+  useEffect(() => {
+    if (!gameOn() || (status !== 'online' && status !== 'local')) return
+    const weeks = unsettled(auction)
+    if (!weeks.length || aucSettled.has(weeks.join())) return
+    aucSettled.add(weeks.join())
+    let back = 0
+    const won: { wk: string; lot: Lot; n: number }[] = []
+    for (const wk of weeks) for (const r of resultsOf(auction, wk)) {
+      if (!r.me) continue
+      if (r.win === 'me') won.push({ wk, lot: r.lot, n: r.me })
+      else back += r.me
+    }
+    if (won.length) setCoupons(cs => {
+      const fresh = won.filter(w => !cs.some(c => c.id === `auc-${w.wk}-${w.lot.id}`))
+      return [...cs, ...fresh.map((w, i) => ({ owner: 'me' as Who, id: `auc-${w.wk}-${w.lot.id}`, name: w.lot.name, icon: w.lot.icon, size: couponSize(w.n), uid: Date.now() + i }))]
+    })
+    if (back) setCoins(c => ({ ...c, me: c.me + back }))
+    setAuction(a => ({ ...a, me: { ...a.me, done: weeks[weeks.length - 1], wins: (a.me?.wins ?? 0) + won.length } }))
+    const text = won.length === 1 ? `Лот «${won[0].lot.name}» твой`
+      : won.length ? `Аукцион: ${won.length} ${won.length < 5 ? 'лота' : 'лотов'} твои`
+      : `Аукцион: ставки вернулись +${back}`
+    // После тоста короны, если он тоже сегодня
+    setTimeout(() => toast(won.length && back ? `${text} · +${back}` : text, won.length ? 'game/gavel' : 'game/bid', won.length > 0), 4200)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auction, status])
 
   // Прокрутку прервали (закрыли приложение) — приз выдаём при следующем входе
   const claimRef = useRef(claimSpin)

@@ -328,7 +328,7 @@ function freshSide(user: string) {
   const notMine = (field: string) => (xs: ByWho[]) => (Array.isArray(xs) ? xs.filter(x => x[field] !== 'me') : xs)
   const clearMe = (empty: unknown) => (v: ByWho) => (v && typeof v === 'object' ? { ...v, me: empty } : v)
   upd<ByWho>('profile', p => ({ ...p, me: { ...(p.me as ByWho), photo: null, ready: false } }))
-  upd('coins', clearMe(0)); upd('jar', clearMe(0)); upd('game', clearMe({})); upd('ach', clearMe({})); upd('last_seen', clearMe(undefined))
+  upd('coins', clearMe(0)); upd('jar', clearMe(0)); upd('game', clearMe({})); upd('ach', clearMe({})); upd('last_seen', clearMe(undefined)); upd('auction', clearMe({}))
   for (const k of ['moods', 'sent', 'cheat', 'cheat_notes']) upd(k, clearMe({}))
   upd<Record<string, ByWho>>('photos', ph => Object.fromEntries(Object.entries(ph ?? {}).map(([d, v]) => { const { me: _drop, ...rest } = v ?? {}; void _drop; return [d, rest] })))
   upd('seen', notMine('by')); upd('offers', notMine('by')); upd('wishes', notMine('who')); upd('coupons', notMine('owner')); upd('coin_gifts', notMine('by'))
