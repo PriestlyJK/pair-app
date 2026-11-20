@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore, type CSSProperties, type ReactNode } f
 import { A, type Assignee } from './data'
 import { useStore } from './store'
 import { isPartnerHere, onPresence } from './sync'
+import { crowned, gameOn } from './game'
 
 export function Img({ src, size, className, style }: { src: string; size?: number; className?: string; style?: CSSProperties }) {
   return <img src={A(src)} alt="" draggable={false} className={className} style={{ width: size, height: size, ...style }} />
@@ -25,8 +26,13 @@ export function Bar({ value, max = 100, color = 'var(--apricot)', thin }: { valu
 }
 
 // online — зелёная точка «в сети» (для партнёра, пока у него открыто приложение)
+/* Корона недели. Пока нет картинки в стиле приложения (hobby/ui/crown) — рисуем векторную. */
+export function Crown({ className = '' }: { className?: string }) {
+  return <img className={'game-crown ' + className} src={A('game/crown')} alt="" draggable={false} />
+}
+
 export function Ava({ who, size = 24, online }: { who: Assignee; size?: number; online?: boolean }) {
-  const { profile } = useStore()
+  const { profile, game } = useStore()
   if (who === 'both')
     return (
       <span className="ava-pair">
@@ -41,6 +47,7 @@ export function Ava({ who, size = 24, online }: { who: Assignee; size?: number; 
     <span className={'ava ava-' + who + (p.photo ? ' photo' : '')} style={{ width: size, height: size, fontSize: size * (letter.length > 2 ? 0.32 : 0.42), backgroundImage: p.photo ? `url(${p.photo})` : undefined }}>
       {!p.photo && letter}
       {online && <i className="online-dot" aria-label="в сети" />}
+      {size >= 32 && gameOn() && crowned(game).includes(who) && <i className="ava-crown" aria-label="корона недели"><Crown /></i>}
     </span>
   )
 }

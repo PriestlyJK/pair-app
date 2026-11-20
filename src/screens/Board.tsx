@@ -112,7 +112,7 @@ export default function Board() {
     setDone({ ...t, doneBy: { ...t.doneBy, me: TODAY_KEY }, status: last ? 'done' : t.status })
     sendEvent(last ? 'task' : 'task_part', { title: t.title })
     const r = reward(t)
-    setTimeout(() => s.earn(r, overdue(t) ? `+${r} · просрочка, половина` : `+${r} за свою часть`), 300)
+    setTimeout(() => s.earn(r, overdue(t) ? `+${r} · просрочка, половина` : `+${r} за свою часть`, undefined, { task: true }), 300)
   }
   // Старая общая задача: монеты получил только закрывший — второй забирает свои
   function claimLegacy(t: Task) {
@@ -159,7 +159,7 @@ export default function Board() {
       setDone(t)
       sendEvent('task', { title: t.title })
       const r = reward(t)
-      setTimeout(() => s.earn(r, overdue(t) ? `+${r} · просрочка, половина` : `+${r} за задачу`), 300)
+      setTimeout(() => s.earn(r, overdue(t) ? `+${r} · просрочка, половина` : `+${r} за задачу`, undefined, { task: true }), 300)
     }
   }
 

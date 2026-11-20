@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { DI, type Task, type Who } from './data'
 import { TODAY_KEY, diffDays, human, type CycleDay } from './dates'
 import { moveImagesToFiles } from './photos'
-import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, setPushText, type PairEvent } from './sync'
+import { getView, setDoc, subscribe, resetLocal, signOut, cloud, onEvent, missedEvents, getLink, setPushText, getStatus, onStatus, type PairEvent } from './sync'
+import { addEarned, crowned, gameOn, lastWeek, prizeOf, CROWN_BONUS, GIFT_COINS, wheel, type CoinGift, type Game } from './game'
 import { refreshPush } from './push'
 
 // Общее состояние приложения. Пока хранится на телефоне (localStorage), потом переедет в Supabase.
@@ -71,11 +72,16 @@ export interface RoomState { pos: Record<string, RoomPos>; hidden: string[] }
 // cycleBy — кто из двоих ведёт календарь цикла
 export interface Settings { since: string; meetBase: number; cycle: boolean; cycleBy?: Who }
 
-interface Toast { text: string; icon: string; key: number }
+interface Toast { text: string; icon: string; key: number; fx?: boolean }
 
 interface Store {
   coins: Record<Who, number>
-  earn(n: number, text?: string, icon?: string): void
+  // task — монеты за задачу: срабатывает «удача ×2» с колеса
+  earn(n: number, text?: string, icon?: string, o?: { task?: boolean }): void
+  game: Game
+  setGame: Dispatch<SetStateAction<Game>>
+  // Выдать приз колеса, который выпал, но ещё не выдан
+  claimSpin(): void
   gift(n: number, text: string, icon?: string): void
   spend(n: number): boolean
   jar: Record<Who, number>
@@ -103,7 +109,7 @@ interface Store {
   daysTogether: number | null
   meetCount: number
   resetAll(): void
-  toast(text: string, icon?: string): void
+  toast(text: string, icon?: string, fx?: boolean): void
   shop: ShopTab | null
   openShop(tab?: ShopTab): void
   closeShop(): void
@@ -113,6 +119,10 @@ interface Store {
 }
 
 const Ctx = createContext<Store | null>(null)
+// Что уже выдано в этом запуске: приз колеса и подарки партнёра не выдаются дважды
+const handed = new Set<number>()
+const picked = new Set<number>()
+const crownPaid = new Set<string>()
 export const useStore = () => {
   const s = useContext(Ctx)
   if (!s) throw new Error('no store')
@@ -193,6 +203,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = usePersist<Settings>('settings', { since: '', meetBase: 0, cycle: true })
   const [coins, setCoins] = usePersist<Record<Who, number>>('coins', { me: 0, him: 0 })
   const [jar, setJar] = usePersist<Record<Who, number>>('jar', { me: 0, him: 0 })
+  const [game, setGame] = usePersist<Game>('game', {})
+  const [gifts, setGifts] = usePersist<CoinGift[]>('coin_gifts', [])
+  const status = useSyncExternalStore(onStatus, getStatus)
   const [rawPet, setRawPet] = usePersist<Pet>('pet', NEW_PET)
   // Пересчитываем сытость каждые 5 минут и при возвращении в приложение
   const [now, setNow] = useState(() => Date.now())
@@ -251,7 +264,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t)
   }, [toastState])
 
-  const toast = useCallback((text: string, icon = 'common/sparkle') => setToast({ text, icon, key: Date.now() }), [])
+  const toast = useCallback((text: string, icon = 'common/sparkle', fx?: boolean) => setToast({ text, icon, key: Date.now(), fx }), [])
 
   // Уведомление партнёру на телефон: тот же текст, что он увидел бы в приложении, — от моего имени
   const myName = profile.me.name.trim() || (profile.me.g === 'f' ? 'Она' : 'Он')
@@ -301,13 +314,74 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [toast, setPet])
 
+  const earn = (n: number, text?: string, icon = 'coins/coin', o: { task?: boolean } = {}) => {
+    // Удача с колеса удваивает монеты за следующую задачу
+    const lucky = !!o.task && (getView<Game>('game', {}).me?.luck ?? 0) > 0
+    const k = lucky ? n * 2 : n
+    setCoins(c => ({ ...c, me: c.me + k }))
+    setGame(g => ({ ...g, me: { ...addEarned(g.me, k), ...(lucky ? { luck: Math.max(0, (g.me?.luck ?? 1) - 1) } : {}) } }))
+    levelUp(k)
+    toast(lucky ? `${text ?? `+${n}`} · удача: ещё +${n}` : text ?? `+${n}`, lucky ? 'common/sparkle' : icon)
+  }
+
+  function claimSpin() {
+    const sp = getView<Game>('game', {}).me?.spin
+    if (!sp || handed.has(sp.id)) return
+    handed.add(sp.id)
+    const p = prizeOf(sp.prize)
+    const done = (k?: 'feed' | 'coupon' | 'luck') => setGame(g => ({ ...g, me: { ...g.me, spin: undefined, ...(k ? { [k]: (g.me?.[k] ?? 0) + 1 } : {}) } }))
+    if (p.coins) { done(); earn(p.coins, p.id === 'c100' ? `Джекпот! +${p.coins}` : `Колесо: +${p.coins}`, p.icon); return }
+    if (p.id === 'feed') { done('feed'); toast(`Колесо: бесплатная еда для ${pet.name || 'питомца'}`, p.icon); return }
+    if (p.id === 'luck') { done('luck'); toast('Колесо: удача ×2 на следующую задачу', p.icon); return }
+    if (p.id === 'coupon') { done('coupon'); toast('Колесо: купон даром — выбери его в «Купонах»', p.icon); return }
+    done()
+    if (getLink()) {
+      setGifts(xs => [...xs.filter(x => !x.got).slice(-30), { id: sp.id, by: 'me', n: GIFT_COINS }])
+      toast(`${hisName} получит +${GIFT_COINS} монет от колеса`, p.icon)
+    } else earn(GIFT_COINS, `Колесо: +${GIFT_COINS}`, p.icon)
+  }
+
+  // Монеты, которые колесо партнёра подарило мне
+  useEffect(() => {
+    if (!getLink()) return
+    const fresh = gifts.filter(x => x.by === 'him' && !x.got && !picked.has(x.id))
+    if (!fresh.length) return
+    fresh.forEach(x => picked.add(x.id))
+    const ids = new Set(fresh.map(x => x.id))
+    setGifts(xs => xs.map(x => (ids.has(x.id) ? { ...x, got: true } : x)))
+    const n = fresh.reduce((a, x) => a + x.n, 0)
+    const t = setTimeout(() => earn(n, `${hisName} ${hisG === 'f' ? 'выиграла' : 'выиграл'} тебе на колесе +${n}`, 'common/gift'), 1200)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gifts])
+
+  /* Бонус короны — один раз за неделю. Ждём, пока подтянутся свежие данные из облака,
+     иначе можно отдать корону по устаревшему счёту партнёра. */
+  useEffect(() => {
+    if (!gameOn() || (status !== 'online' && status !== 'local')) return
+    const lw = lastWeek()
+    if (game.me?.crown === lw || crownPaid.has(lw) || !crowned(game).includes('me')) return
+    crownPaid.add(lw)
+    setGame(g => ({ ...g, me: { ...g.me, crown: lw } }))
+    setCoins(c => ({ ...c, me: c.me + CROWN_BONUS }))
+    // Без отмены по cleanup: setGame выше сразу перезапустит эффект, и тост бы потерялся
+    setTimeout(() => toast(`Корона недели твоя! +${CROWN_BONUS}`, 'game/crown', true), 1500)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game, status])
+
+  // Прокрутку прервали (закрыли приложение) — приз выдаём при следующем входе
+  const claimRef = useRef(claimSpin)
+  claimRef.current = claimSpin
+  useEffect(() => {
+    const t = setTimeout(() => { if (!wheel.spinning) claimRef.current() }, 1500)
+    return () => clearTimeout(t)
+  }, [])
+
   const store: Store = {
     coins,
-    earn(n, text, icon = 'coins/coin') {
-      setCoins(c => ({ ...c, me: c.me + n }))
-      levelUp(n)
-      toast(text ?? `+${n}`, icon)
-    },
+    earn,
+    game, setGame,
+    claimSpin,
     // Монеты без опыта для кота (стартовый подарок)
     gift(n, text, icon = 'coins/coin') {
       setCoins(c => ({ ...c, me: c.me + n }))
@@ -354,6 +428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       {children}
       {toastState && (
         <div className="toast" key={toastState.key}>
+          {toastState.fx && <img className="toast-fx" src="assets/game/confetti.webp" alt="" />}
           <img src={`assets/${toastState.icon}.webp`} alt="" />
           <span>{toastState.text}</span>
         </div>

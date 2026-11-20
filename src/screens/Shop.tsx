@@ -4,6 +4,7 @@ import { Img, Coin, Header, Bar, Sheet, useG, useName } from '../ui'
 import { SHOP, type ShopItem, type Who } from '../data'
 import { FitPet } from './Home'
 import { sendEvent, getLink } from '../sync'
+import { FREE_COUPON_MAX } from '../game'
 
 const TABS: { id: ShopTab; name: string; icon: string }[] = [
   { id: 'food', name: 'Еда', icon: 'shop/food/treat_fish' },
@@ -132,11 +133,16 @@ function Coupons() {
   const mine = offers.filter(o => o.by === 'me')
   const hisBought = s.allCoupons.filter(c => c.owner === 'him' && !c.used)
 
+  // Купон даром с колеса: любой, кроме больших
+  const freeLeft = s.game.me?.coupon ?? 0
+  const isFree = (o: Offer) => freeLeft > 0 && o.price <= FREE_COUPON_MAX
   function buy(o: Offer) {
-    if (!s.spend(o.price)) { s.toast(`Не хватает монет: нужно ${o.price}`, 'coins/coin'); return }
+    const free = isFree(o)
+    if (free) s.setGame(g => ({ ...g, me: { ...g.me, coupon: Math.max(0, (g.me?.coupon ?? 1) - 1) } }))
+    else if (!s.spend(o.price)) { s.toast(`Не хватает монет: нужно ${o.price}`, 'coins/coin'); return }
     s.addCoupon({ id: 'offer-' + o.id, name: o.name, icon: ICON_OF[o.size], size: o.size })
     sendEvent('coupon_buy', { name: o.name })
-    s.toast('Купон твой — предъяви, когда захочешь', ICON_OF[o.size])
+    s.toast(free ? 'Купон твой — даром, с колеса' : 'Купон твой — предъяви, когда захочешь', ICON_OF[o.size])
   }
 
   return (
@@ -145,11 +151,17 @@ function Coupons() {
         <Img src="shop/coupons/inventory" size={44} />
         <div className="grow"><b>Купоны {g.from}</b><div className="small muted b">{name('him')} придумывает, ты покупаешь за свои монеты</div></div>
       </div>
+      {freeLeft > 0 && (
+        <div className="card row free-cpn">
+          <Img src="game/wheel_icon" size={44} />
+          <span className="grow small b">Купон с колеса{freeLeft > 1 ? ` ×${freeLeft}` : ''}: любой малый или средний — даром</span>
+        </div>
+      )}
       {fromHim.length ? (
         <div className="col" style={{ gap: 10 }}>
           {fromHim.map(o => (
             <CouponCard key={o.id} icon={ICON_OF[o.size]} name={o.name} size={o.size}
-              right={<button className="btn sm" onClick={() => buy(o)}><Coin n={o.price} /></button>} />
+              right={<button className={'btn sm' + (isFree(o) ? ' sage' : '')} onClick={() => buy(o)}>{isFree(o) ? 'Даром' : <Coin n={o.price} />}</button>} />
           ))}
         </div>
       ) : (

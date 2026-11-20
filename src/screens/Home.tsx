@@ -10,6 +10,7 @@ import { TODAY_KEY, diffDays, human, isSunday, weekEnd, weekRange, weekStart } f
 import { ProfileSheet } from './Profile'
 import { PushNudge } from '../push'
 import { DiaryCard } from './DiaryCard'
+import { GameTiles } from './Wheel'
 
 // Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
 const Diary = lazy(() => import('./Diary'))
@@ -452,9 +453,12 @@ function HomeMain() {
   }
   function feed() {
     if (pet.satiety >= 90) { s.toast(`${pet.name} ещё сытый, покормишь позже`, 'shop/food/bowl_basic'); return }
-    if (!s.spend(5)) return
+    // Бесплатная еда с колеса тратится первой
+    const free = (s.game.me?.feed ?? 0) > 0
+    if (free) s.setGame(g => ({ ...g, me: { ...g.me, feed: Math.max(0, (g.me?.feed ?? 1) - 1) } }))
+    else if (!s.spend(5)) return
     s.setPet(p => ({ ...p, satiety: Math.min(100, p.satiety + 50) }))
-    s.toast('Покормили · −5', 'shop/food/bowl_basic')
+    s.toast(free ? 'Покормили · бесплатно, с колеса' : 'Покормили · −5', 'shop/food/bowl_basic')
     if (tod === 'night') return
     /* Подходит к нашей миске и ест из неё. В картинке «ест» миска уже нарисована — левее центра кота
        (у котёнка на 0.137 ширины холста, у взрослого на 0.153). Ставим кота так, чтобы эта миска встала
@@ -578,7 +582,7 @@ function HomeMain() {
       </div>
 
       <div className="actions">
-        <button className="btn soft" onClick={feed}><Img src="shop/food/bowl_basic" />Покормить<small>−5 монет</small></button>
+        <button className="btn soft" onClick={feed}><Img src="shop/food/bowl_basic" />Покормить<small>{s.game.me?.feed ? `бесплатно ×${s.game.me.feed}` : '−5 монет'}</small></button>
         <button className="btn soft" onClick={play}><Img src="shop/toys/ball" />Поиграть<small>бесплатно</small></button>
         <button className="btn soft" onClick={() => s.openShop()}><Img src="nav/shop" />Магазин<small>{s.coins.me} монет</small></button>
       </div>
@@ -609,6 +613,8 @@ function HomeMain() {
       </button>
 
       <DiaryCard />
+
+      <GameTiles />
 
       <div className="grid2">
         <PhotoCard />
