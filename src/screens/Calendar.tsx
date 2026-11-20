@@ -4,6 +4,7 @@ import { Img, Sheet, Ava, useName, useG, plural } from '../ui'
 import { sendEvent } from '../sync'
 import { MOODS, NEEDS, PHASES, TYPE_ICON, meetLegacy, type MeetNotes, type MoodId, type Who } from '../data'
 import { usePhotos } from '../photos'
+import { eventsOn } from '../days'
 import { DayView } from './Photos'
 import { TODAY_KEY, cycleStats, dayInfo, diffDays, dkey, fromKey, human, nextPeriod, type CycleDay } from '../dates'
 
@@ -40,17 +41,6 @@ const SYMS = [
 const SYM_NAME = Object.fromEntries(SYMS.map(x => [x.id, x.name]))
 const moodColor = (m?: MoodId) => MOODS.find(x => x.id === m)?.color
 type MyMood = { mood: MoodId; energy: number; needs: string[] }
-
-// Важные даты считаются от дня, с которого вы вместе: годовщины и круглые числа дней
-const MILESTONES = [100, 200, 300, 500, 1000, 1500, 2000, 3000]
-function importantOf(k: string, since: string) {
-  if (!since || k < since) return undefined
-  if (k === since) return { name: 'День, когда всё началось', icon: 'dates/date_anniversary' }
-  if (k.slice(5) === since.slice(5)) { const y = Number(k.slice(0, 4)) - Number(since.slice(0, 4)); return { name: `Годовщина: ${y} ${plural(y, 'год', 'года', 'лет')} вместе`, icon: 'dates/date_anniversary' } }
-  const d = diffDays(k, since)
-  if (MILESTONES.includes(d)) return { name: `${d} дней вместе`, icon: 'memory/days_together' }
-  return undefined
-}
 
 export default function Calendar() {
   const s = useStore()
@@ -93,7 +83,9 @@ export default function Calendar() {
   const myMood = (k: string): MyMood | undefined => moods[k]
   const hisMood = (k: string): MyMood | undefined => moodsAll.him?.[k]
   const tasksOn = (k: string) => s.tasks.filter(t => t.deadline === k && t.status !== 'done')
-  const important = (k: string) => importantOf(k, s.settings.since)
+  const bdays = (['me', 'him'] as Who[]).map(w => ({ who: w, date: s.profile[w].bday, name: name(w) }))
+  const events = (k: string) => eventsOn(k, s.settings.since, bdays)
+  const important = (k: string) => events(k)[0]
   const photoN = (k: string) => (photos[k]?.me ? 1 : 0) + (photos[k]?.him ? 1 : 0)
 
   function setDay(k: string, patch: Partial<CycleDay> | null) {
@@ -279,7 +271,7 @@ export default function Calendar() {
       )}
 
       <div className="col">
-        {important(sel) && <div className="ev"><Img src={important(sel)!.icon} />{important(sel)!.name}</div>}
+        {events(sel).map(e => <div key={e.name} className="ev"><Img src={e.icon} />{e.name}</div>)}
         {on('tasks') && tasksOn(sel).map(t => (
           <button key={t.id} className="ev" onClick={() => s.go('board')}><Img src={TYPE_ICON[t.type]} />{t.title}</button>
         ))}

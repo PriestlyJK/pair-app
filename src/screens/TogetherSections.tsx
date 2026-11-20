@@ -293,9 +293,9 @@ function Memory() {
 // ---------- Челленджи ----------
 // Шаблон — это «что делаем», челлендж — запущенный шаблон с днями. Имя и иконку копируем в челлендж,
 // чтобы правка шаблона не меняла уже идущий.
-interface ChKind { id: string; name: string; icon: string }
-interface Challenge { id: number; kind: string; name?: string; icon?: string; days: number; start: string; me: string[]; him: string[]; claimed?: boolean }
-const CH_KINDS: ChKind[] = [
+export interface ChKind { id: string; name: string; icon: string }
+export interface Challenge { id: number; kind: string; name?: string; icon?: string; days: number; start: string; me: string[]; him: string[]; claimed?: boolean }
+export const CH_KINDS: ChKind[] = [
   { id: 'water', name: 'Пить 2 литра воды', icon: 'challenges/ch_water' },
   { id: 'nofast', name: 'Без фастфуда', icon: 'challenges/ch_no_fastfood' },
   { id: 'steps', name: '10 000 шагов', icon: 'common/flame' },
@@ -311,7 +311,7 @@ const CH_ICONS = [
 ]
 const CH_SEED: Challenge[] = []
 // 7 дней → 30, 14 → 55, 30 → 120
-const REWARD = (days: number) => Math.max(10, Math.round((days * 4) / 5) * 5)
+export const REWARD = (days: number) => Math.max(10, Math.round((days * 4) / 5) * 5)
 const DUR = [7, 14, 21, 30]
 
 type ChForm = { mode: 'kind' | 'run'; id?: string | number; name: string; icon: string; days: number }

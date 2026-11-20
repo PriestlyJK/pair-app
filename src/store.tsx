@@ -65,7 +65,7 @@ export function hoursToHungry(p: Pet, now = Date.now()) {
 // owner — у кого купон (купил за свои монеты и может предъявить)
 export interface MyCoupon { uid: number; id: string; name: string; icon: string; size: string; used?: boolean; owner?: Who }
 export type Gender = 'f' | 'm'
-export interface Profile { name: string; photo: string | null; ready?: boolean; g?: Gender }
+export interface Profile { name: string; photo: string | null; ready?: boolean; g?: Gender; bday?: string }
 export interface RoomPos { x: number; y: number; flip?: boolean }
 export interface RoomState { pos: Record<string, RoomPos>; hidden: string[] }
 // Настройки пары: заполняются при первом запуске, меняются в профиле

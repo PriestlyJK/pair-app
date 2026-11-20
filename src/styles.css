@@ -888,6 +888,20 @@ textarea.dwrite { flex: none; min-height: 34dvh; resize: none; font-size: 16px; 
 
 .gt-score { display: flex; align-items: center; gap: 5px; font-size: 18px; font-weight: 900; line-height: 1; }
 .gt-score i { font-style: normal; color: var(--muted); }
+.soon-card { gap: 12px; width: 100%; padding: 10px 14px 10px 10px; text-align: left; }
+.soon-card small { display: block; font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.soon-card b { display: block; font-size: 16px; font-weight: 900; line-height: 1.25; }
+.soon-card.today { border-color: rgba(229, 135, 106, .5); background: linear-gradient(100deg, #FFE9DC, #FFFCF8 70%); }
+.soon-card.today small:first-child { color: var(--coral); }
+.ch-card { display: flex; flex-direction: column; gap: 8px; }
+.ch-head { gap: 10px; text-align: left; width: 100%; padding: 0; background: none; }
+.ch-head b { display: block; font-size: 16px; font-weight: 900; }
+.ch-head small { display: block; font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.ch-prog { display: flex; align-items: center; gap: 8px; }
+.ch-prog > i { flex: 1; height: 9px; border-radius: 99px; background: var(--card-2); overflow: hidden; }
+.ch-prog > i > b { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #C8DDB9, #7FA66E); transition: width .4s ease; }
+.ch-prog span { min-width: 42px; text-align: right; font-size: 12.5px; font-weight: 900; }
+.ch-note { font-size: 12px; font-weight: 800; color: var(--muted); text-align: center; }
 .crown-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px 10px 10px; text-align: left; }
 .crown-card .cc-crown { width: 58px; flex: none; }
 .crown-card b { display: block; font-size: 16px; font-weight: 900; }

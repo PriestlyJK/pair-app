@@ -11,6 +11,7 @@ import { ProfileSheet } from './Profile'
 import { PushNudge } from '../push'
 import { DiaryCard } from './DiaryCard'
 import { CrownCard, WheelButton, WheelSheet } from './Wheel'
+import { SoonCard, ChallengeCard } from './HomeCards'
 
 // Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
 const Diary = lazy(() => import('./Diary'))
@@ -618,7 +619,11 @@ function HomeMain() {
         </div>
       </button>
 
+      <SoonCard />
+
       <DiaryCard />
+
+      <ChallengeCard />
 
       <CrownCard />
 

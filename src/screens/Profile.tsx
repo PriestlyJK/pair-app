@@ -75,6 +75,10 @@ export function ProfileSheet() {
               )}
               <GenderPick value={s.profile[who].g ?? (who === 'me' ? 'f' : 'm')} onChange={v => setG(who, v)} />
             </div>
+            <label className="field bday-field"><span>{who === 'me' ? 'Твой день рождения' : 'День рождения'}</span>
+              <input className="input date-in" type="date" max={TODAY_KEY} value={s.profile[who].bday ?? ''}
+                onChange={e => s.setProfile(p => ({ ...p, [who]: { ...p[who], bday: e.target.value || undefined } }))} />
+            </label>
           </div>
         </div>
       ))}
