@@ -12,7 +12,7 @@ import { PushNudge } from '../push'
 import { DiaryCard } from './DiaryCard'
 import { CrownCard, WheelButton, WheelSheet } from './Wheel'
 import { AuctionCard } from './Auction'
-import HobbyScreen, { HobbyCard } from './Hobby'
+import HobbyScreen, { HobbyButton } from './Hobby'
 import { SoonCard, ChallengeCard, HoldHands } from './HomeCards'
 
 // Дневник открывается с главной (#home/diary) — отдельным куском, только когда нужен
@@ -604,7 +604,7 @@ function HomeMain() {
           </div>
           {edit
             ? <button className="arrange on" onClick={() => setEdit(false)}>✓ Готово</button>
-            : <WheelButton onOpen={() => setWheelOpen(true)} />}
+            : <><WheelButton onOpen={() => setWheelOpen(true)} /><HobbyButton /></>}
         </div>
       </div>
 
@@ -663,7 +663,6 @@ function HomeMain() {
 
       <ChallengeCard />
 
-      <HobbyCard />
       <CrownCard />
       <AuctionCard />
 

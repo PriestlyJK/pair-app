@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useStore, usePersist } from '../store'
 import { getLink, getStatus, onStatus } from '../sync'
 import { Coin, Header, Img, Seg, Sheet, plural, useG, useName } from '../ui'
@@ -672,11 +672,12 @@ export default function HobbyScreen() {
   const owned = Object.keys(me.own ?? {})
   const hid = cur && me.own?.[cur] ? cur : firstHobby(me)
   const back = () => s.go('home')
+  const coins = <span className="coin-pill"><Img src="coins/coin" />{s.coins.me}</span>
 
   if (!owned.length) {
     return (
       <div className="screen">
-        <Header title="Своё хобби" sub="Выбери, чем будешь заниматься. Первое — бесплатно" onBack={back} />
+        <Header title="Своё хобби" sub="Выбери, чем будешь заниматься. Первое — бесплатно" onBack={back} right={coins} />
         <HobbyPick owned={[]} onPick={id => {
           setMe(m => ({ ...m, main: id, own: { [id]: newWorkshop() } }))
           s.toast(`Твоё хобби: ${hobbyOf(id).name}`, stageImg(id, 1), true)
@@ -688,7 +689,7 @@ export default function HobbyScreen() {
   const h = hobbyOf(hid!)
   return (
     <div className="screen">
-      <Header title={view === 'me' ? h.name : 'Хобби: ' + name('him')} sub={view === 'me' ? h.about : undefined} onBack={back} />
+      <Header title={view === 'me' ? h.name : 'Хобби: ' + name('him')} sub={view === 'me' ? h.about : undefined} onBack={back} right={coins} />
       {paired() && (
         <Seg value={view} onChange={setView} options={[{ id: 'me', name: 'Моё' }, { id: 'him', name: name('him') }]} />
       )}
@@ -697,37 +698,18 @@ export default function HobbyScreen() {
   )
 }
 
-/* ---------- карточка на главной ---------- */
+/* ---------- вход в хобби: круглая кнопка в комнате, под колесом ---------- */
 
-export function HobbyCard() {
+export function HobbyButton() {
   const s = useStore()
   const now = useNow(60000)
   const { me } = useHobbyDoc()
-  const ids = Object.keys(me.own ?? {})
-  let body: ReactNode
-  if (!ids.length) {
-    body = (
-      <>
-        <Img src="game/hobby_box" size={56} />
-        <span className="grow"><b>Своё хобби</b><small>Выбери, чем заниматься: теплица, пекарня, аквариум и ещё 10</small></span>
-      </>
-    )
-  } else {
-    const main = firstHobby(me)!
-    const all = ids.flatMap(id => me.own![id].slots)
-    const ready = all.filter(sl => sl && isReady(sl, now)).length
-    const free = all.filter(sl => !sl).length
-    const w = me.own![main]
-    body = (
-      <>
-        <Img src={stageImg(main, w.level)} size={64} />
-        <span className="grow">
-          <b>{hobbyOf(main).name}</b>
-          <small>{ready ? `готово: ${ready}` : free ? `свободно ${free} ${plural(free, 'место', 'места', 'мест')}` : 'всё в работе'} · ур. {w.level}</small>
-        </span>
-        {ready > 0 && <i className="dc-badge static">{ready}</i>}
-      </>
-    )
-  }
-  return <button className="card hb-card" onClick={() => s.go('home', 'hobby')}>{body}</button>
+  const main = firstHobby(me)
+  const ready = Object.values(me.own ?? {}).flatMap(w => w.slots).filter(sl => sl && isReady(sl, now)).length
+  return (
+    <button className="hb-btn" onClick={() => s.go('home', 'hobby')} aria-label="Хобби">
+      <Img src={main ? stageImg(main, me.own![main].level) : 'game/hobby_box'} />
+      {ready > 0 && <i className="dc-badge">{ready}</i>}
+    </button>
+  )
 }

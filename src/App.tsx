@@ -21,25 +21,27 @@ const TABS: { id: Tab; name: string; icon: string }[] = [
 ]
 
 function Shell() {
-  const { tab, go, shop, profile } = useStore()
+  const { tab, sub, go, shop, profile } = useStore()
   if (!profile.me.ready) return <Onboarding />
+  // Хобби — отдельный режим на весь экран, без нижнего меню
+  const full = tab === 'home' && sub === 'hobby'
   return (
     <>
-      <main className="app" key={tab}>
+      <main className={'app' + (full ? ' full' : '')} key={tab}>
         {tab === 'home' && <Home />}
         {tab === 'board' && <Board />}
         {tab === 'calendar' && <Calendar />}
         {tab === 'together' && <Together />}
         {tab === 'cheatsheet' && <Cheatsheet />}
       </main>
-      <nav className="tabbar">
+      {!full && <nav className="tabbar">
         {TABS.map(t => (
           <button key={t.id} className={'tab' + (t.id === tab ? ' on' : '')} onClick={() => go(t.id)}>
             <Img src={t.icon} />
             {t.name}
           </button>
         ))}
-      </nav>
+      </nav>}
       {shop && <Shop />}
       <HobbyInbox />
     </>
